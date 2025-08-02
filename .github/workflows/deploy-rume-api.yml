@@ -1,0 +1,28 @@
+name: Deploy Payload 3 Bun Template
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - apps/payload-3-bun-template/**
+
+jobs:
+  deploy:
+    name: Deploy Payload 3 Bun Template
+    runs-on: ubuntu-latest
+    permissions: write-all
+    environment: ${{ github.ref_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@1.5
+
+      - name: Deploy Payload 3 Bun Template to Fly.io
+        run: |
+          flyctl deploy . --config ${{ github.workspace }}/apps/paayload-3-bun-template/fly.toml --ha=false
+        env:
+          FLY_API_TOKEN: ${{ steps.doppler.outputs.FLY_API_TOKEN }}

@@ -1,0 +1,25 @@
+{
+  "name": "@dappermountain/payload-3-bun-template",
+  "version": "1.0.0",
+  "description": "Payload CMS Bun Template",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --turbo",
+    "generate:importmap": "payload generate:importmap",
+    "generate:schema": "payload-graphql generate:schema",
+    "generate:types": "payload generate:types",
+    "db:migrate:run": "payload migrate",
+    "db:migrate:create": "payload migrate:create",
+    "lint": "eslint .",
+    "format": "prettier .",
+    "start": "next start",
+    "test": "bun test",
+    "prepare": "husky || true"
+  },
+  "dependencies": {
+    "@dappermountain/payload": "*",
+    "zod": "^3.25.76"
+  }
+}

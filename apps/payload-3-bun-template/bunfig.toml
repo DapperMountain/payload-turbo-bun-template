@@ -1,0 +1,6 @@
+[env]
+NODE_OPTIONS = "--no-deprecation"
+PAYLOAD_CONFIG_PATH = "config/payload.ts"
+
+[test]
+preload = ["src/test/config.ts"]

@@ -1,59 +1,25 @@
 {
-  "name": "payload-test",
-  "version": "1.0.0",
-  "description": "A blank template to get started with Payload 3.0",
-  "license": "MIT",
-  "type": "module",
+  "name": "@dappermountain/payload-3-bun-template",
+  "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev --turbo",
-    "generate:types": "payload generate:types",
-    "generate:schema": "payload-graphql generate:schema",
-    "db:seed:run": "payload run ./src/database/seed",
-    "db:migrate:run": "payload migrate",
-    "db:migrate:create": "payload migrate:create",
-    "lint": "eslint .",
-    "format": "prettier .",
-    "start": "next start",
-    "test": "bun test",
-    "prepare": "husky || true"
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
-  "dependencies": {
-    "@payloadcms/db-postgres": "3.3.0",
-    "@payloadcms/db-sqlite": "3.3.0",
-    "@payloadcms/next": "3.3.0",
-    "@payloadcms/richtext-lexical": "3.3.0",
-    "@radix-ui/react-slot": "^1.1.0",
-    "babel-plugin-react-compiler": "19.0.0-beta-df7b47d-20241124",
-    "class-variance-authority": "^0.7.0",
-    "graphql": "16.9.0",
-    "lucide-react": "^0.456.0",
-    "next": "15.0.3",
-    "payload": "3.3.0",
-    "react": "19.0.0-rc-1b1283ad-20241203",
-    "react-dom": "19.0.0-rc-1b1283ad-20241203",
-    "tailwind-merge": "^2.5.4",
-    "tailwindcss-animate": "^1.0.7",
-    "tailwindcss-scoped-preflight": "^3.4.9",
-    "zod": "^3.23.8"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@payloadcms/graphql": "3.3.0",
     "@types/bun": "latest",
-    "@types/node": "^22.7.5",
-    "@types/react": "npm:types-react@19.0.0-rc.1",
-    "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1",
-    "autoprefixer": "^10.4.20",
-    "dotenv": "^16.4.5",
-    "eslint": "^9.14.0",
-    "eslint-config-next": "15.0.3",
-    "husky": "^9.1.6",
-    "lint-staged": "^15.2.10",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
-    "typescript": "5.6.3"
+    "@types/node": "latest",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "turbo": "^2.5.5",
+    "typescript": "5.8.3"
   },
-  "engines": {
-    "node": "^18.20.2 || >=22.9.0"
-  }
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/dependencies/*"
+  ],
+  "packageManager": "bun@1.2.19"
 }
