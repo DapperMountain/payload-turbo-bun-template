@@ -1,5 +1,6 @@
 services:
   payload-3-bun-template:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/payload-3-bun-template/Dockerfile
