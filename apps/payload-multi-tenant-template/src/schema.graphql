@@ -1,7 +1,7 @@
 type Query {
   User(id: String!, draft: Boolean, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, trash: Boolean): User
   Users(draft: Boolean, where: User_where, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, limit: Int, page: Int, pagination: Boolean, sort: String, trash: Boolean): Users
-  countUsers(draft: Boolean, where: User_where, locale: LocaleInputType): countUsers
+  countUsers(draft: Boolean, trash: Boolean, where: User_where, locale: LocaleInputType): countUsers
   docAccessUser(id: String!): usersDocAccess
   versionUser(id: String, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, trash: Boolean): UserVersion
   versionsUsers(where: versionsUser_where, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, limit: Int, page: Int, pagination: Boolean, sort: String, trash: Boolean): versionsUsers
@@ -9,15 +9,15 @@ type Query {
   initializedUser: Boolean
   Tenant(id: String!, draft: Boolean, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, trash: Boolean): Tenant
   Tenants(draft: Boolean, where: Tenant_where, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, limit: Int, page: Int, pagination: Boolean, sort: String, trash: Boolean): Tenants
-  countTenants(draft: Boolean, where: Tenant_where, locale: LocaleInputType): countTenants
+  countTenants(draft: Boolean, trash: Boolean, where: Tenant_where, locale: LocaleInputType): countTenants
   docAccessTenant(id: String!): tenantsDocAccess
   PayloadLockedDocument(id: String!, draft: Boolean, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, trash: Boolean): PayloadLockedDocument
   PayloadLockedDocuments(draft: Boolean, where: PayloadLockedDocument_where, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, limit: Int, page: Int, pagination: Boolean, sort: String, trash: Boolean): PayloadLockedDocuments
-  countPayloadLockedDocuments(draft: Boolean, where: PayloadLockedDocument_where, locale: LocaleInputType): countPayloadLockedDocuments
+  countPayloadLockedDocuments(draft: Boolean, trash: Boolean, where: PayloadLockedDocument_where, locale: LocaleInputType): countPayloadLockedDocuments
   docAccessPayloadLockedDocument(id: String!): payload_locked_documentsDocAccess
   PayloadPreference(id: String!, draft: Boolean, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, trash: Boolean): PayloadPreference
   PayloadPreferences(draft: Boolean, where: PayloadPreference_where, fallbackLocale: FallbackLocaleInputType, locale: LocaleInputType, limit: Int, page: Int, pagination: Boolean, sort: String, trash: Boolean): PayloadPreferences
-  countPayloadPreferences(draft: Boolean, where: PayloadPreference_where, locale: LocaleInputType): countPayloadPreferences
+  countPayloadPreferences(draft: Boolean, trash: Boolean, where: PayloadPreference_where, locale: LocaleInputType): countPayloadPreferences
   docAccessPayloadPreference(id: String!): payload_preferencesDocAccess
   Access: Access
 }

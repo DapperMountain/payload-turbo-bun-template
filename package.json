@@ -1,5 +1,6 @@
 {
-  "name": "@dappermountain/payload-3-bun-template",
+  "name": "@dappermountain/payload-turbo-bun-template",
+  "description": "Payload CMS Monorepo using Turborepo and Bun",
   "private": true,
   "scripts": {
     "lint": "turbo lint",

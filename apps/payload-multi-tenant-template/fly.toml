@@ -1,17 +1,17 @@
-# fly.toml app configuration file generated for payload-3-bun-template-production on 2025-02-27T21:33:19-05:00
+# fly.toml app configuration file generated for payload-multi-tenant-template-production on 2025-02-27T21:33:19-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'payload-3-bun-template-production'
+app = 'payload-multi-tenant-template-production'
 primary_region = 'lax'
 
 [build]
   dockerfile = './Dockerfile'
 
   [build.args]
-    PROJECT = '@dappermountain/payload-3-bun-template'
-    PROJECT_PATH = 'apps/payload-3-bun-template'
+    PROJECT = '@dappermountain/payload-multi-tenant-template'
+    PROJECT_PATH = 'apps/payload-multi-tenant-template'
 
 [deploy]
   strategy = 'rolling'

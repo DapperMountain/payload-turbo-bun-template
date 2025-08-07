@@ -1,7 +1,7 @@
 {
   "name": "@dappermountain/payload",
   "version": "1.0.0",
-  "description": "Shared PayloadCMS dependencies",
+  "description": "Shared Payload CMS dependencies",
   "license": "MIT",
   "type": "module",
   "dependencies": {

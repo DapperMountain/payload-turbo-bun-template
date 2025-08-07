@@ -1,15 +1,15 @@
 services:
-  payload-3-bun-template:
+  payload-multi-tenant-template:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: apps/payload-3-bun-template/Dockerfile
+      dockerfile: apps/payload-multi-tenant-template/Dockerfile
       args:
-        PROJECT: '@dappermountain/payload-3-bun-template'
-        PROJECT_PATH: 'apps/payload-3-bun-template'
+        PROJECT: '@dappermountain/payload-multi-tenant-template'
+        PROJECT_PATH: 'apps/payload-multi-tenant-template'
     command: sh -c 'bun install && bun dev'
     env_file:
-      - apps/payload-3-bun-template/.env
+      - apps/payload-multi-tenant-template/.env
     ports:
       - 3001:3000
     volumes:

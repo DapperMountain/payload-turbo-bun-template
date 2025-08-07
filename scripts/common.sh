@@ -7,8 +7,8 @@
 # Set environment variables that are common across scripts.
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
-export COMPOSE_PROJECT_NAME=dappermountain-apps
-export SERVICES_DIR="apps"  # Ensure this is correctly defined
+export COMPOSE_PROJECT_NAME=payload-turbo-bun-template
+export APPS_DIR="apps"  # Ensure this is correctly defined
 
 # Get the full path of the directory containing this script
 get_script_dir() {
@@ -36,13 +36,13 @@ get_dir_name() {
 check_file_in_service_dir() {
     local service="$1"
     local file="$2"
-    local service_dir="${SERVICES_DIR}/${service}"
+    local service_dir="${APPS_DIR}/${service}"
 
     [[ -e "${service_dir}/${file}" ]] && return 0 || return 1
 }
 
 # Function to list services directory names.
-SERVICES=("${SERVICES_DIR}"/*/)
+SERVICES=("${APPS_DIR}"/*/)
 SERVICES=("${SERVICES[@]%/}")
 SERVICES=("${SERVICES[@]##*/}")
 

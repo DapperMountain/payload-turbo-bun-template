@@ -1,7 +1,7 @@
 {
-  "name": "@dappermountain/payload-3-bun-template",
+  "name": "@dappermountain/payload-multi-tenant-template",
   "version": "1.0.0",
-  "description": "Payload CMS Bun Template",
+  "description": "Payload CMS Multi-Tenant Template using Turborepo and Bun",
   "license": "MIT",
   "type": "module",
   "scripts": {

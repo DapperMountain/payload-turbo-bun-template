@@ -1,4 +1,4 @@
-name: Deploy Payload 3 Bun Template
+name: Deploy Payload Multi-Tenant Template
 
 on:
   workflow_dispatch:
@@ -6,11 +6,11 @@ on:
     branches:
       - main
     paths:
-      - apps/payload-3-bun-template/**
+      - apps/payload-multi-tenant-template/**
 
 jobs:
   deploy:
-    name: Deploy Payload 3 Bun Template
+    name: Deploy Payload Multi-Tenant Template
     runs-on: ubuntu-latest
     permissions: write-all
     environment: ${{ github.ref_name }}
@@ -21,8 +21,8 @@ jobs:
       - name: Set up flyctl
         uses: superfly/flyctl-actions/setup-flyctl@1.5
 
-      - name: Deploy Payload 3 Bun Template to Fly.io
+      - name: Deploy Payload Multi-Tenant Template to Fly.io
         run: |
-          flyctl deploy . --config ${{ github.workspace }}/apps/paayload-3-bun-template/fly.toml --ha=false
+          flyctl deploy . --config ${{ github.workspace }}//apps/payload-multi-tenant-template/fly.toml --ha=false
         env:
-          FLY_API_TOKEN: ${{ steps.doppler.outputs.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

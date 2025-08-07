@@ -1,4 +1,4 @@
-# payload-3-bun-template
+# payload-turbo-bun-template
 
 > Local development environment setup for the Payload Bun Template.
 
@@ -20,6 +20,6 @@ Start the application containers.
 
 ### Verify Setup
 
-After completing the steps above, you should now see the `payload-3-bun-template` project in Docker Desktop with healthy services loaded and ready to go. This confirms that the local development environment is set up correctly and the services are running as expected.
+After completing the steps above, you should now see the `payload-turbo-bun-template` project in Docker Desktop with healthy services loaded and ready to go. This confirms that the local development environment is set up correctly and the services are running as expected.
 
-You can find the exposed port for each service in the Docker Desktop Dashboard under the `payload-3-bun-template` project. This helps in identifying and accessing the running services directly from your local machine.
+You can find the exposed port for each service in the Docker Desktop Dashboard under the `payload-turbo-bun-template` project. This helps in identifying and accessing the running services directly from your local machine.

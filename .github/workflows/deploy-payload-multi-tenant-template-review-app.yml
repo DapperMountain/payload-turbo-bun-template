@@ -1,15 +1,15 @@
-name: Deploy Payload 3 Bun Template Review App
+name: Deploy Payload Multi-Tenant Template Review App
 
 on:
   workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize, closed]
     paths:
-      - apps/payload-3-bun-template/**
+      - apps/payload-multi-tenant-template/**
 
 jobs:
   deploy:
-    name: Deploy Payload 3 Bun Template Review App
+    name: Deploy Payload Multi-Tenant Template Review App
     runs-on: ubuntu-latest
     permissions: write-all
     environment:
@@ -23,7 +23,7 @@ jobs:
       - name: Set Fly.io app name
         id: name
         run: |
-          echo "name=payload-3-bun-template-review-${{ github.event.number }}" >> $GITHUB_OUTPUT
+          echo "name=payload-multi-tenant-template-review-${{ github.event.number }}" >> $GITHUB_OUTPUT
 
       - name: Set Fly.io url
         id: url
@@ -35,10 +35,10 @@ jobs:
         uses: superfly/fly-pr-review-apps@1.3.0
         with:
           org: ORG_NAME
-          name: payload-3-bun-template-review-${{ github.event.number }}
-          config: ${{ github.workspace }}/apps/payload-3-bun-template/fly.toml
+          name: payload-multi-tenant-template-review-${{ github.event.number }}
+          config: ${{ github.workspace }}/apps/payload-multi-tenant-template/fly.toml
           postgres: DB_NAME
           memory: 1024
           secrets: ${{ steps.format-secrets.outputs.variables }}
         env:
-          FLY_API_TOKEN: ${{ steps.doppler.outputs.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
