@@ -1,0 +1,33 @@
+# IDEs
+.history
+.idea
+
+# Dependencies
+node_modules
+
+# Monorepo
+.turbo
+
+# Next.js
+.next
+
+# Environment Variables
+.env
+.envrc
+
+# Misc
+.DS_Store
+
+# Terraform (OpenTofu)
+.terraform
+*.tfvars
+
+# fly.io
+fly.toml
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Git
+.git

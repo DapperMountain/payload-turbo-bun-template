@@ -1,0 +1,25 @@
+{
+  "name": "@dappermountain/payload-multi-tenant-template",
+  "version": "1.0.0",
+  "description": "Payload CMS Multi-Tenant Template using Turborepo and Bun",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --turbo",
+    "generate:importmap": "payload generate:importmap",
+    "generate:schema": "payload-graphql generate:schema",
+    "generate:types": "payload generate:types",
+    "db:migrate:run": "payload migrate",
+    "db:migrate:create": "payload migrate:create",
+    "lint": "eslint .",
+    "format": "prettier .",
+    "start": "next start",
+    "test": "bun test",
+    "prepare": "husky || true"
+  },
+  "dependencies": {
+    "@dappermountain/payload": "*",
+    "zod": "^4.0.14"
+  }
+}

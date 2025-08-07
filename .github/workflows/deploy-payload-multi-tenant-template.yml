@@ -1,0 +1,28 @@
+name: Deploy Payload Multi-Tenant Template
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - apps/payload-multi-tenant-template/**
+
+jobs:
+  deploy:
+    name: Deploy Payload Multi-Tenant Template
+    runs-on: ubuntu-latest
+    permissions: write-all
+    environment: ${{ github.ref_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@1.5
+
+      - name: Deploy Payload Multi-Tenant Template to Fly.io
+        run: |
+          flyctl deploy . --config ${{ github.workspace }}//apps/payload-multi-tenant-template/fly.toml --ha=false
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
