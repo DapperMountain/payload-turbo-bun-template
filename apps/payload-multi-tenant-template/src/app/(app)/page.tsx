@@ -1,14 +1,11 @@
 'use client'
-import { Button } from '@dappermountain/design-system'
-import type { NextPage } from 'next'
+import { Button, Card, SizableText } from '@dappermountain/design-system'
 
-const Home: NextPage = () => {
+export default function Page() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl mb-4">Welcome to the site!</h1>
-      <Button label="Click Me" onClick={() => alert('Button clicked!')} />
-    </div>
+    <Card p="$4">
+      <SizableText size="$4">Hello from a tenant theme</SizableText>
+      <Button>Click</Button>
+    </Card>
   )
 }
-
-export default Home

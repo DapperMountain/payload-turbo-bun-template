@@ -13,3 +13,6 @@
 
 # typescript
 next-env.d.ts
+
+# Tamagui
+/.tamagui/

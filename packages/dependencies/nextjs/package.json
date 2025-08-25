@@ -7,16 +7,16 @@
   "dependencies": {
     "@dappermountain/design-system": "*",
     "babel-plugin-react-compiler": "^19.1.0-rc.2",
-    "next": "^15.4.4",
+    "next": "^15.5.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@dappermountain/typescript-config": "*",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@types/react": "^19.1.11",
+    "@types/react-dom": "^19.1.7",
     "autoprefixer": "^10.4.21",
-    "eslint": "^9.32.0",
-    "eslint-config-next": "^15.4.4"
+    "eslint": "^9.33.0",
+    "eslint-config-next": "^15.5.0"
   }
 }
