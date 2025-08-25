@@ -132,6 +132,7 @@ export interface User {
     | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   enableAPIKey?: boolean | null;
   apiKey?: string | null;
   apiKeyIndex?: string | null;
@@ -162,6 +163,7 @@ export interface Tenant {
   domain: string;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -238,6 +240,7 @@ export interface UsersSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   enableAPIKey?: T;
   apiKey?: T;
   apiKeyIndex?: T;
@@ -266,6 +269,7 @@ export interface TenantsSelect<T extends boolean = true> {
   domain?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

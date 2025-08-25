@@ -1,19 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "Design System",
-  "extends": "@dappermountain/typescript-config/react",
+  "extends": "../typescript-config/react.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "dist",
-    "jsxImportSource": "nativewind",
-    "paths": {
-      "@/*": ["src/*"],
-      "@config": ["config/index.ts"],
-      "@config/*": ["config/*"],
-      "@collections/*": ["src/collections/*"],
-      "@payload-config": ["config/payload.ts"]
-    }
+    "outDir": "dist"
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.mjs"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
 }

@@ -1,25 +1,12 @@
-import type { ReactNode } from 'react'
+import { NextDesignSystemProvider } from '@dappermountain/design-system'
 
-import { cn } from '@/lib/utils'
-import { Inter as FontSans } from 'next/font/google'
-
-type LayoutProps = {
-  children: ReactNode
-}
-
-import './globals.scss'
-
-const fontSans = FontSans({
-  subsets: ['latin'],
-  variable: '--font-sans',
-})
-
-const Layout = ({ children }: LayoutProps) => {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={cn('min-h-screen bg-background font-sans antialiased tw', fontSans.variable)}>{children}</body>
+      <head>{process.env.NODE_ENV === 'production' && <link rel="stylesheet" href="/styles.css" />}</head>
+      <body>
+        <NextDesignSystemProvider>{children}</NextDesignSystemProvider>
+      </body>
     </html>
   )
 }
-
-export default Layout

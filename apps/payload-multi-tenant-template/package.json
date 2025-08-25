@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "next build",
+    "build": "next build --turbo",
     "dev": "next dev --turbo",
     "generate:importmap": "payload generate:importmap",
     "generate:schema": "payload-graphql generate:schema",
@@ -20,6 +20,6 @@
   },
   "dependencies": {
     "@dappermountain/payload": "*",
-    "zod": "^4.0.14"
+    "zod": "^4.0.17"
   }
 }

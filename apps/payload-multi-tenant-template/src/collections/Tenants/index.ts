@@ -4,6 +4,7 @@ import { hooks } from './hooks'
 
 const Tenants: CollectionConfig = {
   slug: 'tenants',
+  trash: true,
   access,
   admin: {
     useAsTitle: 'name',

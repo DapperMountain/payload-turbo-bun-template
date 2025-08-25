@@ -5,15 +5,16 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@payloadcms/db-postgres": "^3.49.0",
-    "@payloadcms/next": "^3.49.0",
-    "@payloadcms/plugin-multi-tenant": "^3.49.0",
-    "@payloadcms/richtext-lexical": "^3.49.0",
+    "@payloadcms/db-postgres": "^3.53.0",
+    "@payloadcms/graphql": "^3.53.0",
+    "@payloadcms/next": "^3.53.0",
+    "@payloadcms/plugin-multi-tenant": "^3.53.0",
+    "@payloadcms/richtext-lexical": "^3.53.0",
     "@dappermountain/nextjs": "*",
     "graphql": "^16.10.0",
-    "payload": "^3.49.0"
+    "payload": "^3.53.0"
   },
   "devDependencies": {
-    "@payloadcms/graphql": "^3.49.0"
+    "@payloadcms/graphql": "^3.53.0"
   }
 }

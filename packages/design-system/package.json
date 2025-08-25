@@ -3,32 +3,49 @@
   "version": "1.0.0",
   "description": "Dapper Mountain Design System",
   "private": true,
+  "types": "./types/index.d.ts",
+  "main": "dist/cjs",
+  "module": "dist/esm",
+  "module:jsx": "dist/jsx",
+  "files": [
+    "types",
+    "src",
+    "dist"
+  ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "jsx": "./dist/jsx/index.js"
+    }
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "clean": "rimraf dist types",
+    "prebuild": "bun run clean",
+    "build": "tamagui-build",
+    "watch": "bun run build --watch"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
   "dependencies": {
-    "@radix-ui/react-slot": "^1.2.3",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
+    "@tamagui/colors": "^1.132.17",
+    "@tamagui/config": "^1.132.17",
+    "@tamagui/next-plugin": "^1.132.17",
+    "@tamagui/next-theme": "^1.132.17",
+    "@tamagui/shorthands": "^1.132.17",
+    "@tamagui/theme-builder": "^1.132.17",
     "lucide-react": "^0.532.0",
-    "nativewind": "^4.1.23",
-    "react-native-reanimated": "^3.17.4",
-    "react-native-safe-area-context": "^5.4.0",
-    "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7",
-    "tailwindcss-scoped-preflight": "^3.4.12"
+    "tamagui": "^1.132.17"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "prettier-plugin-tailwindcss": "^0.5.11",
-    "tailwindcss": "^3.4.17"
+    "@dappermountain/typescript-config": "*",
+    "@tamagui/build": "^1.132.17"
   },
   "peerDependencies": {
     "react": ">= 19.0.0",
-    "react-dom": ">= 19.0.0"
+    "react-dom": ">= 19.0.0",
+    "react-native": "^0.80.2"
   }
 }

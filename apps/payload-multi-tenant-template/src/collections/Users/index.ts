@@ -6,6 +6,7 @@ import { hooks } from './hooks'
 const Users: CollectionConfig = {
   slug: 'users',
   auth: { useAPIKey: true },
+  trash: true,
   access,
   versions: true,
   admin: { useAsTitle: 'fullName', listSearchableFields: ['firstName', 'lastName'] },
