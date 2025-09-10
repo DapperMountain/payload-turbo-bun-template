@@ -19,7 +19,7 @@ services:
 
   db:
     restart: unless-stopped
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:latest-pg17
     healthcheck:
       test: ['CMD-SHELL', 'g_isready -U ${DATABASE_USER:-payload} -d ${DATABASE_NAME:-payload}']
       interval: 5s

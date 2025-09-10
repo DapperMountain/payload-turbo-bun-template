@@ -30,22 +30,22 @@
     "*.css"
   ],
   "dependencies": {
-    "@tamagui/colors": "^1.132.17",
-    "@tamagui/config": "^1.132.17",
-    "@tamagui/next-plugin": "^1.132.17",
-    "@tamagui/next-theme": "^1.132.17",
-    "@tamagui/shorthands": "^1.132.17",
-    "@tamagui/theme-builder": "^1.132.17",
-    "lucide-react": "^0.532.0",
-    "tamagui": "^1.132.17"
+    "@tamagui/colors": "^1.132.23",
+    "@tamagui/config": "^1.132.23",
+    "@tamagui/next-plugin": "^1.132.23",
+    "@tamagui/next-theme": "^1.132.23",
+    "@tamagui/shorthands": "^1.132.23",
+    "@tamagui/theme-builder": "^1.132.23",
+    "lucide-react": "^0.543.0",
+    "tamagui": "^1.132.23"
   },
   "devDependencies": {
     "@dappermountain/typescript-config": "*",
-    "@tamagui/build": "^1.132.17"
+    "@tamagui/build": "^1.132.23"
   },
   "peerDependencies": {
     "react": ">= 19.0.0",
     "react-dom": ">= 19.0.0",
-    "react-native": "^0.80.2"
+    "react-native": ">= 0.80.2"
   }
 }
