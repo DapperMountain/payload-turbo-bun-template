@@ -49,19 +49,24 @@ const zEmailEnv = (key: string) =>
     .describe(`Environment variable (email): ${key}`)
 
 /**
- * Loads an environment variable and parses it as a boolean.
- * Interprets the string 'true' as true, anything else as false.
+ * Loads an environment variable as a boolean.
+ * Accepts true/false (case-insensitive) and 1/0.
+ * Defaults to false if not set.
  *
  * @param key - Environment variable name
- * @returns Zod schema that resolves to a boolean
+ * @returns Zod schema that transforms the env var into a boolean
  */
 const zBoolEnv = (key: string) =>
   z
     .string()
     .default(env[key] ?? 'false')
-    .transform((v) => v === 'true')
-    .describe(`Environment variable (boolean): ${key}`)
+    .transform((v) => {
+      const val = v.trim().toLowerCase()
 
+      if (['true', '1'].includes(val)) return true
+      if (['false', '0'].includes(val)) return false
+    })
+    .describe(`Environment variable (boolean): ${key}`)
 /**
  * Loads a string from an environment variable and ensures it's one of a predefined enum.
  *
