@@ -1,3 +1,4 @@
+@ -1,38 +0,0 @@
 # fly.toml app configuration file generated for payload-multi-tenant-template-production on 2025-02-27T21:33:19-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
@@ -36,3 +37,4 @@ primary_region = 'lax'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 2
+  

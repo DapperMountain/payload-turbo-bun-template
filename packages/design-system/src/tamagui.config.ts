@@ -2,7 +2,7 @@ import * as Colors from '@tamagui/colors'
 import { defaultConfig } from '@tamagui/config/v4'
 import { shorthands as tamaguiShorthands } from '@tamagui/shorthands'
 import { createThemes, defaultComponentThemes } from '@tamagui/theme-builder'
-import { createTamagui } from 'tamagui'
+const { createTamagui } = require('tamagui')
 
 /** ---- Tokens (single source) ----
  * IMPORTANT: Tamagui requires size.true and space.true to mirror your default.

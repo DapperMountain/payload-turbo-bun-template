@@ -30,18 +30,23 @@
     "*.css"
   ],
   "dependencies": {
-    "@tamagui/colors": "^1.132.23",
-    "@tamagui/config": "^1.132.23",
-    "@tamagui/next-plugin": "^1.132.23",
-    "@tamagui/next-theme": "^1.132.23",
-    "@tamagui/shorthands": "^1.132.23",
-    "@tamagui/theme-builder": "^1.132.23",
+    "@tamagui/colors": "^1.137.3",
+    "@tamagui/config": "^1.137.3",
+    "@tamagui/next-plugin": "^1.137.3",
+    "@tamagui/next-theme": "^1.137.3",
+    "@tamagui/shorthands": "^1.137.3",
+    "@tamagui/theme-builder": "^1.137.3",
+    "@tamagui/types": "^1.137.3",
     "lucide-react": "^0.543.0",
-    "tamagui": "^1.132.23"
+    "tamagui": "^1.137.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/node": "^22.0.0"
   },
   "devDependencies": {
-    "@dappermountain/typescript-config": "*",
-    "@tamagui/build": "^1.132.23"
+    "@dappermountain/typescript-config": "workspace:*",
+    "@tamagui/build": "^1.137.3",
+    "next": "^15.5.6"
   },
   "peerDependencies": {
     "react": ">= 19.0.0",

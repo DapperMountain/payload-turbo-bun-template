@@ -27,7 +27,7 @@ export default buildConfig({
   localization,
   editor: lexicalEditor({}),
   secret: config.payload.secret,
-  typescript: { outputFile: path.resolve(rootDir, 'src', 'types.ts') },
+  typescript: { outputFile: path.resolve(rootDir, 'src', 'types') },
   graphQL: { schemaOutputFile: path.resolve(rootDir, 'src', 'schema.graphql') },
   db: postgresAdapter({
     idType: 'uuid',

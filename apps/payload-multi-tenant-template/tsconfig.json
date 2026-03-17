@@ -1,9 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "PayloadCMS",
-  "extends": "@dappermountain/typescript-config/nextjs",
+  "extends": "../../packages/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "paths": {
       "@/*": ["src/*"],
       "@config": ["config/index.ts"],

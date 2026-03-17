@@ -13,6 +13,7 @@ import { Access, PayloadRequest } from 'payload'
  * @param req - The Payload request object.
  * @returns Boolean indicating whether the user has system admin privileges.
  */
-export const isSystemAdmin: Access = requireAll(isAuthenticated, ({ req }: { req: PayloadRequest }): boolean =>
-  isSystemAdminHelper(req?.user as User),
+export const isSystemAdmin: Access = requireAll(
+  isAuthenticated,
+  ({ req }: { req: PayloadRequest }): boolean => isSystemAdminHelper(req?.user as User),
 )

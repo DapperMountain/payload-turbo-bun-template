@@ -10,7 +10,10 @@ import { Access, AccessArgs, AccessResult, Where } from 'payload'
  * @param args - The arguments to pass to each access function.
  * @returns A promise that resolves to an array of access results (boolean or Where clause).
  */
-export const evaluateAccessResults = async (funcs: Access[], args: AccessArgs): Promise<(boolean | Where)[]> =>
+export const evaluateAccessResults = async (
+  funcs: Access[],
+  args: AccessArgs,
+): Promise<(boolean | Where)[]> =>
   Promise.all(
     funcs.map(async (func) => {
       const result = func(args)
@@ -26,7 +29,10 @@ export const evaluateAccessResults = async (funcs: Access[], args: AccessArgs): 
  * @param logic - The logic to combine multiple `Where` clauses (`and` or `or`).
  * @returns The combined filters or `true` if there are no filters to combine.
  */
-export const combineAccessResults = (results: AccessResult[], logic: 'and' | 'or'): AccessResult => {
+export const combineAccessResults = (
+  results: AccessResult[],
+  logic: 'and' | 'or',
+): AccessResult => {
   // Gather filters (e.g., `Where` clauses) from the results
   const filters = results.filter(isFilter)
 

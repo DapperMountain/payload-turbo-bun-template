@@ -5,8 +5,8 @@ services:
       context: .
       dockerfile: apps/payload-multi-tenant-template/Dockerfile
       args:
-        PROJECT: '@dappermountain/payload-multi-tenant-template'
-        PROJECT_PATH: 'apps/payload-multi-tenant-template'
+        PROJECT: "@dappermountain/payload-multi-tenant-template"
+        PROJECT_PATH: "apps/payload-multi-tenant-template"
     command: sh -c 'bun install && bun dev'
     env_file:
       - apps/payload-multi-tenant-template/.env
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     image: timescale/timescaledb:latest-pg17
     healthcheck:
-      test: ['CMD-SHELL', 'g_isready -U ${DATABASE_USER:-payload} -d ${DATABASE_NAME:-payload}']
+      test: ["CMD-SHELL", "g_isready -U ${DATABASE_USER:-payload} -d ${DATABASE_NAME:-payload}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -34,22 +34,22 @@ services:
     volumes:
       - data:/var/lib/postgresql/data
 
-  db-test:
-    restart: unless-stopped
-    image: timescale/timescaledb:latest-pg16
-    healthcheck:
-      test: ['CMD-SHELL', 'g_isready -U ${DATABASE_USER:-payload} -d ${DATABASE_NAME:-payload}']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    environment:
-      POSTGRES_DB: ${DATABASE_NAME:-payload}
-      POSTGRES_USER: ${DATABASE_USER:-payload}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-payload}
-    ports:
-      - 5443:5432
-    volumes:
-      - data_test:/var/lib/postgresql/data
+  # db-test:
+  #   restart: unless-stopped
+  #   image: timescale/timescaledb:latest-pg16
+  #   healthcheck:
+  #     test: ['CMD-SHELL', 'g_isready -U ${DATABASE_USER:-payload} -d ${DATABASE_NAME:-payload}']
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   environment:
+  #     POSTGRES_DB: ${DATABASE_NAME:-payload}
+  #     POSTGRES_USER: ${DATABASE_USER:-payload}
+  #     POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-payload}
+  #   ports:
+  #     - 5443:5432
+  #   volumes:
+  #     - data_test:/var/lib/postgresql/data
 volumes:
   data:
-  data_test:
+  # data_test:

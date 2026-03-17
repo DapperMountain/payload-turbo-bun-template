@@ -1,4 +1,4 @@
-import { Config } from '@/types'
+import { Config } from '@/types.ts'
 import type { CollectionSlug } from 'payload'
 
 /**
@@ -10,4 +10,5 @@ import type { CollectionSlug } from 'payload'
  */
 export const getCollectionId = <T extends Config['collections'][CollectionSlug]>(
   objectOrId: T | T['id'],
-): T['id'] | undefined => (objectOrId && typeof objectOrId === 'object' ? objectOrId.id : objectOrId)
+): T['id'] | undefined =>
+  objectOrId && typeof objectOrId === 'object' ? objectOrId.id : objectOrId

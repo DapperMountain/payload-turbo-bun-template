@@ -1,5 +1,5 @@
-import type { Tenant, User } from '@/types'
-import { getCollectionId } from '@/utils/getCollectionId'
+import type { Tenant, User } from '@/types.ts'
+import { getCollectionId } from '@/utils/getCollectionId.ts'
 
 /**
  * Retrieves an array of all tenant Ids assigned to a user.

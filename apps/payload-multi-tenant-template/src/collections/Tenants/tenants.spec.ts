@@ -1,6 +1,6 @@
-import { payload } from '@/test/config'
-import { createTenant, deleteResourceById, findResourceByKey } from '@/test/helpers'
-import { Tenant } from '@/types'
+import { payload } from '@/test/config.ts'
+import { createTenant, deleteResourceById, findResourceByKey } from '@/test/helpers.ts'
+import { Tenant } from '@/types.ts'
 import { describe, expect, it } from 'bun:test'
 
 describe('[Tenants]', () => {

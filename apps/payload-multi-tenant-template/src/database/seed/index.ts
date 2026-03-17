@@ -1,6 +1,6 @@
 import config from '@config'
 import { Payload } from 'payload'
-import addUsers from './Users'
+import addUsers from './Users.ts'
 
 /**
  * Seeds the database, in order

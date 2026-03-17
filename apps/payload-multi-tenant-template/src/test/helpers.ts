@@ -1,8 +1,11 @@
-import { Tenant, User } from '@/types'
+import { Tenant, User } from '@/types.ts'
 import { expect } from 'bun:test'
 import { CollectionSlug, Payload } from 'payload'
 
-export const createTenant = async (payload: Payload, data: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>) => {
+export const createTenant = async (
+  payload: Payload,
+  data: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>,
+) => {
   const response = await payload.create({
     collection: 'tenants',
     data,
@@ -29,7 +32,11 @@ export const findResourceByKey = async <T>(
   return response.docs[0] as unknown as T
 }
 
-export const deleteResourceById = async (payload: Payload, collection: CollectionSlug, id: string) => {
+export const deleteResourceById = async (
+  payload: Payload,
+  collection: CollectionSlug,
+  id: string,
+) => {
   await payload.delete({
     collection,
     id,
@@ -45,7 +52,9 @@ export const deleteResourceById = async (payload: Payload, collection: Collectio
 
 export const createUser = async (
   payload: Payload,
-  data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { tenants: { tenant: string; roles: string[] }[] },
+  data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & {
+    tenants: { tenant: string; roles: string[] }[]
+  },
 ) => {
   const response = await payload.create({
     collection: 'users',

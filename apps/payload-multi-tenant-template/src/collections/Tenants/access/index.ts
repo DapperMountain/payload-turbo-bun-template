@@ -1,5 +1,5 @@
-import { isSystemAdmin } from '@/access/roles/isSystemAdmin'
-import isTenantAdmin from '@/access/tenants/isTenantAdmin'
+import { isSystemAdmin } from '@/access/roles/isSystemAdmin.ts'
+import isTenantAdmin from '@/access/tenants/isTenantAdmin.ts'
 import { CollectionConfig } from 'payload'
 
 /**

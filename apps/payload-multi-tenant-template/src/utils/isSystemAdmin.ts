@@ -1,4 +1,4 @@
-import { User } from '@/types'
+import { User } from '@/types.ts'
 
 /**
  * Determines if a user has the "SYSTEM_ADMIN" role.

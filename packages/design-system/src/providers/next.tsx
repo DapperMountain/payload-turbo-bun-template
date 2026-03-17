@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import { TamaguiProvider, Theme } from 'tamagui'
+const { TamaguiProvider, Theme } = require('tamagui')
 // ⬇️ import the actual default config value
 import defaultConfig, { DEFAULT_THEME, type Config, type ThemeName } from '../tamagui.config'
 

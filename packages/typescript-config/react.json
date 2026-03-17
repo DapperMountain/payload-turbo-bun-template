@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "React",
   "extends": "./base.json",
-  "types": ["node", "react"],
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types": ["node", "react", "react-dom"]
   }
 }

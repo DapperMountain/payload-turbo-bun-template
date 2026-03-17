@@ -1,11 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "Design System",
-  "extends": "../typescript-config/react.json",
+  "extends": "../typescript-config/react",
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist"
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }

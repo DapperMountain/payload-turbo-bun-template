@@ -1,5 +1,4 @@
-// packages/design-system/src/next-plugin.ts
-import { withTamagui } from '@tamagui/next-plugin'
+const { withTamagui } = require('@tamagui/next-plugin')
 import fs from 'fs'
 import type { NextConfig } from 'next'
 import path from 'path'

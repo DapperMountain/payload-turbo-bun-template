@@ -1,4 +1,4 @@
-import type { User } from '@/types'
+import type { User } from '@/types.ts'
 import config from '@config'
 import { Payload } from 'payload'
 
@@ -15,8 +15,20 @@ export default async function seed(payload: Payload): Promise<void> {
   const { admin, user } = config.database.seed
 
   const users: Partial<User>[] = [
-    { email: admin.email, firstName: 'System', lastName: 'Admin', password: admin.password, roles: ['SYSTEM_ADMIN'] },
-    { email: user.email, firstName: 'System', lastName: 'User', password: user.password, roles: ['SYSTEM_USER'] },
+    {
+      email: admin.email,
+      firstName: 'System',
+      lastName: 'Admin',
+      password: admin.password,
+      roles: ['SYSTEM_ADMIN'],
+    },
+    {
+      email: user.email,
+      firstName: 'System',
+      lastName: 'User',
+      password: user.password,
+      roles: ['SYSTEM_USER'],
+    },
   ]
 
   for (const user of users) {

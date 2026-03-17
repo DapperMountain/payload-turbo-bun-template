@@ -37,12 +37,14 @@ afterAll(async () => {
         WHERE schemaname = 'public';
       `)
 
-  const rows = result as { tablename: string }[]
+  const rows = (result as unknown as { rows: { tablename: string }[] }).rows
   const tables = rows.map((row) => row.tablename)
 
   // Truncate each table
   for (const table of tables) {
-    await payload.db.drizzle.execute(sql`TRUNCATE TABLE ${sql.raw(table)} RESTART IDENTITY CASCADE;`)
+    await payload.db.drizzle.execute(
+      sql`TRUNCATE TABLE ${sql.raw(table)} RESTART IDENTITY CASCADE;`,
+    )
   }
 })
 
