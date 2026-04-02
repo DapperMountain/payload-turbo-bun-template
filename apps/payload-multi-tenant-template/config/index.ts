@@ -1,15 +1,24 @@
+/**
+ * Central Zod schema for app config. Call `configSchema.parse({})` so every field resolves
+ * defaults from `process.env` at parse time (Zod 4 `prefault` / defaults on nested objects).
+ *
+ * Helpers below build small reusable env readers. They read `process.env[key]` inside
+ * `.default(...)` so the same schema works in Node (Payload, Next config) without a separate loader.
+ */
+import { app } from '@/lang/en'
 import { z } from 'zod'
 
 const env = process.env
 
-// === Reusable Helpers ===
+// === Reusable helpers ===
 
 /**
- * Loads an environment variable as a non-empty string.
- * Throws if missing or empty.
+ * Required string from `process.env[key]`.
  *
- * @param key - Environment variable name
- * @returns Zod string schema with a default and non-empty refinement
+ * Defaults to the current env value (or `''`), then fails `.refine` if the result is empty,
+ * so missing or blank vars produce a clear error at `parse` time.
+ *
+ * @param key - Environment variable name (e.g. `DATABASE_URL`)
  */
 const zEnv = (key: string) =>
   z
@@ -19,11 +28,12 @@ const zEnv = (key: string) =>
     .describe(`Environment variable: ${key}`)
 
 /**
- * Creates a Zod object schema with z.literal values for every key in the object.
- * Enforces strict constant values and uses prefault to default to the object itself.
+ * Fixed `{ ... }` object whose properties must match the given literals exactly.
  *
- * @param obj - Record of string/number/boolean literals
- * @returns Zod object schema with literal constraints
+ * Used for display strings sourced from `@/lang/en` `app` so `parse({})` prefaults match product copy.
+ *
+ * @param obj - Record of primitive literals
+ * @returns Object schema with one `z.literal` per key, prefaulted to `obj`
  */
 const zLiteralObject = <T extends Record<string, string | number | boolean>>(obj: T) => {
   const shape = Object.fromEntries(
@@ -32,15 +42,13 @@ const zLiteralObject = <T extends Record<string, string | number | boolean>>(obj
 
   const schema = z.object(shape).describe('Literal object with fixed constant values')
 
-  // Ensure we return the input type (not output)
   return schema.prefault(() => obj as z.input<typeof schema>)
 }
 
 /**
- * Loads an environment variable and validates it as a proper email address.
+ * Email string from `process.env[key]`, validated with Zod’s email check.
  *
  * @param key - Environment variable name
- * @returns Zod email string schema with default
  */
 const zEmailEnv = (key: string) =>
   z
@@ -49,12 +57,12 @@ const zEmailEnv = (key: string) =>
     .describe(`Environment variable (email): ${key}`)
 
 /**
- * Loads an environment variable as a boolean.
- * Accepts true/false (case-insensitive) and 1/0.
- * Defaults to false if not set.
+ * Boolean from `process.env[key]` as a string.
+ *
+ * Accepts (case-insensitive): `true`, `1`, `false`, `0`. Defaults the raw string to
+ * `'false'` when unset, so omitted vars become `false` after transform.
  *
  * @param key - Environment variable name
- * @returns Zod schema that transforms the env var into a boolean
  */
 const zBoolEnv = (key: string) =>
   z
@@ -67,13 +75,13 @@ const zBoolEnv = (key: string) =>
       if (['false', '0'].includes(val)) return false
     })
     .describe(`Environment variable (boolean): ${key}`)
+
 /**
- * Loads a string from an environment variable and ensures it's one of a predefined enum.
+ * String union (enum) from `process.env[key]`, constrained to `options`.
  *
  * @param key - Environment variable name
- * @param options - Allowed enum string values
- * @param fallback - Fallback value if env var is undefined
- * @returns Zod enum schema with default
+ * @param options - Tuple of allowed strings (Zod `z.enum` requires a non-empty tuple type)
+ * @param fallback - Used when `env[key]` is undefined (e.g. default `NODE_ENV` for local dev)
  */
 const zEnumEnv = <T extends [string, ...string[]]>(key: string, options: T, fallback: T[number]) =>
   z
@@ -81,13 +89,13 @@ const zEnumEnv = <T extends [string, ...string[]]>(key: string, options: T, fall
     .default((env[key] as T[number]) ?? fallback)
     .describe(`Environment variable (enum): ${key}`)
 
-// === Shared Nested Object Builder ===
-
 /**
- * Builds a reusable schema for a seed user (admin/user) with env-prefixed keys.
+ * One seed user (email, name, password) loaded from env vars sharing a prefix.
  *
- * @param prefix - Prefix used in env vars, e.g., "DATA_SEED_ADMIN"
- * @returns Zod object schema with all fields defaulted from env
+ * Expects: `{prefix}_EMAIL`, `{prefix}_FIRST_NAME`, `{prefix}_LAST_NAME`, `{prefix}_PASSWORD`.
+ * Example prefix: `DATA_SEED_ADMIN` → `DATA_SEED_ADMIN_EMAIL`, etc.
+ *
+ * @param prefix - Uppercase env prefix without trailing underscore
  */
 const zUserSeed = (prefix: string) =>
   z
@@ -100,12 +108,9 @@ const zUserSeed = (prefix: string) =>
     .prefault({})
     .describe(`User seed config from env prefix: ${prefix}`)
 
-// === Config Schema (Self-contained, DRY) ===
+// === Config schema ===
 
-/**
- * Full application config schema.
- * Combines dynamic env-based values with static literal roles and defaults.
- */
+/** Top-level `parse({})` schema: env-backed settings plus fixed role/tenant literals from `app`. */
 const configSchema = z
   .object({
     env: zEnumEnv('NODE_ENV', ['development', 'test', 'production'], 'development').describe(
@@ -114,11 +119,9 @@ const configSchema = z
 
     baseURL: zEnv('NEXT_PUBLIC_SERVER_URL').describe('Public-facing base URL'),
 
-    /** Database and seed user configuration */
     database: z
       .object({
         uri: zEnv('DATABASE_URL').describe('PostgreSQL connection string'),
-
         seed: z
           .object({
             enabled: zBoolEnv('DATA_SEED_ENABLED').describe('Enable data seeding on init'),
@@ -131,7 +134,6 @@ const configSchema = z
       .prefault({})
       .describe('Database configuration'),
 
-    /** PayloadCMS secret for session signing/encryption */
     payload: z
       .object({
         secret: zEnv('PAYLOAD_SECRET').describe('PayloadCMS signing/encryption secret'),
@@ -139,59 +141,24 @@ const configSchema = z
       .prefault({})
       .describe('PayloadCMS configuration'),
 
-    /** Role name and description mappings (system + tenant) */
-    roles: z
-      .object({
-        system: z
-          .object({
-            admin: zLiteralObject({
-              name: 'Admin',
-              description: 'System Admin',
-            }).describe('System admin role'),
+    roles: zLiteralObject(app.roles).describe('Role labels (canonical English; see `@/lang/en`)'),
 
-            user: zLiteralObject({
-              name: 'User',
-              description: 'System User',
-            }).describe('System user role'),
-          })
-          .prefault(() => ({}))
-          .describe('System roles'),
-
-        tenant: z
-          .object({
-            admin: zLiteralObject({
-              name: 'Admin',
-              description: 'Tenant Admin',
-            }).describe('Tenant admin role'),
-
-            user: zLiteralObject({
-              name: 'User',
-              description: 'Tenant User',
-            }).describe('Tenant user role'),
-          })
-          .prefault(() => ({}))
-          .describe('Tenant roles'),
-      })
-      .prefault(() => ({}))
-      .describe('Application roles configuration'),
-
-    /** Default tenant role */
     tenants: z
       .object({
-        default: zLiteralObject({
-          name: 'Default',
-          description: 'Default Tenant',
-        }).describe('Default tenant role'),
+        default: z
+          .literal(app.defaultTenant)
+          .describe(`Must equal: ${app.defaultTenant}`)
+          .prefault(() => app.defaultTenant),
       })
       .prefault(() => ({}))
-      .describe('Default tenant mapping'),
+      .describe('Default tenant display label'),
   })
   .describe('Application configuration schema')
 
-/** Type-safe config object derived from config schema */
+/** Inferred shape of `configSchema` (fully typed after `parse`). */
 export type Config = z.infer<typeof configSchema>
 
-/** Parsed and validated application config */
+/** Parsed config; read this at module load in server code. */
 const config: Config = configSchema.parse({})
 
 export default config

@@ -22,10 +22,12 @@ FROM base AS deps
 
 # Bring in the pruned workspace
 COPY --from=pruned /app/out/full .
+COPY --from=pruned /app/bun.lock ./bun.lock
 
-# IMPORTANT:
-# Install all deps (including devDeps)
-RUN bun install --frozen-lockfile
+# Install all deps (including devDeps).
+# Do not use --frozen-lockfile here: the lockfile is for the full monorepo, while this layer only has
+# turbo-pruned sources; Bun still resolves the same versions but may adjust the lockfile for the subset.
+RUN bun install
 
 # If you want to be absolutely sure TS types are present in the pruned tree,
 # and you've declared them in the root or DS devDependencies, this is usually
@@ -52,6 +54,7 @@ ARG PROJECT_PATH
 # Copy the built project and its static assets to the release image
 COPY --from=builder /app/${PROJECT_PATH}/.next/standalone ./
 COPY --from=builder /app/${PROJECT_PATH}/.next/static ./${PROJECT_PATH}/.next/static
+# COPY --from=builder /app/${PROJECT_PATH}/public ./${PROJECT_PATH}/public
 
 EXPOSE 3000
 

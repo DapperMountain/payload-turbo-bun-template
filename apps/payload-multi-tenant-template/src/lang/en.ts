@@ -1,11 +1,25 @@
-import { en } from '@payloadcms/translations/languages/en'
-
-const translations = {
-  ...en,
-  custom: {
-    // namespace can be anything you want
-    key1: 'Translation with {{variable}}', // translation
+/**
+ * English (source locale).
+ */
+export const app = {
+  roles: {
+    SYSTEM_ADMIN: 'System administrator',
+    SYSTEM_USER: 'System user',
+    TENANT_ADMIN: 'Workspace administrator',
+    TENANT_USER: 'Workspace user',
+  },
+  defaultTenant: 'Default workspace',
+  frontend: {
+    logoAlt: 'Payload',
+    welcome: 'Welcome',
+    welcomeBack: 'Welcome back',
+    signedInPrefix: 'Signed in as ',
+    signedOutBlurb: 'Your new Payload + Tamagui stack is ready.',
+    openAdmin: 'Open admin',
+    documentation: 'Documentation',
+  },
+  meta: {
+    title: 'Payload',
+    description: 'Payload CMS with Tamagui design system',
   },
 }
-
-export default translations

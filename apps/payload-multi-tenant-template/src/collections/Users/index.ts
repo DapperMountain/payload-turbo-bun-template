@@ -1,5 +1,8 @@
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import { CollectionConfig } from 'payload'
+
+import { app } from '@/lang/en'
+
 import { access } from './access'
 import { hooks } from './hooks'
 
@@ -11,8 +14,8 @@ const Users: CollectionConfig = {
   versions: true,
   admin: { useAsTitle: 'fullName', listSearchableFields: ['firstName', 'lastName'] },
   fields: [
-    { name: 'firstName', type: 'text', required: true },
-    { name: 'lastName', type: 'text', required: true },
+    { name: 'firstName', type: 'text', required: true, label: 'First name' },
+    { name: 'lastName', type: 'text', required: true, label: 'Last name' },
     {
       name: 'fullName',
       type: 'text',
@@ -24,11 +27,12 @@ const Users: CollectionConfig = {
       admin: { position: 'sidebar' },
       name: 'roles',
       type: 'select',
+      label: 'Roles',
       defaultValue: ['SYSTEM_USER'],
       hasMany: true,
       options: [
-        { label: 'System Admin', value: 'SYSTEM_ADMIN' },
-        { label: 'System User', value: 'SYSTEM_USER' },
+        { label: app.roles.SYSTEM_ADMIN, value: 'SYSTEM_ADMIN' },
+        { label: app.roles.SYSTEM_USER, value: 'SYSTEM_USER' },
       ],
     },
     {
@@ -37,11 +41,12 @@ const Users: CollectionConfig = {
           {
             name: 'roles',
             type: 'select',
+            label: 'Roles',
             defaultValue: ['TENANT_USER'],
             hasMany: true,
             options: [
-              { label: 'Tenant Admin', value: 'TENANT_ADMIN' },
-              { label: 'Tenant User', value: 'TENANT_USER' },
+              { label: app.roles.TENANT_ADMIN, value: 'TENANT_ADMIN' },
+              { label: app.roles.TENANT_USER, value: 'TENANT_USER' },
             ],
             required: true,
           },

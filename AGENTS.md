@@ -589,16 +589,10 @@ export default buildConfig({
 3. **Global Components** - Global document views
 4. **Field Components** - Custom field UI and cells
 
-### Component Types
-
-1. **Root Components** - Global Admin Panel (logo, nav, header)
-2. **Collection Components** - Collection-specific (edit view, list view)
-3. **Global Components** - Global document views
-4. **Field Components** - Custom field UI and cells
-
 ### Server vs Client Components
 
-**All components are Server Components by default** (can use Local API directly):
+**All components are Server Components by default** - Never convert entire trees
+to client components unnecessarily. (can use Local API directly):
 
 ```tsx
 // Server Component (default)
@@ -1134,8 +1128,8 @@ For deeper exploration of specific topics, refer to the context files located in
 
 ## Resources
 
-- Docs: https://payloadcms.com/docs
-- LLM Context: https://payloadcms.com/llms-full.txt
-- GitHub: https://github.com/payloadcms/payload
-- Examples: https://github.com/payloadcms/payload/tree/main/examples
-- Templates: https://github.com/payloadcms/payload/tree/main/templates
+- Docs: <https://payloadcms.com/docs>
+- LLM Context: <https://payloadcms.com/llms-full.txt>
+- GitHub: <https://github.com/payloadcms/payload>
+- Examples: <https://github.com/payloadcms/payload/tree/main/examples>
+- Templates: <https://github.com/payloadcms/payload/tree/main/templates>

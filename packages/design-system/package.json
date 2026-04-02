@@ -18,6 +18,10 @@
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js",
       "jsx": "./dist/jsx/index.js"
+    },
+    "./next-plugin": {
+      "import": "./dist/esm/next-plugin.js",
+      "require": "./dist/cjs/next-plugin.cjs"
     }
   },
   "scripts": {
@@ -30,23 +34,23 @@
     "*.css"
   ],
   "dependencies": {
-    "@tamagui/colors": "^1.137.3",
-    "@tamagui/config": "^1.137.3",
-    "@tamagui/next-plugin": "^1.137.3",
-    "@tamagui/next-theme": "^1.137.3",
-    "@tamagui/shorthands": "^1.137.3",
-    "@tamagui/theme-builder": "^1.137.3",
-    "@tamagui/types": "^1.137.3",
+    "@tamagui/colors": "2.0.0-rc.32",
+    "@tamagui/config": "2.0.0-rc.32",
+    "@tamagui/core": "2.0.0-rc.32",
+    "@tamagui/next-plugin": "2.0.0-rc.32",
+    "@tamagui/next-theme": "2.0.0-rc.32",
+    "@tamagui/shorthands": "2.0.0-rc.32",
+    "@tamagui/theme-builder": "2.0.0-rc.32",
+    "@tamagui/types": "2.0.0-rc.32",
     "lucide-react": "^0.543.0",
-    "tamagui": "^1.137.3",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@types/node": "^22.0.0"
+    "tamagui": "2.0.0-rc.32"
   },
   "devDependencies": {
     "@dappermountain/typescript-config": "workspace:*",
-    "@tamagui/build": "^1.137.3",
-    "next": "^15.5.6"
+    "@tamagui/build": "2.0.0-rc.32",
+    "@types/node": "*",
+    "@types/react": "*",
+    "@types/react-dom": "*"
   },
   "peerDependencies": {
     "react": ">= 19.0.0",

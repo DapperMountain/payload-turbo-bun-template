@@ -12,8 +12,8 @@ export type WithDesignSystemOptions = {
 
 function resolveDefaultConfigPath(): string {
   const candidates = [
+    path.join(__dirname, 'tamagui.config.mjs'),
     path.join(__dirname, 'tamagui.config.js'),
-    // dev/source fallback if someone runs from ts-node in a monorepo:
     path.join(__dirname, 'tamagui.config.ts'),
   ]
   for (const p of candidates) if (fs.existsSync(p)) return p
@@ -22,7 +22,7 @@ function resolveDefaultConfigPath(): string {
       '[withDesignSystem] Could not locate a default tamagui.config next to the plugin.',
       `Checked:\n${candidates.map((c) => `  • ${c}`).join('\n')}`,
       'Pass options.configPath (absolute or app-root-relative) to withDesignSystem(...),',
-      'or ensure your DS build emits dist/*/tamagui.config.js alongside next-plugin.',
+      'or ensure your DS build emits dist/*/tamagui.config.mjs (or .js) alongside next-plugin.',
     ].join('\n'),
   )
 }
@@ -43,7 +43,7 @@ export function withDesignSystem(nextConfig: NextConfig = {}, options: WithDesig
         `  • attempted: ${finalConfigPath}`,
         'Hint:',
         '  - If you passed options.configPath, make it absolute or app-root-relative.',
-        '  - Otherwise, ensure your DS build outputs dist/*/tamagui.config.js next to next-plugin.',
+        '  - Otherwise, ensure your DS build outputs dist/*/tamagui.config.mjs next to next-plugin.',
       ].join('\n'),
     )
   }

@@ -1,14 +1,16 @@
 'use client'
 
 import React, { useMemo } from 'react'
-const { TamaguiProvider, Theme } = require('tamagui')
-// ⬇️ pull in the real default config value
+import { TamaguiProvider } from '@tamagui/core'
+/** `Theme` is re-exported from the umbrella `tamagui` package; importing it from `@tamagui/core` fails under tamagui-build's TS pass. */
+import { Theme } from 'tamagui'
 import defaultConfig, { DEFAULT_THEME, type Config, type ThemeName } from '../tamagui.config'
 
 /**
- * Type-safe provider:
- * - `themeName` must be a known ThemeName (keyof your themes) or null to skip wrapping.
- * - Falls back to the package’s default config when none is passed.
+ * Tamagui shell for any React renderer (Next.js app router, Vite, etc.).
+ *
+ * - `themeName` must be a known `ThemeName` or `null` to skip the extra `Theme` wrapper.
+ * - Uses the package default config when `config` is omitted.
  */
 export function DesignSystemProvider(props: {
   children: React.ReactNode
@@ -17,28 +19,38 @@ export function DesignSystemProvider(props: {
 }) {
   const { children, themeName = DEFAULT_THEME, config } = props
 
-  // Use the provided config if present; otherwise, the library’s default.
   const cfg = useMemo(() => config ?? defaultConfig, [config])
 
+  if (!cfg) {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.error('[DS] Tamagui config is undefined; did you forget the default export?')
+    }
+    return <>{children}</>
+  }
+
   if (themeName == null) {
-    return <TamaguiProvider config={cfg}>{children}</TamaguiProvider>
+    return (
+      <TamaguiProvider config={cfg} defaultTheme={DEFAULT_THEME} disableRootThemeClass>
+        {children}
+      </TamaguiProvider>
+    )
   }
 
   return (
-    <TamaguiProvider config={cfg}>
+    <TamaguiProvider config={cfg} defaultTheme={DEFAULT_THEME} disableRootThemeClass>
       <Theme name={themeName}>{children}</Theme>
     </TamaguiProvider>
   )
 }
 
 /**
- * Escape hatch for dynamic / runtime-merged theme names.
- * Use only if you supply themes at runtime and the type system can’t know their keys.
+ * Escape hatch for dynamic / runtime-merged theme names when keys are not known to the type system.
  */
 export function DesignSystemThemeUnsafe(props: { name: string; children: React.ReactNode }) {
   const { name, children } = props
   return <Theme name={name as unknown as ThemeName}>{children}</Theme>
 }
 
-// Re-export Theme for advanced use; prefer DesignSystemProvider above.
-export const DesignSystemTheme = Theme
+/** Advanced: use `Theme` from the design-system package for custom composition. Prefer `DesignSystemProvider` when possible. */
+export const DesignSystemTheme: typeof Theme = Theme

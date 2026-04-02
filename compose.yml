@@ -7,13 +7,18 @@ services:
       args:
         PROJECT: "@dappermountain/payload-multi-tenant-template"
         PROJECT_PATH: "apps/payload-multi-tenant-template"
-    command: sh -c 'bun install && bun dev'
+        # Raise (e.g. 4096) if `bun install` OOMs; use 0 if your builder forbids swap
+        BUILD_SWAP_MB: 2048
+    # Install from monorepo root (workspace), then run Next in the app package.
+    # A named volume for `.next` avoids bind-mounting a host (e.g. macOS) Turbopack cache into Linux — that mismatch causes ENOENT for `.next/dev/.../build-manifest.json`.
+    command: sh -c 'cd /app && bun install && cd apps/payload-multi-tenant-template && exec bun dev'
     env_file:
       - apps/payload-multi-tenant-template/.env
     ports:
       - 3001:3000
     volumes:
       - .:/app
+      - payload_app_next:/app/apps/payload-multi-tenant-template/.next
     depends_on:
       - db
 
@@ -52,4 +57,5 @@ services:
   #     - data_test:/var/lib/postgresql/data
 volumes:
   data:
+  payload_app_next:
   # data_test:

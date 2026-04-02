@@ -1,0 +1,173 @@
+Runtime: Bun
+
+Bun is the ONLY allowed runtime and package manager.
+
+---
+
+## Core Rules
+
+Always use Bun for:
+
+- installing dependencies
+- running scripts
+- executing TypeScript/JavaScript files
+
+Never use:
+
+- npm
+- yarn
+- pnpm
+- npx
+
+---
+
+## Commands
+
+Use:
+
+- `bun install`
+- `bun add <package>`
+- `bun remove <package>`
+- `bun run <script>`
+- `bun dev`
+
+Never generate:
+
+- `npm install`
+- `npm run`
+- `yarn install`
+- `pnpm install`
+- `npx <command>`
+
+---
+
+## Scripts
+
+All package.json scripts must be compatible with Bun.
+
+Example:
+
+```JSON
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  }
+}
+```
+
+Run scripts using:
+
+`bun run dev`
+
+---
+
+## Dependency Management
+
+- Always add dependencies using `bun add`
+- Use `bun add -d for devDependencies`
+
+Do not manually edit package.json dependencies unless necessary.
+
+---
+
+## Lockfile
+
+- Use `bun.lock` as the lockfile
+- Never generate `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`
+
+---
+
+## Execution
+
+Prefer Bun-native execution:
+
+- `bun <file>.ts`
+- `bun <file>.js`
+
+Instead of:
+
+- ts-node
+- node
+
+---
+
+## Performance Rules
+
+- Prefer Bun-native tools over Node-based equivalents
+- Avoid adding dependencies when Bun provides built-in functionality
+
+---
+
+## Next.js Compatibility
+
+- Ensure all commands work with Bun
+- Use `bun run dev` for development
+- Do not introduce Node-specific assumptions unless required by Next.js
+
+---
+
+## ShadCN CLI
+
+When using shadcn:
+
+Use:
+
+`bunx shadcn-ui@latest init`
+`bunx shadcn-ui@latest add <component>`
+
+Never use:
+`npx shadcn-ui`
+
+---
+
+## Tooling
+
+Prefer Bun-compatible tooling:
+
+- Use Bun test runner if tests are added
+- Avoid Jest unless required
+
+---
+
+## Environment
+
+- Ensure scripts run correctly with Bun runtime
+- Avoid Node-specific globals when possible
+
+---
+
+## Output Requirements
+
+All generated instructions must:
+
+- use Bun commands
+- not reference npm, yarn, or pnpm
+- be copy-paste runnable
+
+---
+
+## Anti-Patterns (Strictly Forbidden)
+
+- Mixing package managers
+- Generating multiple lockfiles
+- Using npx instead of bunx
+- Installing dependencies with anything other than Bun
+
+---
+
+## Decision Rules
+
+IF installing a package  
+→ use `bun add`
+
+IF running a script  
+→ use `bun run`
+
+IF executing a one-off CLI  
+→ use `bunx`
+
+---
+
+## End

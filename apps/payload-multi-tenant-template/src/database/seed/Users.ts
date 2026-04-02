@@ -17,15 +17,15 @@ export default async function seed(payload: Payload): Promise<void> {
   const users: Partial<User>[] = [
     {
       email: admin.email,
-      firstName: 'System',
-      lastName: 'Admin',
+      firstName: admin.firstName,
+      lastName: admin.lastName,
       password: admin.password,
       roles: ['SYSTEM_ADMIN'],
     },
     {
       email: user.email,
-      firstName: 'System',
-      lastName: 'User',
+      firstName: user.firstName,
+      lastName: user.lastName,
       password: user.password,
       roles: ['SYSTEM_USER'],
     },
