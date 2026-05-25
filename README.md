@@ -43,6 +43,7 @@ Apps depend on **`@dappermountain/payload-deps`** and **`@dappermountain/design-
 | Location | Purpose |
 |----------|---------|
 | [`AGENTS.md`](AGENTS.md) | Monorepo entry (Bun, Turborepo, shared Payload skill) |
+| [`docs/COMMITS.md`](docs/COMMITS.md) | Devmoji + Conventional Commits (hooks install on `bun install`) |
 | [`.agents/rules/`](.agents/rules/) | Repo-wide workspace rules (`*.mdc`) |
 | [`.agents/skills/payload/`](.agents/skills/payload/) | Vendored [payloadcms/skills](https://github.com/payloadcms/skills) — `bun run skills:update` |
 | `apps/payload-multi-tenant-template/.agents/skills/dapper-payload-app/` | Template-specific overlay |
@@ -52,6 +53,7 @@ Apps depend on **`@dappermountain/payload-deps`** and **`@dappermountain/design-
 ## Prerequisites
 
 - **[Bun](https://bun.sh)** (match root `packageManager`, e.g. `1.3.13`)
+- **[Git](https://git-scm.com/)** (commit-msg lint installs on `bun install` via [bun-git-hooks](https://www.npmjs.com/package/bun-git-hooks))
 - For Docker workflow: **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (or compatible Engine + Compose)
 
 ---
