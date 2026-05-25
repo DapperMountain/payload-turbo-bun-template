@@ -20,18 +20,21 @@ Tools that expect `.cursor/rules` or `.cursor/skills` use symlinks into `.agents
 apps/
   payload-multi-tenant-template/   # Main Payload + Next template
 packages/
-  design-system/                   # Tamagui shared UI
-  dependencies/                    # Pinned react + payload stacks
-  typescript-config/
-scripts/                           # Docker helpers (up.sh)
+  design-system/                   # Tamagui shared UI + Next plugin
+  typescript-config/               # Shared tsconfig fragments
+docs/COMMITS.md                    # Devmoji + Conventional Commits
+scripts/                           # up.sh, validate-commit-msg.ts
+git-hooks.config.ts                # bun-git-hooks
 compose.yml
 ```
+
+The app declares **Payload** and **`@dappermountain/design-system`** in its own `package.json`. **Next/React** are hoisted from the root workspace for tooling and the app runtime.
 
 ## Runtime and commands
 
 - **Package manager**: Bun only (`packageManager` in root `package.json`). See `.agents/rules/bun.mdc`.
 - **Install** (from repo root): `bun install` (also installs commit-msg hooks via `bun-git-hooks` — see `git-hooks.config.ts`)
-- **Build app** (with deps): `bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...`
+- **Build app** (with deps): `bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...` from repo root — Turbo cascades `^build`; per-package `bun run build` is only for isolated/atomic work
 - **Docker full stack**: `./scripts/up.sh` (app on host port **3001**)
 - **Lint / format** (root): `bun run lint`, `bun run format`
 - **Tests** (Payload app): from `apps/payload-multi-tenant-template`, `bun test` — see that app’s [`docs/TESTING.md`](apps/payload-multi-tenant-template/docs/TESTING.md)

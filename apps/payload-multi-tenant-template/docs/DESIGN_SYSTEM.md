@@ -50,7 +50,7 @@ Commit `public/tamagui.generated.css` after theme/token changes in `packages/des
 
 Turbopack aliases `react-native` → `react-native-web` (see `next.config.ts`). The app also depends on **`react-native`** and **`react-native-web`** so the design-system Next provider can import RN-web during SSR.
 
-Build the design-system package before production builds (root Turbo filter handles this):
+**Production `dist/`:** from the repo root, `bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...` builds design-system first via Turborepo (`^build`). You only need a manual package build when working atomically:
 
 ```bash
 cd packages/design-system && bun run build

@@ -2,7 +2,13 @@
 
 Next.js **App Router** application: **Payload 3** admin and APIs, optional **design-system** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
 
-This package is **`@dappermountain/payload-multi-tenant-template`** inside the monorepo. Shared UI lives in **`@dappermountain/design-system`**; Payload/Next/React versions are pulled through **`@dappermountain/payload-deps`**.
+This package is **`@dappermountain/payload-multi-tenant-template`** inside the monorepo.
+
+- **Shared UI:** workspace package **`@dappermountain/design-system`** (`packages/design-system`)
+- **Payload stack:** declared in this app’s `package.json` (`payload`, `@payloadcms/*`)
+- **Next / React:** hoisted from the **root** workspace `package.json` (install from repo root with `bun install`)
+
+Monorepo overview, Docker, and Turborepo build flow: **[`../../README.md`](../../README.md)**.
 
 ---
 
@@ -65,20 +71,18 @@ Use **`http://localhost:3000/admin`** unless you changed the port. Ensure Postgr
 
 ## Build & run (production)
 
-Prefer running a full monorepo build from the **repo root** so `design-system` compiles first:
+**From the repo root (recommended):** Turborepo runs upstream `build` tasks before this app (`dependsOn: ["^build"]` in root `turbo.json`). You do not need to build `packages/design-system` separately first.
 
 ```bash
 bun install
 bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...
-```
-
-Or, after dependencies are built:
-
-```bash
 cd apps/payload-multi-tenant-template
-bun run build
 bun run start
 ```
+
+**From this directory only:** `bun run build` runs **`prebuild`** (`generate:css` in design-system) then `next build`. Use this for an atomic app build when `design-system` is already compiled, or after `cd packages/design-system && bun run build`. For full monorepo ordering, use the root `turbo build` command above.
+
+See **[`../../README.md` — Building the monorepo](../../README.md#building-the-monorepo)** for the full picture (whole-repo vs per-package builds).
 
 ---
 

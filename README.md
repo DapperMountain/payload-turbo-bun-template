@@ -22,19 +22,33 @@ Monorepo template for **[Payload CMS 3](https://payloadcms.com)** on **[Next.js]
 
 ```text
 apps/
-  payload-multi-tenant-template/    # Next.js + Payload app (main template)
+  payload-multi-tenant-template/    # Next.js + Payload app (only app today)
 packages/
-  design-system/                    # Tamagui config, components, DesignSystemProvider, next-plugin
-  typescript-config/               # Shared TS configs
-  dependencies/
-    react/                          # Pinned React, React DOM, and Next.js
-    payload/                        # Payload stack (depends on react-deps)
+  design-system/                    # Tamagui UI, Next plugin, generate:css
+  typescript-config/                # Shared tsconfig fragments (base, react, nextjs)
+.agents/                            # Agent rules + vendored Payload skill (see AGENTS.md)
+docs/
+  COMMITS.md                        # Devmoji + Conventional Commits
 scripts/
   up.sh, common.sh                  # Docker Compose helpers
+  validate-commit-msg.ts          # commit-msg hook + CI
+git-hooks.config.ts                 # bun-git-hooks (installs on bun install)
 compose.yml                         # App + Postgres services
 ```
 
-Apps depend on **`@dappermountain/payload-deps`** and **`@dappermountain/design-system`**. Dependency bundles keep versions centralized for multiple apps.
+---
+
+## How the monorepo fits together
+
+| Piece | Role |
+|-------|------|
+| **`apps/payload-multi-tenant-template`** | Main template — Payload config under `config/`, app code under `src/`. Declares **`@dappermountain/design-system`** and Payload packages directly in its `package.json`. |
+| **`packages/design-system`** | Shared Tamagui primitives and Next integration. **`prebuild`** in the app runs `generate:css` here so `public/tamagui.generated.css` stays current. |
+| **`packages/typescript-config`** | Extended TS configs consumed by workspace packages. |
+| **Root `package.json`** | Turborepo scripts, shared dev tooling (ESLint, Prettier, TypeScript), and **Next/React** versions hoisted for the app. |
+| **`bun install` (root)** | Installs all workspaces and **commit-msg hooks** via [bun-git-hooks](https://www.npmjs.com/package/bun-git-hooks). |
+
+**Build orchestration:** [`turbo.json`](turbo.json) sets `build` → `dependsOn: ["^build"]`, so upstream workspace packages (e.g. `design-system`) build before dependents. You normally **do not** `cd` into each package and build by hand.
 
 ---
 
@@ -52,7 +66,7 @@ Apps depend on **`@dappermountain/payload-deps`** and **`@dappermountain/design-
 
 ## Prerequisites
 
-- **[Bun](https://bun.sh)** (match root `packageManager`, e.g. `1.3.13`)
+- **[Bun](https://bun.sh)** (match root `packageManager`, e.g. `1.3.14`)
 - **[Git](https://git-scm.com/)** (commit-msg lint installs on `bun install` via [bun-git-hooks](https://www.npmjs.com/package/bun-git-hooks))
 - For Docker workflow: **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (or compatible Engine + Compose)
 
@@ -64,7 +78,13 @@ The Compose project name is **`payload-turbo-bun-template`** (see `scripts/commo
 
 1. **Clone** the repository.
 
-2. **Environment file** — copy the app example env and adjust (database URL, secrets, seed flags):
+2. **Install** (from repo root — also sets up git hooks):
+
+   ```bash
+   bun install
+   ```
+
+3. **Environment file** — copy the app example env and adjust (database URL, secrets, seed flags):
 
    ```bash
    cp apps/payload-multi-tenant-template/.env.example apps/payload-multi-tenant-template/.env
@@ -72,7 +92,7 @@ The Compose project name is **`payload-turbo-bun-template`** (see `scripts/commo
 
    Set `DATA_SEED_ENABLED=1` if you want a seeded database on first run.
 
-3. **Start services** from the repo root:
+4. **Start services** from the repo root:
 
    ```bash
    ./scripts/up.sh
@@ -80,12 +100,12 @@ The Compose project name is **`payload-turbo-bun-template`** (see `scripts/commo
 
    This runs `docker compose -f compose.yml up -d` with BuildKit enabled.
 
-4. **Open the app** — Compose maps the app container port **3000** to host **`http://localhost:3001`**.
+5. **Open the app** — Compose maps the app container port **3000** to host **`http://localhost:3001`**.
 
    - Admin: **`http://localhost:3001/admin`**
    - Frontend route group (if used): **`http://localhost:3001/`**
 
-5. **Database** — Postgres listens on host **`localhost:5442`** (container `5432`).
+6. **Database** — Postgres listens on host **`localhost:5442`** (container `5432`).
 
 The app container bind-mounts the repo to `/app` and runs `bun install && bun dev`, so edits under `./apps/payload-multi-tenant-template/src` (and workspace packages) hot-reload without rebuilding the image for day-to-day work.
 
@@ -110,54 +130,93 @@ Use this when you run Next on the host and only use Docker for Postgres (or your
    bun dev
    ```
 
-   Or from root, if you add a `turbo dev` pipeline for the app:
+   Or from root:
 
    ```bash
    bunx turbo dev --filter=@dappermountain/payload-multi-tenant-template
    ```
 
+   Default URL: **`http://localhost:3000/admin`** (Compose uses **3001** on the host).
+
 ---
 
-## Building for production
+## Building the monorepo
 
-From the **repository root**, build the app and its dependencies (design-system builds first via `turbo`):
+**Default (recommended):** run **Turborepo from the repo root** and let it cascade `build` across the graph. You do **not** need to build `design-system` (or other deps) in separate terminals first.
 
 ```bash
 bun install
+
+# App + all upstream workspace packages (^build)
 bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...
+
+# Or every package that defines a build script
+bunx turbo build
 ```
 
-The `...` suffix includes upstream workspace packages (e.g. `@dappermountain/design-system`).
+The filter suffix **`...`** means “this package **and** its dependencies,” so `@dappermountain/design-system` runs before the app. Turbo caches outputs and skips work that is already up to date.
 
-To build only from the app folder, upstream packages should already be built:
+**Development (`bun dev`):** usually **no** prior `turbo build` is required — Next transpiles `@dappermountain/design-system` from source. Production builds are when you need compiled `dist/` and a full Next standalone output.
+
+### Building packages individually (optional)
+
+Use per-package commands only when you want an **atomic** build or to debug one workspace in isolation (Turbo is not involved):
+
+```bash
+cd packages/design-system
+bun run build          # tamagui-build → dist/
+
+cd packages/design-system
+bun run generate:css   # updates app public/tamagui.generated.css
+```
 
 ```bash
 cd apps/payload-multi-tenant-template
-bun run build
+bun run build          # runs app prebuild (generate:css) then next build
 ```
 
-Next is configured with **`output: 'standalone'`** for slimmer deploy images. The **`Dockerfile`** under `apps/payload-multi-tenant-template/` uses **`turbo prune`** and a multi-stage **Bun** image for production-style images (distinct from the dev Compose command that runs `bun dev`).
+If you run **`bun run build` only inside the app** without a recent upstream build, ensure `packages/design-system/dist/` exists (either from a prior `turbo build` or a manual `bun run build` in that package). Prefer **`turbo build --filter=...@dappermountain/payload-multi-tenant-template`** from the root so ordering stays correct.
+
+### Production output
+
+Next is configured with **`output: 'standalone'`** for slimmer deploy images. The **`Dockerfile`** under `apps/payload-multi-tenant-template/` uses **`turbo prune`**, **`bun install`**, and **`turbo build`** in the image — same cascading behavior as local root builds (distinct from Compose dev, which runs `bun dev`).
 
 ---
 
 ## Tamagui & design system
 
 - **Package:** `packages/design-system`
-- **Build:** `bun run build` in that package (`tamagui-build` → `dist/`, generated `types/`)
-- **Next integration:** `withDesignSystem` from `@dappermountain/design-system/next-plugin` in `apps/payload-multi-tenant-template/next.config.ts` (config path resolved inside the package)
-- **App usage:** import primitives from `@dappermountain/design-system`; wrap client trees with **`DesignSystemProvider`** (see `apps/.../design-system-root.tsx`)
+- **Compiled output:** `tamagui-build` → `dist/` + `types/` (via `turbo build` or optional `bun run build` in that package)
+- **Production CSS:** `bun run generate:css` writes `apps/payload-multi-tenant-template/public/tamagui.generated.css` (app **`prebuild`** runs this before `next build`)
+- **Next integration:** `withDesignSystem` from `@dappermountain/design-system/next-plugin` in `apps/payload-multi-tenant-template/next.config.ts`
+- **App usage:** import primitives from `@dappermountain/design-system`; wrap client trees with **`DesignSystemProvider`** from `@dappermountain/design-system/next` (see `src/app/(frontend)/_components/providers.tsx`)
 
-After changing Tamagui config or tokens, rebuild the design-system package (or rely on `turbo build` from root).
+See **[`apps/payload-multi-tenant-template/docs/DESIGN_SYSTEM.md`](apps/payload-multi-tenant-template/docs/DESIGN_SYSTEM.md)** for import rules and ESLint restrictions.
+
+After changing Tamagui config or tokens, run **`bunx turbo build --filter=@dappermountain/design-system`** (or `generate:css` + a manual package build if you prefer working atomically).
 
 ---
 
-## Useful commands (app)
+## Useful commands
 
-Run from **`apps/payload-multi-tenant-template`** unless noted:
+### Root
 
 | Command | Purpose |
 |---------|---------|
-| `bun dev` | Next dev server |
+| `bun install` | Install all workspaces; install commit-msg hooks |
+| `bun run hooks:install` | Re-install git hooks from `git-hooks.config.ts` |
+| `bun run lint` | ESLint via Turborepo |
+| `bun run format` | Prettier across the repo |
+| `bunx turbo build` | Build all workspaces (respects `^build` order) |
+| `bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...` | App + upstream deps |
+| `bun run skills:update` | Refresh vendored Payload agent skill |
+| `./scripts/up.sh` | Start Docker Compose stack |
+
+### App (`apps/payload-multi-tenant-template`)
+
+| Command | Purpose |
+|---------|---------|
+| `bun dev` | Next dev server (port **3000**) |
 | `bun run build` | Production Next build |
 | `bun run start` | Start production server |
 | `bun run generate:types` | Regenerate Payload TypeScript types after schema changes |
@@ -166,15 +225,6 @@ Run from **`apps/payload-multi-tenant-template`** unless noted:
 | `bun run lint` | ESLint |
 | `bun test` | All app tests — `bunfig.toml` + `.env.test` ([docs](./apps/payload-multi-tenant-template/docs/TESTING.md)) |
 | `bun test ./src/collections` | Collection integration tests (Postgres) |
-
-Root:
-
-| Command | Purpose |
-|---------|---------|
-| `bun install` | Install all workspaces |
-| `cd apps/payload-multi-tenant-template && bun test` | Run tests from the app workspace |
-| `bunx turbo build` | Build per `turbo.json` |
-| `bunx turbo lint` | Lint across packages |
 
 ---
 
@@ -187,11 +237,15 @@ The app includes **`fly.toml`** for **[Fly.io](https://fly.io)**. Adjust regions
 ## Troubleshooting
 
 - **Compose / DB not ready:** wait for the `db` service healthcheck before hitting the app; verify `DATABASE_*` variables match `.env` and `compose.yml`.
-- **Tamagui / Next errors after DS changes:** run `bun run build` in `packages/design-system`, then rebuild the app.
+- **Tamagui / Next errors after DS changes:** run `bun run generate:css` in `packages/design-system`, then rebuild the app.
 - **Port conflicts:** change host ports in `compose.yml` if `3001` or `5442` are taken.
 
 ---
 
 ## More detail
 
-See **`apps/payload-multi-tenant-template/README.md`** for app-specific notes (seeding, admin URL, acknowledgments).
+| Doc | Contents |
+|-----|----------|
+| [`apps/payload-multi-tenant-template/README.md`](apps/payload-multi-tenant-template/README.md) | App URLs, env, scripts, structure |
+| [`apps/payload-multi-tenant-template/docs/`](apps/payload-multi-tenant-template/docs/) | Conventions, testing, design system |
+| [`docs/COMMITS.md`](docs/COMMITS.md) | Commit format and hooks |
