@@ -38,9 +38,20 @@ Apps depend on **`@dappermountain/payload-deps`** and **`@dappermountain/design-
 
 ---
 
+## AI agent context
+
+| Location | Purpose |
+|----------|---------|
+| [`AGENTS.md`](AGENTS.md) | Monorepo entry (Bun, Turborepo, shared Payload skill) |
+| [`.agents/rules/`](.agents/rules/) | Repo-wide workspace rules (`*.mdc`) |
+| [`.agents/skills/payload/`](.agents/skills/payload/) | Vendored [payloadcms/skills](https://github.com/payloadcms/skills) — `bun run skills:update` |
+| `apps/payload-multi-tenant-template/.agents/skills/dapper-payload-app/` | Template-specific overlay |
+
+---
+
 ## Prerequisites
 
-- **[Bun](https://bun.sh)** (match root `packageManager`, e.g. `1.3.10`)
+- **[Bun](https://bun.sh)** (match root `packageManager`, e.g. `1.3.13`)
 - For Docker workflow: **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (or compatible Engine + Compose)
 
 ---
@@ -131,7 +142,7 @@ Next is configured with **`output: 'standalone'`** for slimmer deploy images. Th
 
 - **Package:** `packages/design-system`
 - **Build:** `bun run build` in that package (`tamagui-build` → `dist/`, generated `types/`)
-- **Next integration:** `withDesignSystem` from `@dappermountain/design-system/next-plugin` in `apps/payload-multi-tenant-template/next.config.ts`, with `configPath` pointing at the built `tamagui.config.mjs`
+- **Next integration:** `withDesignSystem` from `@dappermountain/design-system/next-plugin` in `apps/payload-multi-tenant-template/next.config.ts` (config path resolved inside the package)
 - **App usage:** import primitives from `@dappermountain/design-system`; wrap client trees with **`DesignSystemProvider`** (see `apps/.../design-system-root.tsx`)
 
 After changing Tamagui config or tokens, rebuild the design-system package (or rely on `turbo build` from root).
@@ -151,13 +162,15 @@ Run from **`apps/payload-multi-tenant-template`** unless noted:
 | `bun run generate:importmap` | Regenerate Payload admin import map |
 | `bun run generate:schema` | GraphQL schema generation |
 | `bun run lint` | ESLint |
-| `bun test` | Bun test runner |
+| `bun test` | All app tests — `bunfig.toml` + `.env.test` ([docs](./apps/payload-multi-tenant-template/docs/TESTING.md)) |
+| `bun test ./src/collections` | Collection integration tests (Postgres) |
 
 Root:
 
 | Command | Purpose |
 |---------|---------|
 | `bun install` | Install all workspaces |
+| `cd apps/payload-multi-tenant-template && bun test` | Run tests from the app workspace |
 | `bunx turbo build` | Build per `turbo.json` |
 | `bunx turbo lint` | Lint across packages |
 

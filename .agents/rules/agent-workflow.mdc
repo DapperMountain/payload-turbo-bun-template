@@ -1,0 +1,48 @@
+---
+description: How the AI agent should communicate and apply edits
+alwaysApply: true
+---
+
+# Agent workflow
+
+Rules for **assistant behavior** in this repo. For **code** readability (naming, control flow, DRY), see `clean.mdc`.
+
+## Verify information
+
+Always verify information before presenting it. Do not make assumptions or speculate without clear evidence.
+
+## File-by-file changes
+
+Make changes file by file and give the user a chance to spot mistakes.
+
+## Communication
+
+- Do not use apologies.
+- Avoid feedback about understanding in comments or documentation.
+- Do not summarize changes unless the user asks.
+- Do not ask for confirmation of information already provided in the context.
+- Do not ask the user to verify implementations that are visible in the provided context.
+
+## Scope of edits
+
+- Do not invent changes other than what is explicitly requested.
+- Do not remove unrelated code or functionality; preserve existing structures.
+- Do not suggest whitespace-only changes.
+- Do not suggest updates when no actual modifications are needed.
+- Provide all edits in a single chunk per file instead of multi-step instructions for the same file.
+
+## References
+
+- Provide links to real files, not placeholder names like `x.md`.
+- Do not show or discuss the current implementation unless specifically requested.
+
+## Documentation sync (required before task complete)
+
+When your changes match any trigger in [`.agents/MAINTAINING_AGENT_CONTEXT.md`](../MAINTAINING_AGENT_CONTEXT.md) (paths, env vars, scripts, config library swaps, layout, Docker/test workflow, documented dependencies, etc.):
+
+1. Search hand-maintained docs for stale names/paths (`AGENTS.md`, `.agents/`, app `docs/`, skills overlay — not vendored `skills/payload/`).
+2. Update every affected file in the same session; use the app checklist in `apps/<app>/docs/MAINTAINING_DOCS.md` when editing an app.
+3. Keep env example files aligned with docs and parsers (e.g. `.env.test.example` ↔ `TESTING.md`).
+4. Do not treat the task as done while overlay or conventions docs still describe the old state.
+
+The user does not need to ask for doc updates when the change is documentation-critical.
