@@ -1,0 +1,21 @@
+name: Commit messages
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  devmoji-conventional:
+    name: Devmoji + Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Validate PR commits
+        run: bun scripts/validate-commit-msg.ts --range "${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
