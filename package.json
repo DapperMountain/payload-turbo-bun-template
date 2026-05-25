@@ -3,6 +3,7 @@
   "description": "Payload CMS Monorepo using Turborepo and Bun",
   "private": true,
   "scripts": {
+    "build": "turbo build",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "skills:update": "bunx skills update payload -y -p",
