@@ -1,6 +1,6 @@
 import { isAuthenticated } from '@/access/auth'
 import { requireAll } from '@/access/helpers'
-import { userIsSystemAdmin } from '@/utils'
+import { isAppUser, userIsSystemAdmin } from '@/utils'
 import type { Access, PayloadRequest } from 'payload'
 
 /**
@@ -11,5 +11,5 @@ import type { Access, PayloadRequest } from 'payload'
  */
 export const isSystemAdmin: Access = requireAll(
   isAuthenticated,
-  ({ req }: { req: PayloadRequest }) => userIsSystemAdmin(req.user),
+  ({ req }: { req: PayloadRequest }) => isAppUser(req.user) && userIsSystemAdmin(req.user),
 )

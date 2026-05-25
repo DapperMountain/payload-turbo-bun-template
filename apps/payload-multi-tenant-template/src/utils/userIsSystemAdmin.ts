@@ -1,4 +1,5 @@
-import type { User } from '@/types'
+import type { AuthPrincipal } from './isAppUser'
+import { isAppUser } from './isAppUser'
 
 /**
  * Returns whether the user has the `SYSTEM_ADMIN` system role.
@@ -9,5 +10,5 @@ import type { User } from '@/types'
  * @param user - Authenticated user, or `null` / `undefined` when logged out.
  * @returns `true` when `user.roles` includes `SYSTEM_ADMIN`.
  */
-export const userIsSystemAdmin = (user: User | null | undefined): boolean =>
-  Boolean(user?.roles?.includes('SYSTEM_ADMIN'))
+export const userIsSystemAdmin = (user: AuthPrincipal | null | undefined): boolean =>
+  isAppUser(user) && Boolean(user.roles?.includes('SYSTEM_ADMIN'))

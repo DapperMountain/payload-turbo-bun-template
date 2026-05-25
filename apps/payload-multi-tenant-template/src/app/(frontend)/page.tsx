@@ -2,6 +2,8 @@ import config from '@payload-config'
 import { headers as getHeaders } from 'next/headers'
 import { getPayload } from 'payload'
 
+import { isAppUser } from '@/utils'
+
 import { HomePage } from './_components/home-page'
 
 export default async function Page() {
@@ -12,6 +14,9 @@ export default async function Page() {
   const { user } = await payload.auth({ headers })
 
   return (
-    <HomePage adminHref={payloadConfig.routes.admin} userEmail={user?.email ?? null} />
+    <HomePage
+      adminHref={payloadConfig.routes.admin}
+      userEmail={isAppUser(user) ? user.email : null}
+    />
   )
 }

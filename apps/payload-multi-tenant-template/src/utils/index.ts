@@ -4,6 +4,8 @@
  * For authorization, use `@/access`. For generated document types, use `@/types`.
  */
 export { getCollectionId } from './getCollectionId'
+export type { AuthPrincipal } from './isAppUser'
+export { isAppUser } from './isAppUser'
 export { getTenantFromCookie } from './getTenantFromCookie'
 export { getUserTenantIds } from './getUserTenantIds'
 export { userBelongsToTenant } from './userBelongsToTenant'

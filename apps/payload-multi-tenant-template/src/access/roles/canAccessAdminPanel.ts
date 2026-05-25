@@ -1,4 +1,4 @@
-import { userIsSystemAdmin } from '@/utils'
+import { isAppUser, userIsSystemAdmin } from '@/utils'
 import type { PayloadRequest } from 'payload'
 
 /**
@@ -8,4 +8,4 @@ import type { PayloadRequest } from 'payload'
  * the Users collection nav to system administrators.
  */
 export const canAccessAdminPanel = ({ req }: { req: PayloadRequest }): boolean =>
-  userIsSystemAdmin(req.user)
+  isAppUser(req.user) && userIsSystemAdmin(req.user)

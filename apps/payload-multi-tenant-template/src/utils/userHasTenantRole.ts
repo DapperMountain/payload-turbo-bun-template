@@ -1,6 +1,8 @@
-import type { Tenant, User } from '@/types'
+import type { Tenant } from '@/types'
 
 import { getCollectionId } from './getCollectionId'
+import type { AuthPrincipal } from './isAppUser'
+import { isAppUser } from './isAppUser'
 import type { TenantRole } from './tenantRole'
 
 /**
@@ -11,11 +13,11 @@ import type { TenantRole } from './tenantRole'
  * @param role - When set, the membership row must include this role.
  */
 export const userHasTenantRole = (
-  user: User | null | undefined,
+  user: AuthPrincipal | null | undefined,
   tenantId: Tenant['id'],
   role?: TenantRole,
 ): boolean => {
-  if (!user?.tenants?.length) {
+  if (!isAppUser(user) || !user.tenants?.length) {
     return false
   }
 

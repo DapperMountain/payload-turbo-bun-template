@@ -1,5 +1,5 @@
 import { isAuthenticated } from '@/access/auth'
-import { userIsSystemAdmin } from '@/utils'
+import { isAppUser, userIsSystemAdmin } from '@/utils'
 import type { Access, AccessArgs, AccessResult } from 'payload'
 
 /**
@@ -19,7 +19,7 @@ export const withAuth =
       return false
     }
 
-    if (userIsSystemAdmin(args.req.user)) {
+    if (isAppUser(args.req.user) && userIsSystemAdmin(args.req.user)) {
       return true
     }
 

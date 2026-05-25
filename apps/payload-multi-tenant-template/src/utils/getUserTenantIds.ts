@@ -1,6 +1,8 @@
-import type { Tenant, User } from '@/types'
+import type { Tenant } from '@/types'
 
 import { getCollectionId } from './getCollectionId'
+import type { AuthPrincipal } from './isAppUser'
+import { isAppUser } from './isAppUser'
 import type { TenantRole } from './tenantRole'
 
 /**
@@ -11,10 +13,10 @@ import type { TenantRole } from './tenantRole'
  * @returns An array of tenant Ids associated with the user.
  */
 export const getUserTenantIds = (
-  user: User | null,
+  user: AuthPrincipal | null | undefined,
   role?: TenantRole,
 ): Tenant['id'][] => {
-  if (!user?.tenants?.length) return []
+  if (!isAppUser(user) || !user.tenants?.length) return []
 
   return user.tenants
     .filter(({ roles }) => !role || roles.includes(role))

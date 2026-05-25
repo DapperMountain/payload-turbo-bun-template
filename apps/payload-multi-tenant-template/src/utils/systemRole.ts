@@ -1,5 +1,8 @@
 import type { User } from '@/types'
 
+import type { AuthPrincipal } from './isAppUser'
+import { isAppUser } from './isAppUser'
+
 /** System-level role on the user document (`SYSTEM_ADMIN`, `SYSTEM_USER`). */
 export type SystemRole = NonNullable<User['roles']>[number]
 
@@ -12,10 +15,10 @@ const systemRoles: SystemRole[] = ['SYSTEM_ADMIN', 'SYSTEM_USER']
  * @param role - When set, requires this exact system role.
  */
 export const userHasSystemRole = (
-  user: User | null | undefined,
+  user: AuthPrincipal | null | undefined,
   role?: SystemRole,
 ): boolean => {
-  if (!user?.roles?.length) {
+  if (!isAppUser(user) || !user.roles?.length) {
     return false
   }
 
@@ -31,4 +34,5 @@ export const userHasSystemRole = (
  *
  * @see {@link userHasSystemRole}
  */
-export const userIsSystemUser = (user: User | null | undefined): boolean => userHasSystemRole(user)
+export const userIsSystemUser = (user: AuthPrincipal | null | undefined): boolean =>
+  userHasSystemRole(user)

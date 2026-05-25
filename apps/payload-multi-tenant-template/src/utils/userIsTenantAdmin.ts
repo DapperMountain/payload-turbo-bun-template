@@ -1,4 +1,6 @@
-import type { Tenant, User } from '@/types'
+import type { Tenant } from '@/types'
+
+import type { AuthPrincipal } from './isAppUser'
 
 import { getUserTenantIds } from './getUserTenantIds'
 import { userHasTenantRole } from './userHasTenantRole'
@@ -10,7 +12,7 @@ import { userHasTenantRole } from './userHasTenantRole'
  * @param tenantId - When set, checks admin role on that tenant only; otherwise any tenant.
  */
 export const userIsTenantAdmin = (
-  user: User | null | undefined,
+  user: AuthPrincipal | null | undefined,
   tenantId?: Tenant['id'],
 ): boolean =>
   tenantId !== undefined
