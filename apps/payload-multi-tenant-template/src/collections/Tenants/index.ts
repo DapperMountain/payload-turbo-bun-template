@@ -1,12 +1,16 @@
-import { access } from '@/collections/Tenants/access'
-import { CollectionConfig } from 'payload'
+/**
+ * `tenants` collection — workspace records (name, domain, description).
+ */
+import type { CollectionConfig } from 'payload'
+
+import { tenantsAccess } from '@/access/collections'
 
 import { hooks } from './hooks'
 
 const Tenants: CollectionConfig = {
   slug: 'tenants',
   trash: true,
-  access,
+  access: tenantsAccess,
   admin: {
     useAsTitle: 'name',
   },

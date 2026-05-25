@@ -1,33 +1,27 @@
-import isAuthenticated from '@/access/auth/isAuthenticated'
-import { isSystemAdmin } from '@/access/roles/isSystemAdmin'
-import { Access, AccessArgs, AccessResult } from 'payload'
+import { isAuthenticated } from '@/access/auth'
+import { userIsSystemAdmin } from '@/utils'
+import type { Access, AccessArgs, AccessResult } from 'payload'
 
 /**
- * Higher-order function to wrap access functions with a system admin check.
- * If the user is a system admin, it short-circuits and grants full access.
+ * Wraps an access function with login and system-admin bypass.
  *
- * @param accessFn - The access control function to wrap (requireAll, requireOne, etc.).
- * @returns A new access function that first checks if the user is a system admin.
+ * 1. Denies when the user is not authenticated.
+ * 2. Grants full access when {@link userIsSystemAdmin} is true (no `Where` needed).
+ * 3. Otherwise delegates to `accessFn`.
+ *
+ * @param accessFn - Inner access logic (often row-level `Where` filters).
+ * @returns A composed `Access` function.
  */
 export const withAuth =
   <T = unknown>(accessFn: Access<T>): Access<T> =>
   async (args: AccessArgs<T>): Promise<AccessResult> => {
-    // Check if the user is logged in
-    const isLoggedIn = await isAuthenticated(args)
-
-    // If the user is a system admin, grant full access
-    if (isLoggedIn === false) {
+    if (!(await isAuthenticated(args))) {
       return false
     }
 
-    // Check if the user is a system admin
-    const hasAdminAccess = await isSystemAdmin(args)
-
-    // If the user is a system admin, grant full access
-    if (hasAdminAccess === true) {
+    if (userIsSystemAdmin(args.req.user)) {
       return true
     }
 
-    // Otherwise, proceed with the normal access control function
     return accessFn(args)
   }

@@ -1,10 +1,7 @@
-import { Where } from 'payload'
-
 /**
- * Checks if a given value is a promise.
+ * Type guard: value is a Promise (access functions may return sync or async results).
  *
- * @param value - The value to check.
- * @returns `true` if the value is a promise, `false` otherwise.
+ * @param value - Result of invoking an access function.
  */
-export const isPromise = (value: unknown): value is Promise<boolean | Where> =>
+export const isPromise = (value: unknown): value is Promise<boolean | import('payload').Where> =>
   typeof value === 'object' && value !== null && 'then' in value

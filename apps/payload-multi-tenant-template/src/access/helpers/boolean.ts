@@ -1,12 +1,13 @@
-import { AccessResult, PayloadRequest } from 'payload'
+import type { AccessResult, PayloadRequest } from 'payload'
 
 /**
- * Wraps a Payload access function and ensures that it returns a boolean or a Promise<boolean>.
- * This is useful for access functions that may return a `Where` clause or similar object,
- * treating those as equivalent to `true` (i.e., granting access).
+ * Coerces an access function to a strict boolean result.
  *
- * @param accessFn - The access function to wrap.
- * @returns A new access function that always returns a boolean or a Promise<boolean>.
+ * Treats any object result (e.g. a `Where` clause) as `true`. Prefer a dedicated
+ * boolean-only access function for `admin` collection visibility when possible.
+ *
+ * @param accessFn - Access function that may return `Where` or boolean.
+ * @returns Access function that always resolves to boolean.
  */
 export const boolean =
   (
@@ -15,9 +16,9 @@ export const boolean =
   async ({ req }: { req: PayloadRequest }): Promise<boolean> => {
     const result = await accessFn({ req })
 
-    // If the result is an object (e.g., a Where clause), treat it as true
-    if (typeof result === 'object' && result !== null) return true
+    if (typeof result === 'object' && result !== null) {
+      return true
+    }
 
-    // Otherwise, coerce the result to a boolean
-    return !!result
+    return Boolean(result)
   }

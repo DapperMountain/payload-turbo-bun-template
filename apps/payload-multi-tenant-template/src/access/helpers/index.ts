@@ -1,5 +1,7 @@
 export * from './accessResults'
+export * from './allowAll'
 export * from './boolean'
+export * from './denyAll'
 export * from './isFilter'
 export * from './isPromise'
 export * from './requireAll'

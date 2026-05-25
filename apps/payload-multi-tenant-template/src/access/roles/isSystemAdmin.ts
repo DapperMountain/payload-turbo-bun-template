@@ -1,19 +1,15 @@
-import isAuthenticated from '@/access/auth/isAuthenticated'
+import { isAuthenticated } from '@/access/auth'
 import { requireAll } from '@/access/helpers'
-import { User } from '@/types'
-import { isSystemAdmin as isSystemAdminHelper } from '@/utils/isSystemAdmin'
-import { Access, PayloadRequest } from 'payload'
+import { userIsSystemAdmin } from '@/utils'
+import type { Access, PayloadRequest } from 'payload'
 
 /**
- * Access control function to determine if a request is made by a system admin.
+ * Collection-level access: authenticated user with the `SYSTEM_ADMIN` system role.
  *
- * This function requires the user to be authenticated before checking
- * if they have the "SYSTEM_ADMIN" role.
- *
- * @param req - The Payload request object.
- * @returns Boolean indicating whether the user has system admin privileges.
+ * @param args - Payload access args (`req`, `id`, `data`, …).
+ * @returns `true` for system admins; otherwise `false`.
  */
 export const isSystemAdmin: Access = requireAll(
   isAuthenticated,
-  ({ req }: { req: PayloadRequest }): boolean => isSystemAdminHelper(req?.user as User),
+  ({ req }: { req: PayloadRequest }) => userIsSystemAdmin(req.user),
 )

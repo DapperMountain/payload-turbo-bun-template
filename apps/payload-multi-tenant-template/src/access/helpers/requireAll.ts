@@ -1,23 +1,25 @@
-import { combineAccessResults, evaluateAccessResults } from '@/access/helpers/accessResults'
-import { Access, AccessArgs, AccessResult } from 'payload'
+import { combineAccessResults, evaluateAccessResults } from './accessResults'
+import type { Access, AccessArgs, AccessResult } from 'payload'
 
 /**
- * Requires all access functions to return `true` or valid filters (`Where` clauses).
- * If any function denies access (`false`), access is denied.
- * If the user is a system admin, access is granted immediately.
- * Combines filters using `and` logic.
+ * Composes access functions with logical **AND**.
+ *
+ * - If any function returns `false`, the result is `false`.
+ * - Otherwise combines `Where` clauses with `and`, or returns `true` when there are no filters.
+ *
+ * Does not apply a system-admin bypass; use {@link withAuth} on individual checks when needed.
+ *
+ * @param accessFns - Access functions to evaluate.
+ * @returns A composed `Access` function.
  */
 export const requireAll =
   <T = unknown>(...accessFns: Access<T>[]): Access<T> =>
   async (args: AccessArgs<T>): Promise<AccessResult> => {
-    // Evaluate all other access functions
     const results = await evaluateAccessResults(accessFns, args)
 
-    // If any result is `false`, deny access immediately
     if (results.includes(false)) {
       return false
     }
 
-    // Combine the filters (`Where` clauses) using `and` logic
     return combineAccessResults(results, 'and')
   }

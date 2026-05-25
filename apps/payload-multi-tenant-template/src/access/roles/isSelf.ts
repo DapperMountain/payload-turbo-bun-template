@@ -1,14 +1,13 @@
 import { withAuth } from '@/access/helpers'
-import { Access, PayloadRequest } from 'payload'
+import type { Access, PayloadRequest } from 'payload'
 
 /**
- * Checks if the user is requesting their own record based on authentication and comparing the requested ID to the
- * authenticated user's ID. Returns false if user is not authenticated.
+ * Row-level access to the authenticated user's own document (`id` equals `req.user.id`).
+ *
+ * Unauthenticated requests are denied. System admins bypass via {@link withAuth}.
  */
-const isSelf: Access = withAuth(({ req }: { req: PayloadRequest }) => ({
+export const isSelf: Access = withAuth(({ req }: { req: PayloadRequest }) => ({
   id: {
-    equals: req?.user?.id,
+    equals: req.user?.id,
   },
 }))
-
-export default isSelf
