@@ -13,6 +13,21 @@ const eslintConfig = [
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
     rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'tamagui',
+              message: 'Import UI from @dappermountain/design-system instead.',
+            },
+            {
+              name: '@tamagui/core',
+              message: 'Import UI from @dappermountain/design-system instead.',
+            },
+          ],
+        },
+      ],
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-empty-object-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',

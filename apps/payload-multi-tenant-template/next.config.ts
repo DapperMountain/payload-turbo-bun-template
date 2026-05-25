@@ -1,17 +1,16 @@
+import { withPayload } from '@payloadcms/next/withPayload'
+import type { NextConfig } from 'next'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { withPayload } from '@payloadcms/next/withPayload'
-import type { NextConfig } from 'next'
 
 const appDir = path.dirname(fileURLToPath(import.meta.url))
-const designSystemDir = path.resolve(appDir, '../../packages/design-system')
 const require = createRequire(import.meta.url)
-const { withDesignSystem } = require(path.join(designSystemDir, 'dist/cjs/next-plugin.cjs')) as {
-  withDesignSystem: (config: NextConfig, options: { configPath: string }) => NextConfig
+const { withDesignSystem } = require('@dappermountain/design-system/next-plugin') as {
+  withDesignSystem: (config: NextConfig, options?: { outputCSS?: string | null; disableExtraction?: boolean }) => NextConfig
 }
-const tamaguiConfigPath = path.join(designSystemDir, 'dist/esm/tamagui.config.mjs')
-const reactResolved = require.resolve('react')
+
+const isProd = process.env.NODE_ENV === 'production'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -20,32 +19,29 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@dappermountain/design-system'],
   experimental: {
     turbopackFileSystemCacheForDev: true,
+    turbopackServerFastRefresh: true,
   },
   reactStrictMode: true,
-  /** Tamagui build emits `import from "react.mjs"` under `moduleResolution: bundler`; map to the `react` package. */
+  /** Design-system build emits `import from "react.mjs"` under `moduleResolution: bundler`; map to the `react` package. */
   turbopack: {
     resolveAlias: {
       'react.mjs': 'react',
+      'react-native': 'react-native-web',
     },
-  },
-  webpack: (config) => {
-    config.resolve = config.resolve ?? {}
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'react.mjs': reactResolved,
-    }
-    return config
   },
 }
 
 export default withPayload(
-  withDesignSystem(nextConfig, { configPath: tamaguiConfigPath }),
+  withDesignSystem(nextConfig, {
+    disableExtraction: !isProd,
+    outputCSS: isProd ? './public/tamagui.generated.css' : null,
+  }),
   {
-    /**
-     * Bundle Payload (and related server deps) in dev so Turbopack does not externalize `payload` as a
-     * synthetic package (`payload-<hash>`), which Node cannot resolve at runtime.
-     * @see https://payloadcms.com/docs/configuration/overview#withpayload-options
-     */
+  /**
+   * Bundle Payload (and related server deps) in dev so Turbopack does not externalize `payload` as a
+   * synthetic package (`payload-<hash>`), which Node cannot resolve at runtime.
+   * @see https://payloadcms.com/docs/configuration/overview#withpayload-options
+   */
     devBundleServerPackages: true,
   },
 )

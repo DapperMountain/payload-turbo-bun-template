@@ -1,26 +1,19 @@
-import { getNextRequestI18n } from '@payloadcms/next/utilities'
 import type { AcceptedLanguages } from '@payloadcms/translations'
-import { cookies, headers } from 'next/headers'
 import type { LanguageOptions } from 'payload'
-import { getRequestLanguage } from 'payload'
 import type { ReactNode } from 'react'
 
 import config from '@payload-config'
+import { getRequestI18n } from '@/utils/i18n.server'
 
-import { FrontendRoot } from './frontend-root'
-import './frontend-styles.css'
-import { switchLanguageServerAction } from './switch-language'
+import { FrontendProviders } from './_components/providers'
+import { switchLanguageServerAction } from './actions/switch-language'
+import './globals.css'
+import '../../../public/tamagui.generated.css'
 
-export default async function FrontendLayout(props: { children: ReactNode }) {
+export default async function Layout(props: { children: ReactNode }) {
   const { children } = props
   const cfg = await config
-  const language = getRequestLanguage({
-    config: cfg,
-    cookies: await cookies(),
-    headers: await headers(),
-  })
-
-  const i18n = await getNextRequestI18n({ config: cfg })
+  const i18n = await getRequestI18n()
 
   /** Prefer `localization.locales` — labels are stable; `supportedLanguages[*].translations` may be absent on the sanitized config. */
   const languageOptions: LanguageOptions =
@@ -38,12 +31,12 @@ export default async function FrontendLayout(props: { children: ReactNode }) {
         })
 
   return (
-    <html lang={language} suppressHydrationWarning>
+    <html lang={i18n.language} suppressHydrationWarning>
       <body
         style={{ margin: 0, width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
         suppressHydrationWarning
       >
-        <FrontendRoot
+        <FrontendProviders
           dateFNSKey={i18n.dateFNSKey}
           fallbackLang={cfg.i18n.fallbackLanguage as AcceptedLanguages}
           language={i18n.language}
@@ -52,7 +45,7 @@ export default async function FrontendLayout(props: { children: ReactNode }) {
           translations={i18n.translations}
         >
           {children}
-        </FrontendRoot>
+        </FrontendProviders>
       </body>
     </html>
   )
