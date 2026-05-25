@@ -1,4 +1,4 @@
-import { Tenant, User } from '@/types.ts'
+import type { Tenant, User } from '@/types'
 import { expect } from 'bun:test'
 import { CollectionSlug, Payload } from 'payload'
 

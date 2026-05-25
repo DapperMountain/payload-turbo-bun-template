@@ -1,6 +1,9 @@
+# App-local Bun config (per Payload app in the monorepo).
+# Test env: copy `.env.test.example` → `.env.test` (local). CI/Docker inject env vars instead.
+
 [env]
 NODE_OPTIONS = "--no-deprecation"
 PAYLOAD_CONFIG_PATH = "config/payload.ts"
 
 [test]
-preload = ["src/test/config.ts"]
+preload = ["./src/test/preload.ts"]

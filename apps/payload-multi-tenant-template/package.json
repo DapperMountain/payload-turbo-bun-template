@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "start": "next start",
+    "test": "bun test",
     "prepare": "husky || true"
   },
   "dependencies": {

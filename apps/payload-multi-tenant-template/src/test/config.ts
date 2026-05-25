@@ -7,7 +7,7 @@ import { Payload, getPayload } from 'payload'
 let payload: Payload
 
 export function isTestEnv() {
-  return config.env === 'test'
+  return config.isTest
 }
 
 export function throwIfNotTestEnv() {
