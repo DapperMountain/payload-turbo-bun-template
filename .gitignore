@@ -18,6 +18,9 @@ out
 # testing
 /coverage
 
+# Tamagui compiler cache (packages/design-system, app Next builds)
+.tamagui/
+
 # next.js
 /.next/
 

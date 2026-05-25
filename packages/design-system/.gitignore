@@ -1,3 +1,12 @@
 dist
 types
 node_modules
+
+# Tamagui compiler cache (generate-css / Next plugin)
+.tamagui/
+
+# Stray declaration emits at package root (real types live in types/)
+tamagui.build.d.ts
+tamagui.build.d.ts.map
+tamagui.config.d.ts
+tamagui.config.d.ts.map
