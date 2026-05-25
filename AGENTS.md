@@ -18,7 +18,7 @@ Tools that expect `.cursor/rules` or `.cursor/skills` use symlinks into `.agents
 
 ```text
 apps/
-  payload-multi-tenant-template/   # Main Payload + Next template
+  payload-multi-tenant-template/   # Main Payload CMS app (@payloadcms/next)
 packages/
   design-system/                   # Tamagui shared UI + Next plugin
   typescript-config/               # Shared tsconfig fragments
@@ -28,7 +28,7 @@ git-hooks.config.ts                # bun-git-hooks
 compose.yml
 ```
 
-The app declares **Payload** and **`@dappermountain/design-system`** in its own `package.json`. **Next/React** are hoisted from the root workspace for tooling and the app runtime.
+The app declares **Payload** (`payload`, `@payloadcms/*`) and **`@dappermountain/design-system`** in its own `package.json`. **Next/React** are hoisted from the root workspace for **`@payloadcms/next`**. Dev: `bun dev` (Payload). CLI: `bun run payload`.
 
 ## Runtime and commands
 

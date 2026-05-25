@@ -1,12 +1,12 @@
 # Payload multi-tenant template (app)
 
-Next.js **App Router** application: **Payload 3** admin and APIs, optional **design-system** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
+**Payload CMS 3** application (hosted on **Next.js** via **`@payloadcms/next`**): admin and REST/GraphQL APIs, optional **design-system** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
 
 This package is **`@dappermountain/payload-multi-tenant-template`** inside the monorepo.
 
 - **Shared UI:** workspace package **`@dappermountain/design-system`** (`packages/design-system`)
 - **Payload stack:** declared in this app’s `package.json` (`payload`, `@payloadcms/*`)
-- **Next / React:** hoisted from the **root** workspace `package.json` (install from repo root with `bun install`)
+- **Next / React:** hoisted from the **root** workspace for **`@payloadcms/next`** (install from repo root with `bun install`)
 
 Monorepo overview, Docker, and Turborepo build flow: **[`../../README.md`](../../README.md)**.
 
@@ -17,7 +17,7 @@ Monorepo overview, Docker, and Turborepo build flow: **[`../../README.md`](../..
 | Environment | App URL | Admin |
 |-------------|---------|--------|
 | **Docker Compose** (root `compose.yml`) | `http://localhost:3001` | `http://localhost:3001/admin` |
-| **Local `bun dev`** (default Next port) | `http://localhost:3000` | `http://localhost:3000/admin` |
+| **Local `bun dev`** (Payload dev; default port 3000) | `http://localhost:3000` | `http://localhost:3000/admin` |
 
 Compose maps host **3001 → container 3000**. Postgres is exposed on host **5442** when using the root compose file.
 
@@ -51,9 +51,9 @@ cp apps/payload-multi-tenant-template/.env.example apps/payload-multi-tenant-tem
 ./scripts/up.sh
 ```
 
-Then open **`http://localhost:3001/admin`**. The repo is mounted into the container; changes under `src/` and workspace packages reload via `bun dev`.
+Then open **`http://localhost:3001/admin`**. The repo is mounted into the container; changes under `src/` and workspace packages reload via **`bun dev`** (Payload dev server).
 
-### Option B — Next on the host
+### Option B — Payload on the host
 
 ```bash
 # From repository root
@@ -80,7 +80,7 @@ cd apps/payload-multi-tenant-template
 bun run start
 ```
 
-**From this directory only:** `bun run build` runs **`prebuild`** (`generate:css` in design-system) then `next build`. Use this for an atomic app build when `design-system` is already compiled, or after `cd packages/design-system && bun run build`. For full monorepo ordering, use the root `turbo build` command above.
+**From this directory only:** `bun run build` runs **`prebuild`** (`generate:css` in design-system) then the production Payload build (`next build` via `@payloadcms/next`). Use this for an atomic app build when `design-system` is already compiled, or after `cd packages/design-system && bun run build`. For full monorepo ordering, use the root `turbo build` command above.
 
 See **[`../../README.md` — Building the monorepo](../../README.md#building-the-monorepo)** for the full picture (whole-repo vs per-package builds).
 
@@ -90,10 +90,10 @@ See **[`../../README.md` — Building the monorepo](../../README.md#building-the
 
 | Script | Description |
 |--------|-------------|
-| `bun dev` | Next development server |
-| `bun run build` | `next build` (standalone output) |
-| `bun run start` | `next start` |
-| `bun run payload` | Payload CLI |
+| `bun dev` | Payload development server (`next dev` via `@payloadcms/next`) |
+| `bun run build` | Production Payload build (`next build`, standalone output) |
+| `bun run start` | Serve production build (`next start`) |
+| `bun run payload` | Payload CLI (`payload` — migrations, jobs, etc.) |
 | `bun run generate:types` | **`payload generate:types`** — run after collection/global schema changes |
 | `bun run generate:importmap` | Regenerate admin import map after custom components |
 | `bun run generate:schema` | GraphQL schema generation |
@@ -144,7 +144,7 @@ config/                  # Payload config entry, env parsing (Zod)
 
 ## Docker image (production-style)
 
-The **`Dockerfile`** here is used by root **`compose.yml`** for the **dev** service command (`bun dev`). For **deployable** images, the same Dockerfile is set up for **`turbo prune`**, **`bun install`**, **`turbo build`**, and **Next standalone** output (see Dockerfile stages). Adjust `CMD` / orchestration for your host (Kubernetes, Fly, etc.).
+The **`Dockerfile`** here is used by root **`compose.yml`** for the **dev** service (`bun dev` — Payload). For **deployable** images, the same Dockerfile uses **`turbo prune`**, **`bun install`**, **`turbo build`**, and Next **standalone** output for the Payload app (see Dockerfile stages). Adjust `CMD` / orchestration for your host (Kubernetes, Fly, etc.).
 
 ---
 
@@ -162,7 +162,7 @@ The **`Dockerfile`** here is used by root **`compose.yml`** for the **dev** serv
 - **Lexical** rich text, **SEO** plugin  
 - **Zod**-validated centralized config  
 - **Design system** frontend via **`@dappermountain/design-system`**  
-- **React Compiler** enabled in Next config (see `babel-plugin-react-compiler` / Next options)  
+- **React Compiler** enabled in `next.config.ts` (Payload + frontend)  
 
 ---
 
