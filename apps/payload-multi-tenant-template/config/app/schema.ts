@@ -30,6 +30,8 @@ export const appConfigSchema = z.object({
       telemetry: boolEnv('PAYLOAD_TELEMETRY_ENABLED', false),
       /** GraphQL API + schema generation (`GRAPHQL_ENABLED`). */
       graphql: boolEnv('GRAPHQL_ENABLED', true),
+      /** MCP server at `/api/mcp` (`MCP_ENABLED`). */
+      mcp: boolEnv('MCP_ENABLED', true),
     })
     .prefault({}),
 })

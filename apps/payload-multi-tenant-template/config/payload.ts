@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
@@ -7,12 +8,12 @@ import { fileURLToPath } from 'url'
 
 import { migrations } from '@/database/migrations'
 
-import collections, { Users } from '@/collections'
+import collections, { Tenants, Users } from '@/collections'
 import { seed } from '@/database/seed'
 import endpoints from '@/endpoints'
 import { i18n, localization } from '@/lang'
 import type { Config } from '@/types'
-import { userIsSystemAdmin } from '@/utils'
+import { isAppUser, userIsSystemAdmin } from '@/utils'
 
 import config from '@config'
 
@@ -48,7 +49,29 @@ export default buildConfig({
       collections: {},
       tenantsSlug: 'tenants',
       tenantsArrayField: { includeDefaultField: false },
-      userHasAccessToAllTenants: (user) => userIsSystemAdmin(user),
+      userHasAccessToAllTenants: (user) => isAppUser(user) && userIsSystemAdmin(user),
+    }),
+    mcpPlugin({
+      disabled: !config.features.mcp,
+      userCollection: Users.slug as 'users',
+      collections: {
+        [Users.slug]: {
+          enabled: true,
+          description: 'Application users and tenant memberships.',
+        },
+        [Tenants.slug]: {
+          enabled: true,
+          description: 'Multi-tenant organizations.',
+        },
+      },
+      mcp: {
+        serverOptions: {
+          serverInfo: {
+            name: 'payload-multi-tenant-template',
+            version: '1.0.0',
+          },
+        },
+      },
     }),
   ],
   telemetry: config.features.telemetry,
