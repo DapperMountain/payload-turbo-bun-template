@@ -1,8 +1,8 @@
 # Payload multi-tenant template (app)
 
-Next.js **App Router** application: **Payload 3** admin and APIs, optional **Tamagui** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
+Next.js **App Router** application: **Payload 3** admin and APIs, optional **design-system** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
 
-This package is **`@dappermountain/payload-multi-tenant-template`** inside the monorepo. Shared UI lives in **`@dappermountain/design-system`** (Tamagui); Payload/Next/React versions are pulled through **`@dappermountain/payload-deps`**.
+This package is **`@dappermountain/payload-multi-tenant-template`** inside the monorepo. Shared UI lives in **`@dappermountain/design-system`**; Payload/Next/React versions are pulled through **`@dappermountain/payload-deps`**.
 
 ---
 
@@ -96,7 +96,28 @@ bun run start
 | `bun run db:migrate:run` | Run Payload migrations |
 | `bun run db:migrate:create` | Create a migration |
 | `bun run lint` | ESLint |
-| `bun test` | Unit tests (Bun) |
+| `bun test` | Full suite — [`bunfig.toml`](./bunfig.toml) + `.env.test` (see [Testing](./docs/TESTING.md)) |
+| `bun test ./src/collections` | Collection integration smoke tests |
+| `bun test ./src/access` | Access unit tests |
+| `bun test ./config/app` | Config parser unit tests |
+---
+
+## AI agent skills
+
+- **Monorepo entry:** [`../../AGENTS.md`](../../AGENTS.md) — Bun, Turborepo, shared Payload skill.
+- **This app:** [`AGENTS.md`](./AGENTS.md) + [`.agents/skills/dapper-payload-app/`](.agents/skills/dapper-payload-app/) (config, DB, multi-tenant, i18n).
+- **Payload skill (root, vendored):** `/.agents/skills/payload/` — update from repo root: `bun run skills:update`.
+- **Workspace rules (root):** `/.agents/rules/`.
+
+---
+
+## Code conventions
+
+Folder-per-collection layout, barrel `index.ts` imports, and **TSDoc** comment standards are documented in **[`docs/CODE_CONVENTIONS.md`](docs/CODE_CONVENTIONS.md)**. See also [`src/collections/README.md`](src/collections/README.md), [`src/access/README.md`](src/access/README.md), and **[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)** for the public frontend UI package.
+
+## Configuration
+
+Environment variables are validated at startup via Zod. See **[`config/README.md`](config/README.md)** for the full variable list; copy [`.env.example`](.env.example) to `.env`.
 
 ---
 
@@ -105,14 +126,15 @@ bun run start
 ```text
 src/
   app/
-    (frontend)/          # Public Tamagui shell + pages
+    (frontend)/          # Public design-system shell + pages
     (payload)/           # Payload admin + API routes
-  collections/           # Payload collections
+  collections/           # Payload collections (folder per collection)
+  access/                # Authorization maps and helpers
   ...
 config/                  # Payload config entry, env parsing (Zod)
 ```
 
-**`next.config.ts`** composes **`withPayload`** and **`withDesignSystem`** (Tamagui), and sets `transpilePackages` for the design-system workspace package.
+**`next.config.ts`** composes **`withPayload`** and **`withDesignSystem`**, and sets `transpilePackages` for `@dappermountain/design-system`.
 
 ---
 
@@ -135,7 +157,7 @@ The **`Dockerfile`** here is used by root **`compose.yml`** for the **dev** serv
 - **Multi-tenant** plugin  
 - **Lexical** rich text, **SEO** plugin  
 - **Zod**-validated centralized config  
-- **Tamagui 2** frontend via **`@dappermountain/design-system`**  
+- **Design system** frontend via **`@dappermountain/design-system`**  
 - **React Compiler** enabled in Next config (see `babel-plugin-react-compiler` / Next options)  
 
 ---
