@@ -1,5 +1,5 @@
 services:
-  payload-multi-tenant-template:
+  app:
     restart: unless-stopped
     build:
       context: .
@@ -18,7 +18,7 @@ services:
       - 3001:3000
     volumes:
       - .:/app
-      - payload_app_next:/app/apps/payload-multi-tenant-template/.next
+      - app_cache:/app/apps/payload-multi-tenant-template/.next
     depends_on:
       - db
 
@@ -39,23 +39,23 @@ services:
     volumes:
       - data:/var/lib/postgresql/data
 
-  # db-test:
-  #   restart: unless-stopped
-  #   image: timescale/timescaledb:latest-pg16
-  #   healthcheck:
-  #     test: ['CMD-SHELL', 'g_isready -U ${DATABASE_USER:-payload} -d ${DATABASE_NAME:-payload}']
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
-  #   environment:
-  #     POSTGRES_DB: ${DATABASE_NAME:-payload}
-  #     POSTGRES_USER: ${DATABASE_USER:-payload}
-  #     POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-payload}
-  #   ports:
-  #     - 5443:5432
-  #   volumes:
-  #     - data_test:/var/lib/postgresql/data
+  db-test:
+    restart: unless-stopped
+    image: timescale/timescaledb:latest-pg17
+    healthcheck:
+      test: ["CMD-SHELL", "g_isready -U ${DATABASE_USER:-payload} -d ${DATABASE_NAME:-payload}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-payload}
+      POSTGRES_USER: ${DATABASE_USER:-payload}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-payload}
+    ports:
+      - 5443:5432
+    volumes:
+      - data_test:/var/lib/postgresql/data
 volumes:
   data:
-  payload_app_next:
-  # data_test:
+  app_cache:
+  data_test:

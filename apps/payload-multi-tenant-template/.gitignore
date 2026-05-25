@@ -15,5 +15,5 @@
 # typescript
 next-env.d.ts
 
-# Tamagui
+# Design-system package (Tamagui compiler cache when built locally)
 /.tamagui/

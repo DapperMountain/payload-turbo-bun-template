@@ -7,12 +7,16 @@ node_modules
 
 # Monorepo
 .turbo
+out
+
+# Editor local history (not source)
+.history
 
 # Next.js
 .next
 
-# Environment Variables
-.env
+# Environment variables (local, test, and secrets — inject at runtime in Docker/CI)
+.env*
 .envrc
 
 # Misc
