@@ -17,8 +17,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "start": "next start",
-    "test": "bun test",
-    "prepare": "husky || true"
+    "test": "bun test"
   },
   "dependencies": {
     "@dappermountain/design-system": "workspace:*",
