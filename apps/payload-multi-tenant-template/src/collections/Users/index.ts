@@ -1,16 +1,19 @@
+/**
+ * `users` collection — auth, system roles, and per-tenant membership via the multi-tenant plugin.
+ */
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
-import { CollectionConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
 
-import { app } from '@/lang/en'
+import { usersAccess } from '@/access/collections'
+import { custom } from '@/lang'
 
-import { access } from './access'
 import { hooks } from './hooks'
 
 const Users: CollectionConfig = {
   slug: 'users',
   auth: { useAPIKey: true },
   trash: true,
-  access,
+  access: usersAccess,
   versions: true,
   admin: { useAsTitle: 'fullName', listSearchableFields: ['firstName', 'lastName'] },
   fields: [
@@ -30,9 +33,10 @@ const Users: CollectionConfig = {
       label: 'Roles',
       defaultValue: ['SYSTEM_USER'],
       hasMany: true,
+      saveToJWT: true,
       options: [
-        { label: app.roles.SYSTEM_ADMIN, value: 'SYSTEM_ADMIN' },
-        { label: app.roles.SYSTEM_USER, value: 'SYSTEM_USER' },
+        { label: custom.roles.SYSTEM_ADMIN, value: 'SYSTEM_ADMIN' },
+        { label: custom.roles.SYSTEM_USER, value: 'SYSTEM_USER' },
       ],
     },
     {
@@ -45,8 +49,8 @@ const Users: CollectionConfig = {
             defaultValue: ['TENANT_USER'],
             hasMany: true,
             options: [
-              { label: app.roles.TENANT_ADMIN, value: 'TENANT_ADMIN' },
-              { label: app.roles.TENANT_USER, value: 'TENANT_USER' },
+              { label: custom.roles.TENANT_ADMIN, value: 'TENANT_ADMIN' },
+              { label: custom.roles.TENANT_USER, value: 'TENANT_USER' },
             ],
             required: true,
           },
