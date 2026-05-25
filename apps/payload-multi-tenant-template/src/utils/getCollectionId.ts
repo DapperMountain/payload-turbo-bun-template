@@ -1,4 +1,4 @@
-import { Config } from '@/types.ts'
+import type { Config } from '@/types'
 import type { CollectionSlug } from 'payload'
 
 /**

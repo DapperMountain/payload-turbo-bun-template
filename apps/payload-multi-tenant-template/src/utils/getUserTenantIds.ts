@@ -1,5 +1,7 @@
-import type { Tenant, User } from '@/types.ts'
-import { getCollectionId } from '@/utils/getCollectionId.ts'
+import type { Tenant, User } from '@/types'
+
+import { getCollectionId } from './getCollectionId'
+import type { TenantRole } from './tenantRole'
 
 /**
  * Retrieves an array of all tenant Ids assigned to a user.
@@ -10,7 +12,7 @@ import { getCollectionId } from '@/utils/getCollectionId.ts'
  */
 export const getUserTenantIds = (
   user: User | null,
-  role?: NonNullable<User['tenants']>[number]['roles'][number],
+  role?: TenantRole,
 ): Tenant['id'][] => {
   if (!user?.tenants?.length) return []
 
