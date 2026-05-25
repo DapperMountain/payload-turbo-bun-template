@@ -2,50 +2,54 @@ import { postgresAdapter } from '@payloadcms/db-postgres'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
-import { AccessArgs, buildConfig } from 'payload'
+import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
 import { migrations } from '@/database/migrations'
 
-import collections from '@/collections'
+import collections, { Users } from '@/collections'
+import { seed } from '@/database/seed'
 import endpoints from '@/endpoints'
 import { i18n, localization } from '@/lang'
+import type { Config } from '@/types'
+import { userIsSystemAdmin } from '@/utils'
 
-import { isSystemAdmin } from '@/access/roles/isSystemAdmin'
-import Users from '@/collections/Users'
-import { seed } from '@/database/seed'
-import config, { Config } from '@config'
+import config from '@config'
+
+import { postgresPoolOptions } from './adapters/postgres-pool'
 
 const filename = fileURLToPath(import.meta.url)
 const rootDir = path.resolve(path.dirname(filename), '..')
 
 export default buildConfig({
-  admin: { user: Users.slug },
+  serverURL: config.server.serverURL,
+  admin: { user: Users.slug, suppressHydrationWarning: true },
   collections,
   endpoints,
   i18n,
   localization,
   editor: lexicalEditor({}),
   secret: config.payload.secret,
-  typescript: { outputFile: path.resolve(rootDir, 'src', 'types') },
-  graphQL: { schemaOutputFile: path.resolve(rootDir, 'src', 'schema.graphql') },
+  typescript: { outputFile: path.resolve(rootDir, 'src', 'types.ts') },
+  ...(config.features.graphql ? { graphQL: { schemaOutputFile: path.resolve(rootDir, 'src', 'schema.graphql') } } : {}),
   db: postgresAdapter({
-    idType: 'uuid',
+    idType: 'uuidv7',
     migrationDir: path.resolve(rootDir, 'src', 'database', 'migrations'),
-    prodMigrations: migrations, // run migrations on init
-    pool: { connectionString: config.database.uri },
+    prodMigrations: migrations,
+    pool: postgresPoolOptions(config.database),
   }),
   onInit(payload) {
     seed(payload)
   },
-  cors: [config.baseURL].filter(Boolean),
+  cors: config.server.corsOrigins,
+  csrf: config.server.corsOrigins,
   plugins: [
     multiTenantPlugin<Config>({
       collections: {},
       tenantsSlug: 'tenants',
       tenantsArrayField: { includeDefaultField: false },
-      userHasAccessToAllTenants: (user) => Boolean(isSystemAdmin({ req: { user } } as AccessArgs)),
+      userHasAccessToAllTenants: (user) => userIsSystemAdmin(user),
     }),
   ],
-  telemetry: false,
+  telemetry: config.features.telemetry,
 })

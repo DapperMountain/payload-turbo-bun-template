@@ -3,15 +3,14 @@
   "display": "PayloadCMS",
   "extends": "../../packages/typescript-config/nextjs.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["src/*"],
-      "@config": ["config/index.ts"],
-      "@config/*": ["config/*"],
-      "@collections/*": ["src/collections/*"],
-      "@payload-config": ["config/payload.ts"]
+      "@/*": ["./src/*"],
+      "@config": ["./config/index.ts"],
+      "@config/*": ["./config/*"],
+      "@collections/*": ["./src/collections/*"],
+      "@payload-config": ["./config/payload.ts"]
     }
   },
   "include": ["**/*.mjs", "**/*.mts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
