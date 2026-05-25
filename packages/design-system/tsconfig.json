@@ -3,7 +3,7 @@
   "display": "Design System",
   "extends": "../typescript-config/react",
   "compilerOptions": {
-    "baseUrl": ".",
+    "rootDir": ".",
     "outDir": "dist",
     "module": "ESNext",
     "moduleResolution": "bundler"

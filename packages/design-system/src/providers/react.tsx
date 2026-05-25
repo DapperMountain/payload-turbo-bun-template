@@ -4,10 +4,14 @@ import React, { useMemo } from 'react'
 import { TamaguiProvider } from '@tamagui/core'
 /** `Theme` is re-exported from the umbrella `tamagui` package; importing it from `@tamagui/core` fails under tamagui-build's TS pass. */
 import { Theme } from 'tamagui'
+
 import defaultConfig, { DEFAULT_THEME, type Config, type ThemeName } from '../tamagui.config'
 
 /**
- * Tamagui shell for any React renderer (Next.js app router, Vite, etc.).
+ * Design-system shell (Expo, Vite, Storybook, etc.).
+ *
+ * For **Next.js App Router**, import `DesignSystemProvider` from `@dappermountain/design-system/next`
+ * so SSR styles are flushed via `useServerInsertedHTML`.
  *
  * - `themeName` must be a known `ThemeName` or `null` to skip the extra `Theme` wrapper.
  * - Uses the package default config when `config` is omitted.
@@ -21,6 +25,9 @@ export function DesignSystemProvider(props: {
 
   const cfg = useMemo(() => config ?? defaultConfig, [config])
 
+  /** When static `outputCSS` is linked in the layout, skip duplicate theme/token injection in production. */
+  const disableInjectCSS = process.env.NODE_ENV === 'production'
+
   if (!cfg) {
     if (process.env.NODE_ENV !== 'production') {
       // eslint-disable-next-line no-console
@@ -31,14 +38,24 @@ export function DesignSystemProvider(props: {
 
   if (themeName == null) {
     return (
-      <TamaguiProvider config={cfg} defaultTheme={DEFAULT_THEME} disableRootThemeClass>
+      <TamaguiProvider
+        config={cfg}
+        defaultTheme={DEFAULT_THEME}
+        disableInjectCSS={disableInjectCSS}
+        disableRootThemeClass
+      >
         {children}
       </TamaguiProvider>
     )
   }
 
   return (
-    <TamaguiProvider config={cfg} defaultTheme={DEFAULT_THEME} disableRootThemeClass>
+    <TamaguiProvider
+      config={cfg}
+      defaultTheme={DEFAULT_THEME}
+      disableInjectCSS={disableInjectCSS}
+      disableRootThemeClass
+    >
       <Theme name={themeName}>{children}</Theme>
     </TamaguiProvider>
   )

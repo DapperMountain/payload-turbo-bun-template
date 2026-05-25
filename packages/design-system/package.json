@@ -22,12 +22,18 @@
     "./next-plugin": {
       "import": "./dist/esm/next-plugin.js",
       "require": "./dist/cjs/next-plugin.cjs"
+    },
+    "./next": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/esm/providers/next.mjs",
+      "require": "./dist/cjs/providers/next.cjs"
     }
   },
   "scripts": {
     "clean": "rimraf dist types",
     "prebuild": "bun run clean",
     "build": "tamagui-build",
+    "generate:css": "tamagui generate-css --output ../../apps/payload-multi-tenant-template/public/tamagui.generated.css",
     "watch": "bun run build --watch"
   },
   "sideEffects": [
@@ -42,19 +48,28 @@
     "@tamagui/shorthands": "2.0.0-rc.32",
     "@tamagui/theme-builder": "2.0.0-rc.32",
     "@tamagui/types": "2.0.0-rc.32",
+    "@tamagui/web": "2.0.0-rc.32",
     "lucide-react": "^0.543.0",
     "tamagui": "2.0.0-rc.32"
   },
   "devDependencies": {
     "@dappermountain/typescript-config": "workspace:*",
     "@tamagui/build": "2.0.0-rc.32",
+    "@tamagui/cli": "2.0.0-rc.32",
     "@types/node": "*",
     "@types/react": "*",
     "@types/react-dom": "*"
   },
   "peerDependencies": {
+    "next": ">= 14.0.0",
     "react": ">= 19.0.0",
     "react-dom": ">= 19.0.0",
-    "react-native": ">= 0.80.2"
+    "react-native": ">= 0.80.2",
+    "react-native-web": ">= 0.19.0"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": false
+    }
   }
 }

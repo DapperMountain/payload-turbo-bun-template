@@ -1,13 +1,35 @@
-// Public API for app code. No direct "tamagui" imports appear outside this package.
+// Public API for app code. No direct "tamagui" imports outside this package.
 
-// Next plugin
+import './tamagui.config'
+
 export { withDesignSystem, type WithDesignSystemOptions } from './next-plugin'
 
-// Providers (type-safe + unsafe escape hatch)
-export { DesignSystemProvider, DesignSystemTheme, DesignSystemThemeUnsafe } from './providers/react'
+export {
+  DesignSystemProvider,
+  DesignSystemTheme,
+  DesignSystemThemeUnsafe,
+} from './providers/react'
 
-// Config + types
 export { config, DEFAULT_THEME, type AppConfig, type ThemeName } from './tamagui.config'
+export type { Config } from './tamagui.config'
 
-export * from 'tamagui'
+export {
+  Body,
+  Button,
+  Divider,
+  H1,
+  Label,
+  PageTitle,
+  Paragraph,
+  Row,
+  Separator,
+  Stack,
+  Text,
+  XStack,
+  YStack,
+} from './primitives'
+
+export type { StyledComponent } from './types'
+export { asStyled } from './types'
+
 export type * from 'tamagui'
