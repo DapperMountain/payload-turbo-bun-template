@@ -46,3 +46,7 @@ When your changes match any trigger in [`.agents/MAINTAINING_AGENT_CONTEXT.md`](
 4. Do not treat the task as done while overlay or conventions docs still describe the old state.
 
 The user does not need to ask for doc updates when the change is documentation-critical.
+
+## Git commits
+
+When the user asks you to commit, follow [`.agents/rules/commits.mdc`](commits.mdc) and [`docs/COMMITS.md`](../../docs/COMMITS.md) (Devmoji + Conventional Commits: `type(scope): <emoji> <subject>`).

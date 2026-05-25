@@ -1,0 +1,39 @@
+---
+description: Commit message format (Devmoji + Conventional Commits) for humans and agents
+alwaysApply: true
+---
+
+# Commits (Devmoji + Conventional Commits)
+
+When the user asks you to **create git commits**, use this format for every commit subject line:
+
+```text
+type(scope): <emoji> <subject>
+```
+
+- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
+- **Scope:** optional, lowercase area (`deps`, `access`, `i18n`, `design-system`, `docker`, `agents`, `app`, …)
+- **Emoji:** Unicode gitmoji/Devmoji symbol immediately after `: ` (e.g. `✨` `🐛` `♻️` `📄` `✅` `🔧` `⬆️` `💄` `🌐` `🐳`)
+- **Subject:** imperative, concise; explain *why* in the body when the change is non-obvious
+
+Full reference and examples: [`docs/COMMITS.md`](../../docs/COMMITS.md).
+
+## Examples
+
+```text
+feat(i18n): 🌐 wire Payload custom translations for runtime and config
+refactor(access): ♻️ modularize access control and collection policies
+chore(deps): ⬆️ bump Payload, Next, Bun, and lockfile
+docs(app): 📄 add conventions, testing guide, and agent overlay
+```
+
+## Multi-commit work
+
+Split by logical area (deps, agents, config, access, tests, design-system, frontend, i18n, docs, docker) — one Devmoji subject per commit unless the user wants a single commit.
+
+## Do not
+
+- Use plain `fix: something` without an emoji when committing in this repo
+- Use `npm`/`npx` in commit instructions (Bun only — see `bun.mdc`)
+- Run `git commit --no-verify` unless the user explicitly requests skipping hooks
+- Add **`Co-authored-by:`** (or similar) trailers naming AI agents, bots, or tools (Cursor, Copilot, Claude, ChatGPT, etc.) — commits attribute **human authors only** unless the user explicitly asks for a specific co-author

@@ -60,6 +60,6 @@ globs:
 
 ## Version Control
 
-- Write clear commit messages
+- Use Devmoji + Conventional Commits — see `commits.mdc` and `docs/COMMITS.md`
 - Make small, focused commits
 - Use meaningful branch names

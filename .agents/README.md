@@ -19,6 +19,8 @@ Per-app overlays live under `apps/<name>/.agents/skills/` (e.g. `dapper-payload-
 
 Lockfile: [`skills-lock.json`](../skills-lock.json) at repository root.
 
+**Commits:** [`docs/COMMITS.md`](../docs/COMMITS.md) (Devmoji + Conventional Commits); agent rule [`.agents/rules/commits.mdc`](rules/commits.mdc).
+
 **Editor compatibility:** `.cursor/rules` and `.cursor/skills` symlink into this tree where needed.
 
 ## Keeping context in sync

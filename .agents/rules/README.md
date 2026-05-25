@@ -8,6 +8,7 @@ Canonical rules for AI coding agents (`.mdc`). **Edit files in this directory** 
 |------|---------------|--------|------|
 | `bun.mdc` | yes | Whole repo | Bun-only install, scripts, runtime |
 | `agent-workflow.mdc` | yes | Whole repo | How the agent edits and communicates; **doc sync before task complete** |
+| `commits.mdc` | yes | Whole repo | Devmoji + Conventional Commits when creating git commits |
 | `clean.mdc` | no | When relevant | Code readability: naming, DRY, control flow, early returns |
 | `typescript.mdc` | no | `**/*.{ts,tsx,d.ts}` | Types, strictness, guards — not barrels or style |
 | `security-critical.mdc` | no | `apps/**/*` | Payload Local API, hooks, transactions |

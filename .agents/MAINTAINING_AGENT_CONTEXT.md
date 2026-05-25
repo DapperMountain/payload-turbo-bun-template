@@ -10,10 +10,11 @@ Update documentation when a change could mislead someone following existing docs
 |----------|----------|
 | **Paths & names** | Rename/move files or folders; change path aliases (`@config`, `@/access`); rename packages or compose services |
 | **Config & env** | New/removed/renamed env vars; change validation library (e.g. Zod → something else); new `config/` layout |
-| **Commands & tooling** | `package.json` scripts; Bun/Turbo/Docker workflow; app `bunfig.toml` / `.env.test` test setup |
+| **Commands & tooling** | `package.json` scripts (`prepare`, hooks); Bun/Turbo/Docker workflow; app `bunfig.toml` / `.env.test` test setup |
 | **Architecture** | New top-level `src/` area; barrel policy; access/collection layout; multi-tenant wiring |
 | **Database** | Migration/seed workflow; test DB env; adapter or ORM references in docs |
-| **i18n** | `src/lang` structure; `app:*` translation keys; frontend `TranslationProvider` boundary |
+| **i18n** | `src/lang` structure; `custom:*` translation keys; frontend `TranslationProvider` boundary |
+| **Commits / hooks** | `docs/COMMITS.md`, `git-hooks.config.ts`, `scripts/validate-commit-msg.ts`, `.agents/rules/commits.mdc` |
 | **Security** | Local API `overrideAccess`; hook `req` / transaction patterns (also update `security-critical.mdc` if rules change) |
 | **Dependencies (documented stack)** | Replacing a library that docs name explicitly (Tamagui, Lexical, Postgres adapter, etc.) |
 
