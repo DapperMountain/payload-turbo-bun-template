@@ -4,10 +4,14 @@
   "private": true,
   "scripts": {
     "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "skills:update": "bunx skills update payload -y -p",
+    "skills:check": "bunx skills check -p",
+    "skills:install": "bunx skills add payloadcms/skills --skill payload -y --copy -a '*'"
   },
   "devDependencies": {
-    "@types/bun": "1.3.10",
+    "cross-env": "7.0.3",
+    "@types/bun": "1.3.12",
     "@types/node": "22.19.9",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
@@ -16,7 +20,7 @@
     "eslint-config-next": "15.4.11",
     "husky": "~9.1.7",
     "lint-staged": "~16.1.5",
-    "next": "16.2.0-canary.96",
+    "next": "16.2.4",
     "prettier": "~3.6.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -28,5 +32,5 @@
     "apps/*",
     "packages/*"
   ],
-  "packageManager": "bun@1.3.10"
+  "packageManager": "bun@1.3.13"
 }
