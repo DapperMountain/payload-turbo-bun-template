@@ -7,7 +7,7 @@ import type { CollectionConfig } from 'payload'
 import { usersAccess } from '@/access/collections'
 import { custom } from '@/lang'
 
-import { hooks } from './hooks'
+import { fieldHooks, hooks } from './hooks'
 
 const Users: CollectionConfig = {
   slug: 'users',
@@ -15,16 +15,29 @@ const Users: CollectionConfig = {
   trash: true,
   access: usersAccess,
   versions: true,
-  admin: { useAsTitle: 'fullName', listSearchableFields: ['firstName', 'lastName'] },
+  /**
+   * Relationship pickers only `select` the `useAsTitle` field (`fullName`). That virtual field is
+   * not in the DB — merge these so `afterRead` can compute `fullName` for admin labels.
+   */
+  forceSelect: {
+    firstName: true,
+    lastName: true,
+    email: true,
+  },
+  admin: {
+    useAsTitle: 'fullName',
+    listSearchableFields: ['firstName', 'lastName', 'email'],
+  },
   fields: [
     { name: 'firstName', type: 'text', required: true, label: 'First name' },
     { name: 'lastName', type: 'text', required: true, label: 'Last name' },
     {
+      /** Virtual title — not stored in DB. `afterRead` uses `siblingData` (requires `forceSelect`). */
       name: 'fullName',
       type: 'text',
       virtual: true,
       admin: { hidden: true },
-      hooks: { afterRead: [({ data }) => `${data?.firstName} ${data?.lastName}`] },
+      hooks: fieldHooks,
     },
     {
       admin: { position: 'sidebar' },
