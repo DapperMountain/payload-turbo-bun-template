@@ -10,7 +10,7 @@ Monorepo template for **[Payload CMS 3](https://payloadcms.com)** on **[Next.js]
 |--------|--------|
 | Runtime & package manager | **Bun** (`packageManager` pinned in root `package.json`) |
 | Monorepo orchestration | **Turborepo** — `build` depends on upstream packages (`^build`) |
-| CMS | **Payload 3** with Postgres via `@payloadcms/db-postgres` |
+| CMS | **Payload 3** with Postgres via `@payloadcms/db-postgres`; optional **MCP** (`@payloadcms/plugin-mcp`) |
 | App host | **Next.js App Router** via **`@payloadcms/next`** — Payload admin + API routes in `app/(payload)`, optional Tamagui frontend in `app/(frontend)` |
 | UI (shared) | **`@dappermountain/design-system`** — Tamagui 2 (config v5), `tamagui-build`, `withDesignSystem` Next plugin |
 | Database (local) | **TimescaleDB** (`timescale/timescaledb`, PostgreSQL 17) via root `compose.yml` |
@@ -254,5 +254,5 @@ Production images use the app **`Dockerfile`** (prune → build → standalone).
 | Doc | Contents |
 |-----|----------|
 | [`apps/payload-multi-tenant-template/README.md`](apps/payload-multi-tenant-template/README.md) | App URLs, env, scripts, structure |
-| [`apps/payload-multi-tenant-template/docs/`](apps/payload-multi-tenant-template/docs/) | Conventions, testing, design system |
+| [`apps/payload-multi-tenant-template/docs/`](apps/payload-multi-tenant-template/docs/) | Conventions, testing, design system, [MCP](apps/payload-multi-tenant-template/docs/MCP.md) |
 | [`docs/COMMITS.md`](docs/COMMITS.md) | Commit format and hooks |

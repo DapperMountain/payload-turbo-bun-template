@@ -1,6 +1,6 @@
 # Payload multi-tenant template (app)
 
-**Payload CMS 3** application (hosted on **Next.js** via **`@payloadcms/next`**): admin and REST/GraphQL APIs, optional **design-system** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
+**Payload CMS 3** application (hosted on **Next.js** via **`@payloadcms/next`**): admin and REST/GraphQL APIs, optional **MCP** for AI clients ([`docs/MCP.md`](docs/MCP.md)), optional **design-system** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
 
 This package is **`@dappermountain/payload-multi-tenant-template`** inside the monorepo.
 
@@ -123,6 +123,12 @@ Folder-per-collection layout, barrel `index.ts` imports, and **TSDoc** comment s
 
 Environment variables are validated at startup via Zod. See **[`config/README.md`](config/README.md)** for the full variable list; copy [`.env.example`](.env.example) to `.env`.
 
+## MCP (AI clients)
+
+When **`MCP_ENABLED=true`** (default), Payload exposes **`/api/mcp`** and an **MCP → API Keys** admin collection. Create a key, connect Cursor or other MCP clients, and scope capabilities per key. Access follows the linked Payload user (including multi-tenant rules).
+
+See **[`docs/MCP.md`](docs/MCP.md)** for client examples, security notes, and migrations.
+
 ---
 
 ## Project structure (high level)
@@ -178,6 +184,7 @@ Adjust `CMD` / orchestration for your host (Kubernetes, Fly, etc.).
 - **Bun** for install and scripts  
 - **Payload 3** + **Postgres** (Drizzle adapter)  
 - **Multi-tenant** plugin  
+- **MCP** plugin (`@payloadcms/plugin-mcp`) — optional via `MCP_ENABLED`  
 - **Lexical** rich text, **SEO** plugin  
 - **Zod**-validated centralized config  
 - **Design system** frontend via **`@dappermountain/design-system`**  

@@ -27,6 +27,7 @@ Upstream examples often assume `pnpm`, `payload-types.ts`, and MongoDB.
 | Postgres, migrations, seeding | [reference/DATABASE.md](reference/DATABASE.md) |
 | Tests (`bun test`, `.env.test`, `bunfig.toml`) | [`docs/TESTING.md`](../../../docs/TESTING.md) |
 | Multi-tenant plugin and access | [reference/MULTI-TENANT.md](reference/MULTI-TENANT.md) |
+| MCP (AI clients, API keys) | [`docs/MCP.md`](../../../docs/MCP.md) |
 | App translations (`src/lang`) | [reference/I18N.md](reference/I18N.md) |
 
 ## Upstream Payload skill

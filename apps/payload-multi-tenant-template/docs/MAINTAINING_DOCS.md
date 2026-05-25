@@ -16,6 +16,7 @@ Agents: run this checklist **before marking the task complete**. Do not wait for
 | **Postgres / migrations / seed / test DB** | `DATABASE.md`, `config/README.md`, `.env.example`, `.env.test.example`, root [`compose.yml`](../../../compose.yml) comments if ports/services change |
 | **`src/lang` / i18n** | [`reference/I18N.md`](../.agents/skills/dapper-payload-app/reference/I18N.md), `.env.test.example` (if env-related) |
 | **Multi-tenant / access** | [`reference/MULTI-TENANT.md`](../.agents/skills/dapper-payload-app/reference/MULTI-TENANT.md), `src/access/README.md`, `CODE_CONVENTIONS.md` |
+| **MCP plugin** | [`docs/MCP.md`](MCP.md), [`config/payload.ts`](../config/payload.ts), `config/README.md`, `.env.example`, `PROJECT.md` |
 | **Docker / Next / design system** | App `README.md`, `docs/DESIGN_SYSTEM.md`, root `README.md`, `PROJECT.md` (`next.config.ts` section) |
 | **`@dappermountain/design-system` usage** | `docs/DESIGN_SYSTEM.md`, `CODE_CONVENTIONS.md`, app `README.md` |
 | **Testing** (unit + integration) | `docs/TESTING.md`, `src/test/preload.ts`, `src/test/config.ts`, `bunfig.toml`, `.env.test.example`, `DATABASE.md`, `CODE_CONVENTIONS.md` (test section) |

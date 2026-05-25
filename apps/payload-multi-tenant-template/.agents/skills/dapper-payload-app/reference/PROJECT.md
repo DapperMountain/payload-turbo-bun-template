@@ -76,6 +76,7 @@ Import from `@/types` — **not** `@/payload-types`. Do not barrel-export genera
 | Package | Registered in `buildConfig` |
 |---------|----------------------------|
 | `@payloadcms/plugin-multi-tenant` | Yes |
+| `@payloadcms/plugin-mcp` | Yes — [`config/payload.ts`](../../../config/payload.ts) (`plugins`), [`docs/MCP.md`](../../../docs/MCP.md) |
 | `@payloadcms/plugin-seo` | No (dependency only) |
 
 Website-template plugins (redirects, search, form-builder, nested-docs) are **not** in this app.

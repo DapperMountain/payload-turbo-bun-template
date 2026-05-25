@@ -25,6 +25,7 @@ This app is part of the monorepo. Start with the root [AGENTS.md](../../AGENTS.m
 | `bun dev` | Payload dev server (port 3000; `@payloadcms/next`) |
 | `bun run generate:types` | Regenerate `src/types.ts` |
 | `bun run db:migrate:run` | Run migrations (dev `.env`) |
+| MCP / API keys | [`docs/MCP.md`](docs/MCP.md) — `/api/mcp`, `MCP_ENABLED` |
 | `bun test` | Tests — [`bunfig.toml`](./bunfig.toml), local [`.env.test`](./.env.test.example) (copy from example); see [`docs/TESTING.md`](docs/TESTING.md) |
 
 Update shared Payload skill from **repo root**: `bun run skills:update`.

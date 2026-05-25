@@ -35,8 +35,12 @@ collections/
 ├── Users/
 │   ├── index.ts            # CollectionConfig (default export)
 │   └── hooks/
-│       ├── index.ts        # Barrel: `hooks` object for the collection
-│       └── *.ts            # Individual hook implementations
+│       ├── index.ts        # Barrel: `hooks`, `fieldHooks`
+│       ├── collection/
+│       │   └── index.ts    # `hooks` — CollectionConfig['hooks']
+│       └── fields/
+│           ├── index.ts    # per-field `fieldHooks` (`Field['hooks']`) for that field’s config
+│           └── *.ts        # Field hook implementations
 └── Tenants/
     ├── index.ts
     └── hooks/
@@ -54,7 +58,10 @@ collections/
 
 ```typescript
 import collections, { Users } from '@/collections'
-import { hooks } from './hooks' // inside collections/Users/index.ts only
+import { fieldHooks, hooks } from './hooks' // inside collections/Users/index.ts only
+
+// Field: import `fieldHooks` from `./hooks/fields` (or re-exported `./hooks`)
+{ name: 'fullName', type: 'text', hooks: fieldHooks }
 ```
 
 ## Barrel exports (`index.ts`)
@@ -64,7 +71,7 @@ Use an `index.ts` at the **public boundary** of a folder when the folder has mul
 | Folder | Barrel exports |
 |--------|----------------|
 | `collections/` | `default` array + `{ Users, Tenants }` |
-| `collections/Users/hooks/` | `hooks` |
+| `collections/Users/hooks/` | `hooks`, `fieldHooks` |
 | `access/` | Public access API (see `access/index.ts`) |
 | `access/helpers/`, `auth/`, `roles/`, `tenants/`, `collections/` | Sub-barrels re-exported from `@/access` |
 | `utils/` | Shared utilities |

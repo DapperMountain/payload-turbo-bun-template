@@ -99,6 +99,9 @@ Before Zod runs, `prepareEnvForConfig()` loads `.env` and `.env.local` (unset ke
 |----------|-------------|---------|
 | `PAYLOAD_TELEMETRY_ENABLED` | `config.features.telemetry` | `false` |
 | `GRAPHQL_ENABLED` | `config.features.graphql` | `true` |
+| `MCP_ENABLED` | `config.features.mcp` | `true` |
+
+When enabled, `mcpPlugin` in `payload.ts` exposes `users` and `tenants` at `/api/mcp`. See [`docs/MCP.md`](../docs/MCP.md).
 
 ## Runtime helpers
 
