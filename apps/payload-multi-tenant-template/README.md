@@ -144,7 +144,26 @@ config/                  # Payload config entry, env parsing (Zod)
 
 ## Docker image (production-style)
 
-The **`Dockerfile`** here is used by root **`compose.yml`** for the **dev** service (`bun dev` — Payload). For **deployable** images, the same Dockerfile uses **`turbo prune`**, **`bun install`**, **`turbo build`**, and Next **standalone** output for the Payload app (see Dockerfile stages). Adjust `CMD` / orchestration for your host (Kubernetes, Fly, etc.).
+The **`Dockerfile`** here serves two roles:
+
+| Mode | How | Image size |
+|------|-----|------------|
+| **Compose dev** (root `compose.yml`) | Bind-mount repo, `bun dev` | N/A (dev workflow) |
+| **Production release** | `turbo prune` → `bun install` → `turbo build` → copy **Next standalone** into Bun Alpine | **Currently under 300MB** |
+
+**Why it stays small:** `turbo prune --docker` limits the build context to this app and its workspace deps (not the entire monorepo). **`output: 'standalone'`** in `next.config.ts` means the final stage only ships the standalone server bundle and static assets — not all of `node_modules` or source from unrelated packages.
+
+Build the release target explicitly (not the default Compose service):
+
+```bash
+docker build -f apps/payload-multi-tenant-template/Dockerfile \
+  --target release \
+  --build-arg PROJECT=@dappermountain/payload-multi-tenant-template \
+  --build-arg PROJECT_PATH=apps/payload-multi-tenant-template \
+  -t payload-multi-tenant-template:release .
+```
+
+Adjust `CMD` / orchestration for your host (Kubernetes, Fly, etc.).
 
 ---
 

@@ -179,7 +179,13 @@ If you run **`bun run build` only inside the app** without a recent upstream bui
 
 ### Production output
 
-The Payload app’s Next config uses **`output: 'standalone'`** for slimmer deploy images. The **`Dockerfile`** under `apps/payload-multi-tenant-template/` uses **`turbo prune`**, **`bun install`**, and **`turbo build`** in the image — same cascading behavior as local root builds (distinct from Compose dev, which runs **`bun dev`** for Payload).
+The Payload app’s Next config uses **`output: 'standalone'`** so the runtime ships only what Next needs (not the full monorepo source tree). The **`Dockerfile`** under `apps/payload-multi-tenant-template/` combines:
+
+1. **`turbo prune --docker`** — copies only this app and its workspace dependencies into the build context  
+2. **`turbo build`** — builds the pruned graph (same `^build` order as local)  
+3. **Standalone output** — the release stage copies `.next/standalone` + static assets into a minimal **Bun Alpine** image  
+
+Together, **`turbo prune` + Next standalone** keeps production images small — **currently under 300MB** for this template (exact size varies with dependencies and build args). Compose dev is separate: it bind-mounts the repo and runs **`bun dev`** for Payload, not this pruned release image.
 
 ---
 
@@ -231,7 +237,7 @@ After changing Tamagui config or tokens, run **`bunx turbo build --filter=@dappe
 
 ## Deployment
 
-The app includes **`fly.toml`** for **[Fly.io](https://fly.io)**. Adjust regions, app name, and secrets to match your project.
+Production images use the app **`Dockerfile`** (prune → build → standalone). **`fly.toml`** is included for **[Fly.io](https://fly.io)** — adjust regions, app name, and secrets to match your project.
 
 ---
 
