@@ -11,18 +11,21 @@ export default {
     },
     defaultTenant: 'Espacio predeterminado',
     frontend: {
-      logoAlt: 'Payload',
+      appName: 'Accounting for Life',
+      logoAlt: 'Accounting for Life',
       welcome: 'Bienvenido',
       welcomeBack: 'Bienvenido de nuevo',
       signedInPrefix: 'Sesión iniciada como ',
-      signedOutBlurb: 'Tu nueva base Payload + sistema de diseño está lista.',
+      signedOutBlurb:
+        'Finanzas personales autoalojadas en Payload: presupuesto, libro mayor y sincronización en un solo lugar.',
+      tagline: 'Construido con Payload CMS, Tailwind y shadcn/ui',
       openAdmin: 'Abrir administración',
       documentation: 'Documentación',
       chooseLanguage: 'Elegir idioma',
     },
     meta: {
-      title: 'Payload',
-      description: 'Payload CMS con el sistema de diseño Dapper Mountain',
+      title: 'Accounting for Life',
+      description: 'Finanzas personales autoalojadas en Payload CMS',
     },
   },
 }

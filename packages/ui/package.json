@@ -17,7 +17,8 @@
     "./tokens.css": "./src/styles/tokens.css",
     "./components/*": "./src/components/*.tsx",
     "./lib/*": "./src/lib/*.ts",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./hooks/*": "./src/hooks/*.ts",
+    "./icons": "./src/icons.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit"

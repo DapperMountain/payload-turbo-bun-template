@@ -1,6 +1,7 @@
 import type { AcceptedLanguages } from '@payloadcms/translations'
 import type { LanguageOptions } from 'payload'
 import type { ReactNode } from 'react'
+import { Geist, Geist_Mono } from 'next/font/google'
 
 import config from '@payload-config'
 import { getRequestI18n } from '@/utils/i18n.server'
@@ -9,6 +10,16 @@ import '@dappermountain/ui/globals.css'
 import { FrontendProviders } from './_components/providers'
 import { switchLanguageServerAction } from './actions/switch-language'
 import './globals.css'
+
+const geistSans = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist-sans',
+})
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+})
 
 export default async function Layout(props: { children: ReactNode }) {
   const { children } = props
@@ -32,7 +43,7 @@ export default async function Layout(props: { children: ReactNode }) {
 
   return (
     <html lang={i18n.language} suppressHydrationWarning>
-      <body className="min-h-screen antialiased">
+      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}>
         <FrontendProviders
           dateFNSKey={i18n.dateFNSKey}
           fallbackLang={cfg.i18n.fallbackLanguage as AcceptedLanguages}
