@@ -1,4 +1,4 @@
-# Maintaining documentation (payload-multi-tenant-template)
+# Maintaining documentation (accounting-for-life)
 
 When code changes affect how developers or agents navigate this app, **update the docs in the same change** — see monorepo [`.agents/MAINTAINING_AGENT_CONTEXT.md`](../../../.agents/MAINTAINING_AGENT_CONTEXT.md).
 
@@ -8,14 +8,14 @@ Agents: run this checklist **before marking the task complete**. Do not wait for
 
 | If you changed… | Update these (as applicable) |
 |-----------------|------------------------------|
-| **`src/` layout** (new area, move collections/access) | [`CODE_CONVENTIONS.md`](CODE_CONVENTIONS.md), [`src/collections/README.md`](../src/collections/README.md), [`src/access/README.md`](../src/access/README.md), [`.agents/skills/dapper-payload-app/reference/PROJECT.md`](../.agents/skills/dapper-payload-app/reference/PROJECT.md) |
+| **`src/` layout** (new area, move collections/access) | [`CODE_CONVENTIONS.md`](CODE_CONVENTIONS.md), [`src/collections/README.md`](../src/collections/README.md), [`src/access/README.md`](../src/access/README.md), [`.agents/skills/accounting-for-life-app/reference/PROJECT.md`](../.agents/skills/accounting-for-life-app/reference/PROJECT.md) |
 | **Path aliases** (`tsconfig` paths, `@config`, `@payload-config`) | `PROJECT.md`, `CODE_CONVENTIONS.md`, `config/README.md` |
-| **`config/` or env validation** (Zod schema, parsers, `load.ts`) | [`config/README.md`](../config/README.md), `PROJECT.md`, [`.env.example`](../.env.example), [`.env.test.example`](../.env.test.example), [`DATABASE.md`](../.agents/skills/dapper-payload-app/reference/DATABASE.md) |
+| **`config/` or env validation** (Zod schema, parsers, `load.ts`) | [`config/README.md`](../config/README.md), `PROJECT.md`, [`.env.example`](../.env.example), [`.env.test.example`](../.env.test.example), [`DATABASE.md`](../.agents/skills/accounting-for-life-app/reference/DATABASE.md) |
 | **`package.json` scripts** (dev, migrate, generate — not tests) | [App `README.md`](../README.md), [`AGENTS.md`](../AGENTS.md), `PROJECT.md` (validation table) |
 | **Test / env files** (`bunfig.toml`, `.env.test.example`, `src/test/`) | [`TESTING.md`](TESTING.md), `config/README.md`, `DATABASE.md` |
 | **Postgres / migrations / seed / test DB** | `DATABASE.md`, `config/README.md`, `.env.example`, `.env.test.example`, root [`compose.yml`](../../../compose.yml) comments if ports/services change |
-| **`src/lang` / i18n** | [`reference/I18N.md`](../.agents/skills/dapper-payload-app/reference/I18N.md), `.env.test.example` (if env-related) |
-| **Multi-tenant / access** | [`reference/MULTI-TENANT.md`](../.agents/skills/dapper-payload-app/reference/MULTI-TENANT.md), `src/access/README.md`, `CODE_CONVENTIONS.md` |
+| **`src/lang` / i18n** | [`reference/I18N.md`](../.agents/skills/accounting-for-life-app/reference/I18N.md), `.env.test.example` (if env-related) |
+| **Multi-tenant / access** | [`reference/MULTI-TENANT.md`](../.agents/skills/accounting-for-life-app/reference/MULTI-TENANT.md), `src/access/README.md`, `CODE_CONVENTIONS.md` |
 | **MCP plugin** | [`docs/MCP.md`](MCP.md), [`config/payload.ts`](../config/payload.ts), `config/README.md`, `.env.example`, `PROJECT.md` |
 | **Docker / Next / design system** | App `README.md`, `docs/DESIGN_SYSTEM.md`, root `README.md`, `PROJECT.md` (`next.config.ts` section) |
 | **`@dappermountain/design-system` usage** | `docs/DESIGN_SYSTEM.md`, `CODE_CONVENTIONS.md`, app `README.md` |
@@ -28,13 +28,13 @@ Agents: run this checklist **before marking the task complete**. Do not wait for
 |------|------------------|
 | [`.env.test.example`](../.env.test.example) | Local `.env.test` (gitignored); document CI env parity in `TESTING.md` |
 | [`config/README.md`](../config/README.md) env table | [`.env.example`](../.env.example) |
-| Skill `reference/*.md` path mentions | Real paths under `apps/payload-multi-tenant-template/` |
+| Skill `reference/*.md` path mentions | Real paths under `apps/accounting-for-life/` |
 
 ## Agent overlay (this app)
 
 | File | Purpose |
 |------|---------|
-| [`.agents/skills/dapper-payload-app/SKILL.md`](../.agents/skills/dapper-payload-app/SKILL.md) | Entry + reading order |
+| [`.agents/skills/accounting-for-life-app/SKILL.md`](../.agents/skills/accounting-for-life-app/SKILL.md) | Entry + reading order |
 | `reference/PROJECT.md` | Layout, aliases, config, types |
 | `reference/DATABASE.md` | Migrations, seed, test DB |
 | `reference/MULTI-TENANT.md` | Plugin + access |
@@ -51,8 +51,8 @@ Agents: run this checklist **before marking the task complete**. Do not wait for
 
 ```bash
 # From repo root — replace OLD with the renamed path/term
-rg 'OLD' apps/payload-multi-tenant-template \
-  apps/payload-multi-tenant-template/docs \
-  apps/payload-multi-tenant-template/.agents \
+rg 'OLD' apps/accounting-for-life \
+  apps/accounting-for-life/docs \
+  apps/accounting-for-life/.agents \
   AGENTS.md .agents README.md
 ```

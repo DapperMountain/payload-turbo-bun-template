@@ -5,7 +5,7 @@
 See **[`docs/CODE_CONVENTIONS.md`](../../../docs/CODE_CONVENTIONS.md)** for folder-per-collection layout, barrel `index.ts` imports, and TSDoc standards.
 
 ```text
-apps/payload-multi-tenant-template/
+apps/accounting-for-life/
 ├── config/
 │   ├── index.ts          # Zod-validated env + seed (@config)
 │   └── payload.ts        # buildConfig (@payload-config)
@@ -24,7 +24,7 @@ apps/payload-multi-tenant-template/
 │       ├── (frontend)/   # Public site — layout.tsx, page.tsx, _components/, actions/
 │       └── (payload)/    # Admin + API routes
 └── .agents/skills/
-    └── dapper-payload-app/   # This app overlay (Payload skill is at repo root)
+    └── accounting-for-life-app/   # This app overlay (Payload skill is at repo root)
 ```
 
 ## Path aliases and config entry

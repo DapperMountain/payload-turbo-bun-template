@@ -13,7 +13,7 @@ Unit tests are fast and DB-free. Integration tests boot Payload + Postgres and a
 
 ## Running tests
 
-From `apps/payload-multi-tenant-template`:
+From `apps/accounting-for-life`:
 
 | Goal | Command |
 |------|---------|

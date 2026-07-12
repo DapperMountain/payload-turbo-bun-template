@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - apps/payload-multi-tenant-template/**
+      - apps/accounting-for-life/**
 
 jobs:
   deploy:
@@ -23,6 +23,6 @@ jobs:
 
       - name: Deploy Payload Multi-Tenant Template to Fly.io
         run: |
-          flyctl deploy . --config ${{ github.workspace }}//apps/payload-multi-tenant-template/fly.toml --ha=false
+          flyctl deploy . --config ${{ github.workspace }}//apps/accounting-for-life/fly.toml --ha=false
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -62,7 +62,7 @@ Set the key in your shell (e.g. `~/.zshrc`): `export PAYLOAD_MCP_API_KEY="…"` 
 
 | How you run the app | MCP URL on your Mac |
 |---------------------|---------------------|
-| `bun dev` in `apps/payload-multi-tenant-template` (host) | `http://127.0.0.1:3000/api/mcp` |
+| `bun dev` in `apps/accounting-for-life` (host) | `http://127.0.0.1:3000/api/mcp` |
 | Root `./scripts/up.sh` / Docker Compose (`3001:3000`) | `http://127.0.0.1:3001/api/mcp` |
 
 Use the same host/port as `NEXT_PUBLIC_SERVER_URL` in `.env`. Prefer **`127.0.0.1`** if `localhost` fails.
@@ -100,7 +100,7 @@ Use the same host/port as `NEXT_PUBLIC_SERVER_URL` in `.env`. Prefer **`127.0.0.
 ```json
 {
   "mcp.servers": {
-    "payload-multi-tenant-template": {
+    "accounting-for-life": {
       "command": "bunx",
       "args": [
         "-y",
@@ -134,5 +134,5 @@ Add prompts, tools, or resources via the `mcp` option on `mcpPlugin` in [`config
 ## Related docs
 
 - [Payload MCP plugin](https://payloadcms.com/docs/plugins/mcp)
-- [Multi-tenant access](../.agents/skills/dapper-payload-app/reference/MULTI-TENANT.md)
+- [Multi-tenant access](../.agents/skills/accounting-for-life-app/reference/MULTI-TENANT.md)
 - [Config env vars](../config/README.md)

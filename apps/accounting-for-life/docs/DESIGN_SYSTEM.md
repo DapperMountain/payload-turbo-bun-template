@@ -50,7 +50,7 @@ Commit `public/tamagui.generated.css` after theme/token changes in `packages/des
 
 Turbopack aliases `react-native` → `react-native-web` (see `next.config.ts`). The app also depends on **`react-native`** and **`react-native-web`** so the design-system Next provider can import RN-web during SSR.
 
-**Production `dist/`:** from the repo root, `bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...` builds design-system first via Turborepo (`^build`). You only need a manual package build when working atomically:
+**Production `dist/`:** from the repo root, `bunx turbo build --filter=@dappermountain/accounting-for-life...` builds design-system first via Turborepo (`^build`). You only need a manual package build when working atomically:
 
 ```bash
 cd packages/design-system && bun run build
@@ -92,7 +92,7 @@ Tamagui primitives stay in **client** modules but still **SSR** (HTML on first p
 
 ## i18n
 
-Copy lives in **`src/lang/`**. Client UI: **`useAppTranslation()`** and **`t('custom:…')`**. See [I18N.md](../.agents/skills/dapper-payload-app/reference/I18N.md).
+Copy lives in **`src/lang/`**. Client UI: **`useAppTranslation()`** and **`t('custom:…')`**. See [I18N.md](../.agents/skills/accounting-for-life-app/reference/I18N.md).
 
 ## Related docs
 

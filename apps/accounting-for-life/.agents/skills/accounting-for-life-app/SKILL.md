@@ -1,12 +1,12 @@
 ---
-name: dapper-payload-app
+name: accounting-for-life-app
 description: >-
-  Payload multi-tenant template app (apps/payload-multi-tenant-template). Use with
-  root payload skill. Covers config/payload.ts, Zod @config, Postgres, seeding,
-  plugin-multi-tenant, and src/lang — not Payload core monorepo dev.
+  Accounting for Life app (apps/accounting-for-life). Use with root payload skill.
+  Covers config/payload.ts, Zod @config, Postgres, seeding, plugin-multi-tenant,
+  and src/lang — not Payload core monorepo dev.
 ---
 
-# Dapper Payload multi-tenant app
+# Accounting for Life app
 
 Read this skill **before** generic guidance in the root [payload skill](../../../../../.agents/skills/payload/SKILL.md).
 Upstream examples often assume `pnpm`, `payload-types.ts`, and MongoDB.

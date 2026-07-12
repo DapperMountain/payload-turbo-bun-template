@@ -1,18 +1,17 @@
-@ -1,38 +0,0 @@
-# fly.toml app configuration file generated for payload-multi-tenant-template-production on 2025-02-27T21:33:19-05:00
+# fly.toml app configuration file for accounting-for-life-production
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'payload-multi-tenant-template-production'
+app = 'accounting-for-life-production'
 primary_region = 'lax'
 
 [build]
   dockerfile = './Dockerfile'
 
   [build.args]
-    PROJECT = '@dappermountain/payload-multi-tenant-template'
-    PROJECT_PATH = 'apps/payload-multi-tenant-template'
+    PROJECT = '@dappermountain/accounting-for-life'
+    PROJECT_PATH = 'apps/accounting-for-life'
 
 [deploy]
   strategy = 'rolling'
@@ -37,4 +36,3 @@ primary_region = 'lax'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 2
-  

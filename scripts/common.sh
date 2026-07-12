@@ -7,7 +7,7 @@
 # Set environment variables that are common across scripts.
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
-export COMPOSE_PROJECT_NAME=payload-turbo-bun-template
+export COMPOSE_PROJECT_NAME=accounting-for-life
 export APPS_DIR="apps"  # Ensure this is correctly defined
 
 # Get the full path of the directory containing this script

@@ -33,7 +33,7 @@
     "clean": "rimraf dist types",
     "prebuild": "bun run clean",
     "build": "tamagui-build",
-    "generate:css": "tamagui generate-css --output ../../apps/payload-multi-tenant-template/public/tamagui.generated.css",
+    "generate:css": "tamagui generate-css --output ../../apps/accounting-for-life/public/tamagui.generated.css",
     "watch": "bun run build --watch"
   },
   "sideEffects": [

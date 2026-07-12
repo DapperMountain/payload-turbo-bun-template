@@ -67,8 +67,8 @@ export default buildConfig({
       mcp: {
         serverOptions: {
           serverInfo: {
-            name: 'payload-multi-tenant-template',
-            version: '1.0.0',
+            name: 'accounting-for-life',
+            version: '0.1.0',
           },
         },
       },

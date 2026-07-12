@@ -1,6 +1,8 @@
-# payload-turbo-bun-template
+# accounting-for-life
 
-Monorepo template for **[Payload CMS 3](https://payloadcms.com)** on **[Next.js](https://nextjs.org)** (App Router), using **[Bun](https://bun.sh)** and **[Turborepo](https://turborepo.com)**. It includes a shared **[Tamagui](https://tamagui.dev)** design system, **PostgreSQL** (TimescaleDB image), and **Docker**-based local development.
+Self-hosted personal finance app built on **[Payload CMS 3](https://payloadcms.com)** — a YNAB + Monarch hybrid with double-entry accounting, multi-currency swaps, zero-based budgeting, and institution sync. Monorepo uses **[Bun](https://bun.sh)**, **[Turborepo](https://turborepo.com)**, **[Next.js](https://nextjs.org)**, and **[Tamagui](https://tamagui.dev)** (migrating toward Tailwind/Uniwind for Payload 4 alignment).
+
+See **[`docs/roadmap/`](docs/roadmap/)** for epics, user stories, and sprint plan.
 
 ---
 
@@ -22,7 +24,7 @@ Monorepo template for **[Payload CMS 3](https://payloadcms.com)** on **[Next.js]
 
 ```text
 apps/
-  payload-multi-tenant-template/    # Payload 3 app (@payloadcms/next; only app today)
+  accounting-for-life/              # Payload 3 app (@payloadcms/next)
 packages/
   design-system/                    # Tamagui UI, Next plugin, generate:css
   typescript-config/                # Shared tsconfig fragments (base, react, nextjs)
@@ -42,7 +44,7 @@ compose.yml                         # App + Postgres services
 
 | Piece | Role |
 |-------|------|
-| **`apps/payload-multi-tenant-template`** | Main template — Payload config under `config/`, app code under `src/`. Declares **`@dappermountain/design-system`** and Payload packages directly in its `package.json`. |
+| **`apps/accounting-for-life`** | Main app — Payload config under `config/`, app code under `src/`. Declares **`@dappermountain/design-system`** and Payload packages directly in its `package.json`. |
 | **`packages/design-system`** | Shared Tamagui primitives and Next integration. **`prebuild`** in the app runs `generate:css` here so `public/tamagui.generated.css` stays current. |
 | **`packages/typescript-config`** | Extended TS configs consumed by workspace packages. |
 | **Root `package.json`** | Turborepo scripts, shared dev tooling (ESLint, Prettier, TypeScript), and **Next/React** versions hoisted for **`@payloadcms/next`**. |
@@ -60,7 +62,7 @@ compose.yml                         # App + Postgres services
 | [`docs/COMMITS.md`](docs/COMMITS.md) | Devmoji + Conventional Commits (hooks install on `bun install`) |
 | [`.agents/rules/`](.agents/rules/) | Repo-wide workspace rules (`*.mdc`) |
 | [`.agents/skills/payload/`](.agents/skills/payload/) | Vendored [payloadcms/skills](https://github.com/payloadcms/skills) — `bun run skills:update` |
-| `apps/payload-multi-tenant-template/.agents/skills/dapper-payload-app/` | Template-specific overlay |
+| `apps/accounting-for-life/.agents/skills/accounting-for-life-app/` | App-specific agent overlay |
 
 ---
 
@@ -74,7 +76,7 @@ compose.yml                         # App + Postgres services
 
 ## Quick start with Docker (recommended for a full stack)
 
-The Compose project name is **`payload-turbo-bun-template`** (see `scripts/common.sh`).
+The Compose project name is **`accounting-for-life`** (see `scripts/common.sh`).
 
 1. **Clone** the repository.
 
@@ -87,7 +89,7 @@ The Compose project name is **`payload-turbo-bun-template`** (see `scripts/commo
 3. **Environment file** — copy the app example env and adjust (database URL, secrets, seed flags):
 
    ```bash
-   cp apps/payload-multi-tenant-template/.env.example apps/payload-multi-tenant-template/.env
+   cp apps/accounting-for-life/.env.example apps/accounting-for-life/.env
    ```
 
    Set `DATA_SEED_ENABLED=1` if you want a seeded database on first run.
@@ -107,7 +109,7 @@ The Compose project name is **`payload-turbo-bun-template`** (see `scripts/commo
 
 6. **Database** — Postgres listens on host **`localhost:5442`** (container `5432`).
 
-The app container bind-mounts the repo to `/app` and runs `bun install && bun dev` (Payload’s dev server via Next), so edits under `./apps/payload-multi-tenant-template/src` (and workspace packages) hot-reload without rebuilding the image for day-to-day work.
+The app container bind-mounts the repo to `/app` and runs `bun install && bun dev` (Payload’s dev server via Next), so edits under `./apps/accounting-for-life/src` (and workspace packages) hot-reload without rebuilding the image for day-to-day work.
 
 ---
 
@@ -121,19 +123,19 @@ Use this when you run **Payload on the host** (`bun dev`) and only use Docker fo
    bun install
    ```
 
-2. Ensure **`apps/payload-multi-tenant-template/.env`** exists and `DATABASE_URL` points at your database (e.g. `localhost:5442` if DB is running via Compose).
+2. Ensure **`apps/accounting-for-life/.env`** exists and `DATABASE_URL` points at your database (e.g. `localhost:5442` if DB is running via Compose).
 
 3. Start the Payload dev server (from the app directory, or use Turborepo filter):
 
    ```bash
-   cd apps/payload-multi-tenant-template
+   cd apps/accounting-for-life
    bun dev
    ```
 
    Or from root:
 
    ```bash
-   bunx turbo dev --filter=@dappermountain/payload-multi-tenant-template
+   bunx turbo dev --filter=@dappermountain/accounting-for-life
    ```
 
    Default URL: **`http://localhost:3000/admin`** (Compose uses **3001** on the host).
@@ -148,7 +150,7 @@ Use this when you run **Payload on the host** (`bun dev`) and only use Docker fo
 bun install
 
 # App + all upstream workspace packages (^build)
-bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...
+bunx turbo build --filter=@dappermountain/accounting-for-life...
 
 # Or every package that defines a build script
 bunx turbo build
@@ -171,15 +173,15 @@ bun run generate:css   # updates app public/tamagui.generated.css
 ```
 
 ```bash
-cd apps/payload-multi-tenant-template
+cd apps/accounting-for-life
 bun run build          # prebuild (generate:css) then Payload production build (next build)
 ```
 
-If you run **`bun run build` only inside the app** without a recent upstream build, ensure `packages/design-system/dist/` exists (either from a prior `turbo build` or a manual `bun run build` in that package). Prefer **`turbo build --filter=...@dappermountain/payload-multi-tenant-template`** from the root so ordering stays correct.
+If you run **`bun run build` only inside the app** without a recent upstream build, ensure `packages/design-system/dist/` exists (either from a prior `turbo build` or a manual `bun run build` in that package). Prefer **`turbo build --filter=...@dappermountain/accounting-for-life`** from the root so ordering stays correct.
 
 ### Production output
 
-The Payload app’s Next config uses **`output: 'standalone'`** so the runtime ships only what Next needs (not the full monorepo source tree). The **`Dockerfile`** under `apps/payload-multi-tenant-template/` combines:
+The Payload app’s Next config uses **`output: 'standalone'`** so the runtime ships only what Next needs (not the full monorepo source tree). The **`Dockerfile`** under `apps/accounting-for-life/` combines:
 
 1. **`turbo prune --docker`** — copies only this app and its workspace dependencies into the build context  
 2. **`turbo build`** — builds the pruned graph (same `^build` order as local)  
@@ -193,11 +195,11 @@ Together, **`turbo prune` + Next standalone** keeps production images small — 
 
 - **Package:** `packages/design-system`
 - **Compiled output:** `tamagui-build` → `dist/` + `types/` (via `turbo build` or optional `bun run build` in that package)
-- **Production CSS:** `bun run generate:css` writes `apps/payload-multi-tenant-template/public/tamagui.generated.css` (app **`prebuild`** runs this before the production Payload build)
-- **Next integration:** `withDesignSystem` from `@dappermountain/design-system/next-plugin` in `apps/payload-multi-tenant-template/next.config.ts`
+- **Production CSS:** `bun run generate:css` writes `apps/accounting-for-life/public/tamagui.generated.css` (app **`prebuild`** runs this before the production Payload build)
+- **Next integration:** `withDesignSystem` from `@dappermountain/design-system/next-plugin` in `apps/accounting-for-life/next.config.ts`
 - **App usage:** import primitives from `@dappermountain/design-system`; wrap client trees with **`DesignSystemProvider`** from `@dappermountain/design-system/next` (see `src/app/(frontend)/_components/providers.tsx`)
 
-See **[`apps/payload-multi-tenant-template/docs/DESIGN_SYSTEM.md`](apps/payload-multi-tenant-template/docs/DESIGN_SYSTEM.md)** for import rules and ESLint restrictions.
+See **[`apps/accounting-for-life/docs/DESIGN_SYSTEM.md`](apps/accounting-for-life/docs/DESIGN_SYSTEM.md)** for import rules and ESLint restrictions.
 
 After changing Tamagui config or tokens, run **`bunx turbo build --filter=@dappermountain/design-system`** (or `generate:css` + a manual package build if you prefer working atomically).
 
@@ -214,11 +216,11 @@ After changing Tamagui config or tokens, run **`bunx turbo build --filter=@dappe
 | `bun run lint` | ESLint via Turborepo |
 | `bun run format` | Prettier across the repo |
 | `bunx turbo build` | Build all workspaces (respects `^build` order) |
-| `bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...` | App + upstream deps |
+| `bunx turbo build --filter=@dappermountain/accounting-for-life...` | App + upstream deps |
 | `bun run skills:update` | Refresh vendored Payload agent skill |
 | `./scripts/up.sh` | Start Docker Compose stack |
 
-### App (`apps/payload-multi-tenant-template`)
+### App (`apps/accounting-for-life`)
 
 | Command | Purpose |
 |---------|---------|
@@ -230,7 +232,7 @@ After changing Tamagui config or tokens, run **`bunx turbo build --filter=@dappe
 | `bun run generate:importmap` | Regenerate Payload admin import map |
 | `bun run generate:schema` | GraphQL schema generation |
 | `bun run lint` | ESLint |
-| `bun test` | All app tests — `bunfig.toml` + `.env.test` ([docs](./apps/payload-multi-tenant-template/docs/TESTING.md)) |
+| `bun test` | All app tests — `bunfig.toml` + `.env.test` ([docs](./apps/accounting-for-life/docs/TESTING.md)) |
 | `bun test ./src/collections` | Collection integration tests (Postgres) |
 
 ---
@@ -253,6 +255,6 @@ Production images use the app **`Dockerfile`** (prune → build → standalone).
 
 | Doc | Contents |
 |-----|----------|
-| [`apps/payload-multi-tenant-template/README.md`](apps/payload-multi-tenant-template/README.md) | App URLs, env, scripts, structure |
-| [`apps/payload-multi-tenant-template/docs/`](apps/payload-multi-tenant-template/docs/) | Conventions, testing, design system, [MCP](apps/payload-multi-tenant-template/docs/MCP.md) |
+| [`apps/accounting-for-life/README.md`](apps/accounting-for-life/README.md) | App URLs, env, scripts, structure |
+| [`apps/accounting-for-life/docs/`](apps/accounting-for-life/docs/) | Conventions, testing, design system, [MCP](apps/accounting-for-life/docs/MCP.md) |
 | [`docs/COMMITS.md`](docs/COMMITS.md) | Commit format and hooks |

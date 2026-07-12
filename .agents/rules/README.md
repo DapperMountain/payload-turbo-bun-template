@@ -17,9 +17,9 @@ Canonical rules for AI coding agents (`.mdc`). **Edit files in this directory** 
 
 | Topic | Location |
 |-------|----------|
-| Folder layout, barrels, TSDoc, tests | `apps/payload-multi-tenant-template/docs/CODE_CONVENTIONS.md` |
-| Env / Zod config | `apps/payload-multi-tenant-template/config/README.md` |
-| Payload overlay | `apps/payload-multi-tenant-template/.agents/skills/dapper-payload-app/` |
+| Folder layout, barrels, TSDoc, tests | `apps/accounting-for-life/docs/CODE_CONVENTIONS.md` |
+| Env / Zod config | `apps/accounting-for-life/config/README.md` |
+| Payload overlay | `apps/accounting-for-life/.agents/skills/accounting-for-life-app/` |
 
 ## Payload reference
 
@@ -28,7 +28,7 @@ Vendored skill: [`.agents/skills/payload/`](../skills/payload/) — update with 
 ## Keeping docs in sync
 
 - Policy: [`.agents/MAINTAINING_AGENT_CONTEXT.md`](../MAINTAINING_AGENT_CONTEXT.md)
-- App checklist: `apps/payload-multi-tenant-template/docs/MAINTAINING_DOCS.md`
+- App checklist: `apps/accounting-for-life/docs/MAINTAINING_DOCS.md`
 - Enforced in `agent-workflow.mdc` (always applied)
 
 ## Avoid duplicating guidance

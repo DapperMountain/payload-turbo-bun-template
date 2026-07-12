@@ -1,6 +1,6 @@
 # Code conventions
 
-Project-specific layout and documentation standards for `payload-multi-tenant-template`. Payload’s default templates often use flat files (e.g. `collections/Posts.ts`); this app uses **feature folders** and **barrel `index` files** for clearer boundaries and stable import paths.
+Project-specific layout and documentation standards for `accounting-for-life`. Payload’s default templates often use flat files (e.g. `collections/Posts.ts`); this app uses **feature folders** and **barrel `index` files** for clearer boundaries and stable import paths.
 
 ## Source layout
 

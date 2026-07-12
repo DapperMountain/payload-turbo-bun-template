@@ -1,10 +1,10 @@
-# Agents — payload-multi-tenant-template
+# Agents — accounting-for-life
 
 This app is part of the monorepo. Start with the root [AGENTS.md](../../AGENTS.md) (Bun, Turborepo, shared Payload skill).
 
 ## Reading order (this app)
 
-1. **[`.agents/skills/dapper-payload-app/SKILL.md`](.agents/skills/dapper-payload-app/SKILL.md)** — config paths, Zod, Postgres, seeding, multi-tenant plugin, `src/lang`.
+1. **[`.agents/skills/accounting-for-life-app/SKILL.md`](.agents/skills/accounting-for-life-app/SKILL.md)** — config paths, Zod, Postgres, seeding, multi-tenant plugin, `src/lang`.
 2. **Root [`.agents/skills/payload/SKILL.md`](../../.agents/skills/payload/SKILL.md)** — generic Payload CMS patterns.
 3. **Root workspace rules** — [`.agents/rules/`](../../.agents/rules/) — see [`.agents/rules/README.md`](../../.agents/rules/README.md) for the index.
 
@@ -12,11 +12,11 @@ This app is part of the monorepo. Start with the root [AGENTS.md](../../AGENTS.m
 
 | Topic | File |
 |-------|------|
-| Layout, config, types, plugins | [`reference/PROJECT.md`](.agents/skills/dapper-payload-app/reference/PROJECT.md) |
+| Layout, config, types, plugins | [`reference/PROJECT.md`](.agents/skills/accounting-for-life-app/reference/PROJECT.md) |
 | Frontend design system | [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) |
-| Migrations and seeding | [`reference/DATABASE.md`](.agents/skills/dapper-payload-app/reference/DATABASE.md) |
-| Multi-tenant plugin | [`reference/MULTI-TENANT.md`](.agents/skills/dapper-payload-app/reference/MULTI-TENANT.md) |
-| App i18n (`src/lang`) | [`reference/I18N.md`](.agents/skills/dapper-payload-app/reference/I18N.md) |
+| Migrations and seeding | [`reference/DATABASE.md`](.agents/skills/accounting-for-life-app/reference/DATABASE.md) |
+| Multi-tenant plugin | [`reference/MULTI-TENANT.md`](.agents/skills/accounting-for-life-app/reference/MULTI-TENANT.md) |
+| App i18n (`src/lang`) | [`reference/I18N.md`](.agents/skills/accounting-for-life-app/reference/I18N.md) |
 
 ## Common commands (from this directory)
 

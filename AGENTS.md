@@ -8,7 +8,7 @@ This repository is a **Bun + Turborepo** monorepo. Payload CMS guidance is share
 2. **Agent context** — [`.agents/`](.agents/) (rules + vendored skills).
 3. **Workspace rules** — [`.agents/rules/`](.agents/rules/) (`bun`, `agent-workflow`, `commits`, `clean`, `typescript`, `security-critical`).
 4. **Payload skill** — [`.agents/skills/payload/`](.agents/skills/payload/) ([payloadcms/skills](https://github.com/payloadcms/skills)).
-5. **App overlay** — when editing `apps/payload-multi-tenant-template`, read that app’s `AGENTS.md` and `.agents/skills/dapper-payload-app/`.
+5. **App overlay** — when editing `apps/accounting-for-life`, read that app’s `AGENTS.md` and `.agents/skills/accounting-for-life-app/`.
 
 Tools that expect `.cursor/rules` or `.cursor/skills` use symlinks into `.agents/` (see [`.agents/README.md`](.agents/README.md)).
 
@@ -18,7 +18,7 @@ Tools that expect `.cursor/rules` or `.cursor/skills` use symlinks into `.agents
 
 ```text
 apps/
-  payload-multi-tenant-template/   # Main Payload CMS app (@payloadcms/next)
+  accounting-for-life/   # Main Payload CMS app (@payloadcms/next)
 packages/
   design-system/                   # Tamagui shared UI + Next plugin
   typescript-config/               # Shared tsconfig fragments
@@ -34,10 +34,10 @@ The app declares **Payload** (`payload`, `@payloadcms/*`) and **`@dappermountain
 
 - **Package manager**: Bun only (`packageManager` in root `package.json`). See `.agents/rules/bun.mdc`.
 - **Install** (from repo root): `bun install` (also installs commit-msg hooks via `bun-git-hooks` — see `git-hooks.config.ts`)
-- **Build app** (with deps): `bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...` from repo root — Turbo cascades `^build`; per-package `bun run build` is only for isolated/atomic work
+- **Build app** (with deps): `bunx turbo build --filter=@dappermountain/accounting-for-life...` from repo root — Turbo cascades `^build`; per-package `bun run build` is only for isolated/atomic work
 - **Docker full stack**: `./scripts/up.sh` (app on host port **3001**)
 - **Lint / format** (root): `bun run lint`, `bun run format`
-- **Tests** (Payload app): from `apps/payload-multi-tenant-template`, `bun test` — see that app’s [`docs/TESTING.md`](apps/payload-multi-tenant-template/docs/TESTING.md)
+- **Tests** (Payload app): from `apps/accounting-for-life`, `bun test` — see that app’s [`docs/TESTING.md`](apps/accounting-for-life/docs/TESTING.md)
 - **Commits:** [Devmoji](https://github.com/folke/devmoji) + Conventional Commits — [`docs/COMMITS.md`](docs/COMMITS.md); agents: [`.agents/rules/commits.mdc`](.agents/rules/commits.mdc); hooks install on `bun install` via `bun-git-hooks` — no AI `Co-authored-by:` trailers
 
 ## Payload skill (shared)
@@ -56,4 +56,4 @@ Lockfile: [`skills-lock.json`](skills-lock.json).
 
 | App | Agent entry |
 |-----|-------------|
-| `apps/payload-multi-tenant-template` | [apps/payload-multi-tenant-template/AGENTS.md](apps/payload-multi-tenant-template/AGENTS.md) |
+| `apps/accounting-for-life` | [apps/accounting-for-life/AGENTS.md](apps/accounting-for-life/AGENTS.md) |

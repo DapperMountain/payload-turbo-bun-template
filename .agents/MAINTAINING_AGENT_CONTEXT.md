@@ -32,10 +32,10 @@ Update documentation when a change could mislead someone following existing docs
 | **Monorepo rules** | [`.agents/rules/*.mdc`](rules/README.md), [`.agents/rules/README.md`](rules/README.md) | — |
 | **Monorepo agent hub** | [`.agents/README.md`](README.md), root [`AGENTS.md`](../AGENTS.md) | `skills/payload/` (vendored) |
 | **App — humans** | `apps/<app>/README.md`, `docs/CODE_CONVENTIONS.md`, `config/README.md`, feature READMEs | — |
-| **App — agent overlay** | `apps/<app>/AGENTS.md`, `.agents/skills/dapper-payload-app/` (`SKILL.md` + `reference/*.md`) | — |
+| **App — agent overlay** | `apps/<app>/AGENTS.md`, `.agents/skills/accounting-for-life-app/` (`SKILL.md` + `reference/*.md`) | — |
 | **Env examples** | `.env.example`, `.env.test.example` — keep in sync with `TESTING.md` and parsers (see app checklist) | — |
 
-For **`apps/payload-multi-tenant-template`**, use the detailed file map: [`docs/MAINTAINING_DOCS.md`](../apps/payload-multi-tenant-template/docs/MAINTAINING_DOCS.md).
+For **`apps/accounting-for-life`**, use the detailed file map: [`docs/MAINTAINING_DOCS.md`](../apps/accounting-for-life/docs/MAINTAINING_DOCS.md).
 
 ## Before finishing (required for agents)
 

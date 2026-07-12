@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/common.sh"
 
 # Get the script's directory, parent directory, and app name
 ROOT_DIR="$(get_parent_dir "$SCRIPT_DIR")"
-APP_NAME="payload-multi-tenant-template"
+APP_NAME="accounting-for-life"
 
 echo "Starting $APP_NAME"
 

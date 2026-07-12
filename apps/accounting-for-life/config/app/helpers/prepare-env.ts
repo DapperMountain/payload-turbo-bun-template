@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import { isTestRuntime } from './is-test-runtime'
 
-/** App package root (`apps/payload-multi-tenant-template`), regardless of process cwd. */
+/** App package root (`apps/accounting-for-life`), regardless of process cwd. */
 const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..')
 
 function parseEnvLine(line: string): { key: string; value: string } | null {

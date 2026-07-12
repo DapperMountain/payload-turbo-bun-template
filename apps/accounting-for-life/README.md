@@ -1,8 +1,8 @@
-# Payload multi-tenant template (app)
+# accounting-for-life (app)
 
 **Payload CMS 3** application (hosted on **Next.js** via **`@payloadcms/next`**): admin and REST/GraphQL APIs, optional **MCP** for AI clients ([`docs/MCP.md`](docs/MCP.md)), optional **design-system** frontend (`src/app/(frontend)`), **multi-tenant** plugin, **Lexical** rich text, **SEO** plugin, **Zod**-validated config, and **Drizzle**/Postgres via Payload’s adapter.
 
-This package is **`@dappermountain/payload-multi-tenant-template`** inside the monorepo.
+This package is **`@dappermountain/accounting-for-life`** inside the monorepo.
 
 - **Shared UI:** workspace package **`@dappermountain/design-system`** (`packages/design-system`)
 - **Payload stack:** declared in this app’s `package.json` (`payload`, `@payloadcms/*`)
@@ -47,7 +47,7 @@ Best match for “works the same on every machine.”
 
 ```bash
 # From repository root
-cp apps/payload-multi-tenant-template/.env.example apps/payload-multi-tenant-template/.env
+cp apps/accounting-for-life/.env.example apps/accounting-for-life/.env
 ./scripts/up.sh
 ```
 
@@ -60,7 +60,7 @@ Then open **`http://localhost:3001/admin`**. The repo is mounted into the contai
 bun install
 
 # This app only
-cd apps/payload-multi-tenant-template
+cd apps/accounting-for-life
 cp .env.example .env   # if needed
 bun dev
 ```
@@ -75,8 +75,8 @@ Use **`http://localhost:3000/admin`** unless you changed the port. Ensure Postgr
 
 ```bash
 bun install
-bunx turbo build --filter=@dappermountain/payload-multi-tenant-template...
-cd apps/payload-multi-tenant-template
+bunx turbo build --filter=@dappermountain/accounting-for-life...
+cd apps/accounting-for-life
 bun run start
 ```
 
@@ -109,7 +109,7 @@ See **[`../../README.md` — Building the monorepo](../../README.md#building-the
 ## AI agent skills
 
 - **Monorepo entry:** [`../../AGENTS.md`](../../AGENTS.md) — Bun, Turborepo, shared Payload skill.
-- **This app:** [`AGENTS.md`](./AGENTS.md) + [`.agents/skills/dapper-payload-app/`](.agents/skills/dapper-payload-app/) (config, DB, multi-tenant, i18n).
+- **This app:** [`AGENTS.md`](./AGENTS.md) + [`.agents/skills/accounting-for-life-app/`](.agents/skills/accounting-for-life-app/) (config, DB, multi-tenant, i18n).
 - **Payload skill (root, vendored):** `/.agents/skills/payload/` — update from repo root: `bun run skills:update`.
 - **Workspace rules (root):** `/.agents/rules/`.
 
@@ -162,11 +162,11 @@ The **`Dockerfile`** here serves two roles:
 Build the release target explicitly (not the default Compose service):
 
 ```bash
-docker build -f apps/payload-multi-tenant-template/Dockerfile \
+docker build -f apps/accounting-for-life/Dockerfile \
   --target release \
-  --build-arg PROJECT=@dappermountain/payload-multi-tenant-template \
-  --build-arg PROJECT_PATH=apps/payload-multi-tenant-template \
-  -t payload-multi-tenant-template:release .
+  --build-arg PROJECT=@dappermountain/accounting-for-life \
+  --build-arg PROJECT_PATH=apps/accounting-for-life \
+  -t accounting-for-life:release .
 ```
 
 Adjust `CMD` / orchestration for your host (Kubernetes, Fly, etc.).
