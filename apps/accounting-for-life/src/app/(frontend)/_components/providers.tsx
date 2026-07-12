@@ -1,8 +1,6 @@
 'use client'
 
 import { TranslationProvider } from '@payloadcms/ui'
-import { DesignSystemProvider } from '@dappermountain/design-system/next'
-import { Stack } from '@dappermountain/design-system'
 import type { LanguageOptions } from 'payload'
 import type { I18nClient, I18nOptions } from '@payloadcms/translations'
 import type { ReactNode } from 'react'
@@ -19,7 +17,7 @@ export type FrontendProvidersProps = {
   translations: I18nClient['translations']
 }
 
-/** Client providers for the public frontend segment (i18n + design system). */
+/** Client providers for the public frontend segment (i18n). */
 export function FrontendProviders(props: FrontendProvidersProps) {
   const {
     children,
@@ -40,16 +38,14 @@ export function FrontendProviders(props: FrontendProvidersProps) {
       switchLanguageServerAction={switchLanguageServerAction}
       translations={translations}
     >
-      <DesignSystemProvider>
-        <Stack flex={1} minHeight="100vh" position="relative" width="100%">
-          <LanguageSwitcher
-            language={language}
-            languageOptions={languageOptions}
-            switchLanguage={switchLanguageServerAction}
-          />
-          {children}
-        </Stack>
-      </DesignSystemProvider>
+      <div className="relative flex min-h-screen w-full flex-col">
+        <LanguageSwitcher
+          language={language}
+          languageOptions={languageOptions}
+          switchLanguage={switchLanguageServerAction}
+        />
+        {children}
+      </div>
     </TranslationProvider>
   )
 }

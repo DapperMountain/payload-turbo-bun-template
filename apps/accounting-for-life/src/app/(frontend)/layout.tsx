@@ -4,11 +4,11 @@ import type { ReactNode } from 'react'
 
 import config from '@payload-config'
 import { getRequestI18n } from '@/utils/i18n.server'
+import '@dappermountain/ui/globals.css'
 
 import { FrontendProviders } from './_components/providers'
 import { switchLanguageServerAction } from './actions/switch-language'
 import './globals.css'
-import '../../../public/tamagui.generated.css'
 
 export default async function Layout(props: { children: ReactNode }) {
   const { children } = props
@@ -32,10 +32,7 @@ export default async function Layout(props: { children: ReactNode }) {
 
   return (
     <html lang={i18n.language} suppressHydrationWarning>
-      <body
-        style={{ margin: 0, width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
-        suppressHydrationWarning
-      >
+      <body className="min-h-screen antialiased">
         <FrontendProviders
           dateFNSKey={i18n.dateFNSKey}
           fallbackLang={cfg.i18n.fallbackLanguage as AcceptedLanguages}

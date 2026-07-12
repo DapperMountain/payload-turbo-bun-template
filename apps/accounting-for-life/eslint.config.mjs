@@ -19,11 +19,11 @@ const eslintConfig = [
           paths: [
             {
               name: 'tamagui',
-              message: 'Import UI from @dappermountain/design-system instead.',
+              message: 'Import UI from @dappermountain/ui instead.',
             },
             {
               name: '@tamagui/core',
-              message: 'Import UI from @dappermountain/design-system instead.',
+              message: 'Import UI from @dappermountain/ui instead.',
             },
           ],
         },

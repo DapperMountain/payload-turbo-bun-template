@@ -46,8 +46,9 @@ Decisions captured during initial planning (July 2026).
 ## Design system & Payload 4
 
 - **Stay on Payload 3.86** for stability; v4 canary requires Node 24.15+ and is still pre-beta.
-- **Align patterns now:** Tailwind CSS v4 on web (Payload’s scoped admin guide), evaluate **Uniwind** + **React Native Reusables** for native — shared token/theme, not Tamagui long-term.
-- Payload admin remains Payload UI; consumer app is custom frontend.
+- **Implemented:** `@dappermountain/ui` (`packages/ui`) — Tailwind v4 + shadcn/ui (web); `apps/mobile` — Expo + Uniwind + RNR-style button spike.
+- **Payload admin** remains Payload UI; consumer apps use the shared token package.
+- **Payload 4** — migrate when beta ships; admin Tailwind alignment comes with the upgrade.
 
 ## AI & export
 

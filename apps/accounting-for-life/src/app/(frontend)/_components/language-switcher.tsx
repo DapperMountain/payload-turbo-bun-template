@@ -1,6 +1,5 @@
 'use client'
 
-import { Row, Stack } from '@dappermountain/design-system'
 import type { LanguageOptions } from 'payload'
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
@@ -27,29 +26,12 @@ export function LanguageSwitcher(props: LanguageSwitcherProps) {
   }
 
   return (
-    <Stack
-      alignItems="flex-end"
-      padding="$4"
-      pointerEvents="box-none"
-      position="absolute"
-      right={0}
-      top={0}
-      width="100%"
-      zIndex={10}
-    >
-      <Row
-        alignItems="center"
-        backgroundColor="$color1"
-        borderColor="$borderColor"
-        borderRadius="$3"
-        borderWidth={1}
-        gap="$2"
-        paddingHorizontal="$3"
-        paddingVertical="$2"
-        pointerEvents="auto"
-      >
+    <div className="pointer-events-none absolute top-0 right-0 z-10 flex w-full justify-end p-4">
+      <label className="pointer-events-auto flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-sm">
+        <span className="sr-only">{t('custom:frontend:chooseLanguage')}</span>
         <select
           aria-label={t('custom:frontend:chooseLanguage')}
+          className="cursor-pointer bg-transparent outline-none disabled:cursor-wait"
           disabled={pending}
           onChange={(event) => {
             const next = event.target.value
@@ -62,14 +44,6 @@ export function LanguageSwitcher(props: LanguageSwitcherProps) {
             })
           }}
           value={language}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'inherit',
-            cursor: pending ? 'wait' : 'pointer',
-            font: 'inherit',
-            outline: 'none',
-          }}
         >
           {languageOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -77,7 +51,7 @@ export function LanguageSwitcher(props: LanguageSwitcherProps) {
             </option>
           ))}
         </select>
-      </Row>
-    </Stack>
+      </label>
+    </div>
   )
 }

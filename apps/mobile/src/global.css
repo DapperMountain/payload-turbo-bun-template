@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+@source '../components';
+@source '../../../packages/ui/src/components';
+
+@import '../../../packages/ui/src/styles/tokens.css';

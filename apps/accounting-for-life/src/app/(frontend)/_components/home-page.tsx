@@ -1,6 +1,15 @@
 'use client'
 
-import { Body, Button, Divider, Label, PageTitle, Row, Stack } from '@dappermountain/design-system'
+import { Button } from '@dappermountain/ui/components/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@dappermountain/ui/components/card'
+import { Separator } from '@dappermountain/ui/components/separator'
 import Image from 'next/image'
 
 import { useAppTranslation } from '@/utils/i18n.client'
@@ -15,87 +24,46 @@ export function HomePage(props: HomePageProps) {
   const { t } = useAppTranslation()
 
   return (
-    <Stack
-      backgroundColor="$background"
-      flex={1}
-      minHeight="100vh"
-      width="100%"
-      padding="$4"
-      paddingVertical="$8"
-      alignItems="center"
-      justifyContent="center"
-      gap="$6"
-    >
-      <Stack
-        flex={1}
-        width="100%"
-        maxWidth={1024}
-        alignSelf="center"
-        alignItems="center"
-        justifyContent="center"
-        gap="$6"
-      >
-        <Stack
-          padding="$6"
-          borderRadius="$4"
-          width="100%"
-          maxWidth={560}
-          borderWidth={1}
-          borderColor="$borderColor"
-          backgroundColor="$color1"
-          shadowColor="$shadowColor"
-          shadowOffset={{ width: 0, height: 2 }}
-          shadowOpacity={0.12}
-          shadowRadius={8}
-        >
-          <Stack alignItems="center" gap="$4">
+    <main className="flex min-h-screen flex-1 flex-col items-center justify-center gap-6 p-4 py-8">
+      <div className="flex w-full max-w-lg flex-col items-center gap-6">
+        <Card className="w-full shadow-md">
+          <CardHeader className="items-center text-center">
             <Image
               alt={t('custom:frontend:logoAlt')}
+              className="mx-auto"
               height={64}
               src="https://raw.githubusercontent.com/payloadcms/payload/main/packages/ui/src/assets/payload-favicon.svg"
               width={64}
             />
-            <PageTitle fontFamily="$heading" fontSize="$10" lineHeight="$9" textAlign="center" color="$color12">
+            <CardTitle className="text-2xl">
               {userEmail ? t('custom:frontend:welcomeBack') : t('custom:frontend:welcome')}
-            </PageTitle>
+            </CardTitle>
             {userEmail ? (
-              <Body color="$color11" textAlign="center" size="$5">
+              <CardDescription>
                 {t('custom:frontend:signedInPrefix')}
-                <Label fontWeight="600">{userEmail}</Label>
-              </Body>
+                <span className="font-semibold text-foreground">{userEmail}</span>
+              </CardDescription>
             ) : (
-              <Body color="$color11" textAlign="center" size="$5">
-                {t('custom:frontend:signedOutBlurb')}
-              </Body>
+              <CardDescription>{t('custom:frontend:signedOutBlurb')}</CardDescription>
             )}
-            <Divider borderColor="$borderColor" />
-            <Row flexWrap="wrap" gap="$3" justifyContent="center" width="100%">
-              <Button
-                size="$4"
-                theme="accent"
-                render={<a />}
-                href={adminHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+          </CardHeader>
+          <CardContent>
+            <Separator />
+          </CardContent>
+          <CardFooter className="flex flex-wrap justify-center gap-3">
+            <Button asChild>
+              <a href={adminHref} rel="noopener noreferrer" target="_blank">
                 {t('custom:frontend:openAdmin')}
-              </Button>
-              <Button
-                chromeless
-                size="$4"
-                borderWidth={1}
-                borderColor="$borderColor"
-                render={<a />}
-                href="https://payloadcms.com/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href="https://payloadcms.com/docs" rel="noopener noreferrer" target="_blank">
                 {t('custom:frontend:documentation')}
-              </Button>
-            </Row>
-          </Stack>
-        </Stack>
-      </Stack>
-    </Stack>
+              </a>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </main>
   )
 }

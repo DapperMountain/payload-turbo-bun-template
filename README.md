@@ -1,6 +1,6 @@
 # accounting-for-life
 
-Self-hosted personal finance app built on **[Payload CMS 3](https://payloadcms.com)** — a YNAB + Monarch hybrid with double-entry accounting, multi-currency swaps, zero-based budgeting, and institution sync. Monorepo uses **[Bun](https://bun.sh)**, **[Turborepo](https://turborepo.com)**, **[Next.js](https://nextjs.org)**, and **[Tamagui](https://tamagui.dev)** (migrating toward Tailwind/Uniwind for Payload 4 alignment).
+Self-hosted personal finance app built on **[Payload CMS 3](https://payloadcms.com)** — a YNAB + Monarch hybrid with double-entry accounting, multi-currency swaps, zero-based budgeting, and institution sync. Monorepo uses **[Bun](https://bun.sh)**, **[Turborepo](https://turborepo.com)**, **[Next.js](https://nextjs.org)**, **Tailwind v4**, **shadcn/ui**, and **Uniwind** (native).
 
 See **[`docs/roadmap/`](docs/roadmap/)** for epics, user stories, and sprint plan.
 
@@ -14,7 +14,7 @@ See **[`docs/roadmap/`](docs/roadmap/)** for epics, user stories, and sprint pla
 | Monorepo orchestration | **Turborepo** — `build` depends on upstream packages (`^build`) |
 | CMS | **Payload 3** with Postgres via `@payloadcms/db-postgres`; optional **MCP** (`@payloadcms/plugin-mcp`) |
 | App host | **Next.js App Router** via **`@payloadcms/next`** — Payload admin + API routes in `app/(payload)`, optional Tamagui frontend in `app/(frontend)` |
-| UI (shared) | **`@dappermountain/design-system`** — Tamagui 2 (config v5), `tamagui-build`, `withDesignSystem` Next plugin |
+| UI (shared) | **`@dappermountain/ui`** — Tailwind v4 tokens, shadcn/ui components; **Uniwind** on `apps/mobile` |
 | Database (local) | **TimescaleDB** (`timescale/timescaledb`, PostgreSQL 17) via root `compose.yml` |
 | Containers | **Docker Compose** — app service + DB; helper script `./scripts/up.sh` |
 
@@ -26,7 +26,7 @@ See **[`docs/roadmap/`](docs/roadmap/)** for epics, user stories, and sprint pla
 apps/
   accounting-for-life/              # Payload 3 app (@payloadcms/next)
 packages/
-  design-system/                    # Tamagui UI, Next plugin, generate:css
+  ui/                               # @dappermountain/ui — tokens + shadcn components
   typescript-config/                # Shared tsconfig fragments (base, react, nextjs)
 .agents/                            # Agent rules + vendored Payload skill (see AGENTS.md)
 docs/

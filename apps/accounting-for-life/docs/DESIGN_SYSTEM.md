@@ -1,101 +1,79 @@
-# Design system (frontend)
+# Design system
 
-Public UI under `src/app/(frontend)/` uses the monorepo package **`@dappermountain/design-system`**. App code should treat that package as the design system — not Tamagui directly.
+Cross-platform UI for Accounting for Life: **Tailwind CSS v4** tokens, **shadcn/ui** on web, **Uniwind** + **React Native Reusables** patterns on native.
 
-Implementation (tokens, Tamagui config, Next plugin) lives in **`packages/design-system/`** at the repo root.
+## Should we keep a separate package?
 
-## Imports
+**Yes — keep `@dappermountain/ui` in `packages/ui`.** It is not overkill for this monorepo:
 
-```tsx
-'use client'
+| Responsibility | `@dappermountain/ui` | App (`apps/accounting-for-life`) | Mobile (`apps/mobile`) |
+|----------------|----------------------|----------------------------------|------------------------|
+| Design tokens (`tokens.css`) | ✓ single source | imports | imports |
+| shadcn web components | ✓ | imports | — |
+| RNR-style native components | — (spike in mobile) | — | colocated for now |
+| App-specific layout | — | `_components/` | screens |
 
-import { Stack, Row, Button, PageTitle, Body } from '@dappermountain/design-system'
-```
+Payload plugins later live in `packages/@dappermountain/plugin-*` — same workspace pattern.
 
-| Import from design-system | Use for |
-|---------------------------|---------|
-| `DesignSystemProvider` from `@dappermountain/design-system/next` | Next.js frontend shell (`_components/providers.tsx`) — includes SSR style flush |
-| `DesignSystemProvider` from `@dappermountain/design-system` | Expo / non-Next apps (no `useServerInsertedHTML`) |
-| `Stack`, `Row` | Vertical / horizontal layout (`YStack` / `XStack`) |
-| `PageTitle`, `Body`, `Label`, `Divider` | Typography and separators |
-| `Button` | Actions and links (`render={<a />}` for anchors) |
-| `YStack`, `XStack`, `H1`, `Paragraph`, `Text`, `Separator` | Same primitives, explicit Tamagui names when clearer |
+**Do not** import `tamagui` or `@tamagui/core` in apps (ESLint enforced).
 
-**Do not** import `tamagui` or `@tamagui/core` in this app — ESLint enforces `no-restricted-imports`.
-
-## Next.js wiring
-
-`next.config.ts` composes:
-
-1. **`withPayload`** — Payload admin and API routes  
-2. **`withDesignSystem`** from `@dappermountain/design-system/next-plugin` — resolves the built config inside the design-system package (no `configPath` in the app)
-
-Production CSS (themes/tokens):
-
-- **Static file**: `public/tamagui.generated.css` (imported in `(frontend)/layout.tsx`)
-- **Generate** (from design-system package — Next 16 Turbopack does not emit this via the webpack plugin):
-
-```bash
-cd packages/design-system
-bun run generate:css
-```
-
-- **App `prebuild`** runs `generate:css` automatically before `bun run build`
-- **`withDesignSystem`**: `outputCSS` + `disableExtraction` in dev only (webpack builds; optional if you disable Turbopack for production)
-- **`DesignSystemProvider`**: `disableInjectCSS` in production so theme CSS is not duplicated (static file + SSR runtime styles via `useServerInsertedHTML`)
-
-Commit `public/tamagui.generated.css` after theme/token changes in `packages/design-system`.
-
-`transpilePackages` includes `@dappermountain/design-system`.
-
-Turbopack aliases `react-native` → `react-native-web` (see `next.config.ts`). The app also depends on **`react-native`** and **`react-native-web`** so the design-system Next provider can import RN-web during SSR.
-
-**Production `dist/`:** from the repo root, `bunx turbo build --filter=@dappermountain/accounting-for-life...` builds design-system first via Turborepo (`^build`). You only need a manual package build when working atomically:
-
-```bash
-cd packages/design-system && bun run build
-```
-
-## Adding UI
-
-1. Prefer existing exports from `@dappermountain/design-system`.
-2. Need a new primitive (e.g. `Input`)? Add it once in `packages/design-system/src/primitives.ts` and export from that package’s `index.ts`.
-3. Need a shared branded component (e.g. `TenantCard`)? Add `packages/design-system/src/components/…` and export from the design-system package.
-4. App-only layout? Keep it under `src/app/(frontend)/_components/` but still import primitives from the design-system package.
-
-## App Router layout (`src/app/(frontend)/`)
+## Package layout
 
 ```text
-(frontend)/
-├── layout.tsx              # Server — html/body, i18n, providers
-├── page.tsx                # Server — data for the home route
-├── globals.css
-├── actions/
-│   └── switch-language.ts  # Server Action (payload-lng cookie)
-└── _components/            # Colocated UI (not routed)
-    ├── providers.tsx       # FrontendProviders (client)
-    ├── home-page.tsx       # HomePage (client)
-    └── language-switcher.tsx
+packages/ui/
+  components.json          # shadcn CLI target (web components)
+  src/
+    styles/
+      globals.css          # Tailwind + base layer (web)
+      tokens.css           # Shared CSS variables (@theme, :root)
+    components/            # shadcn/ui (Button, Card, …)
+    lib/utils.ts           # cn()
+apps/accounting-for-life/
+  components.json          # shadcn CLI routes adds to packages/ui
+  src/app/(frontend)/      # imports @dappermountain/ui/*
+apps/mobile/
+  src/global.css           # Uniwind entry + @source + shared tokens
+  src/components/ui/       # RNR-style native components (spike)
 ```
 
-## Server vs client (Next.js)
+## Web (Next.js)
 
-| Layer | File | Role |
-|-------|------|------|
-| Server | `page.tsx` | Auth, CMS data (no copy) |
-| Client | `_components/home-page.tsx` | `useAppTranslation()` → `t('custom:frontend:*')` |
-| Client | `_components/providers.tsx` | `TranslationProvider` + `DesignSystemProvider` from `/next` |
+Import global styles once in the frontend layout chain:
 
-Tamagui primitives stay in **client** modules but still **SSR** (HTML on first paint). They are not React Server Components.
+```tsx
+import '@dappermountain/ui/globals.css'
+```
 
-**App-only UI** (Payload cookies, `router.refresh()`, locale config) lives in `_components/` — e.g. `language-switcher.tsx` — and composes design-system primitives (`Stack`, `Row`). Do not put those in `packages/design-system`.
+Use shadcn components from the shared package:
 
-## i18n
+```tsx
+import { Button } from '@dappermountain/ui/components/button'
+import { Card, CardHeader, CardTitle } from '@dappermountain/ui/components/card'
+import { cn } from '@dappermountain/ui/lib/utils'
+```
 
-Copy lives in **`src/lang/`**. Client UI: **`useAppTranslation()`** and **`t('custom:…')`**. See [I18N.md](../.agents/skills/accounting-for-life-app/reference/I18N.md).
+Add components from the app directory (CLI installs into `packages/ui`):
+
+```bash
+cd apps/accounting-for-life
+bunx shadcn@latest add input label
+```
+
+`next.config.ts` sets `transpilePackages: ['@dappermountain/ui']`. PostCSS uses `@tailwindcss/postcss`.
+
+## Native (Expo + Uniwind)
+
+`apps/mobile` uses Uniwind via `metro.config.js`. Shared tokens come from `@dappermountain/ui` through `tokens.css` and `@source` scanning.
+
+Add RNR components with their CLI (copies into `apps/mobile/src/components/ui/`) or hand-port using the same Tailwind classes.
+
+```bash
+cd apps/mobile
+bun run start
+```
 
 ## Related docs
 
-- [CODE_CONVENTIONS.md](./CODE_CONVENTIONS.md) — project layout  
-- [README.md](../README.md) — dev setup and structure  
-- Root `packages/design-system/` — tokens, themes, `withDesignSystem`
+- [CODE_CONVENTIONS.md](./CODE_CONVENTIONS.md)
+- [Root README](../../../README.md)
+- [Roadmap — design direction](../../../docs/roadmap/DECISIONS.md)

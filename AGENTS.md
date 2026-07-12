@@ -19,8 +19,9 @@ Tools that expect `.cursor/rules` or `.cursor/skills` use symlinks into `.agents
 ```text
 apps/
   accounting-for-life/   # Main Payload CMS app (@payloadcms/next)
+  mobile/              # Expo + Uniwind (native spike)
 packages/
-  design-system/                   # Tamagui shared UI + Next plugin
+  ui/                              # @dappermountain/ui — Tailwind v4, shadcn, shared tokens
   typescript-config/               # Shared tsconfig fragments
 docs/COMMITS.md                    # Devmoji + Conventional Commits
 scripts/                           # up.sh, validate-commit-msg.ts
@@ -28,7 +29,7 @@ git-hooks.config.ts                # bun-git-hooks
 compose.yml
 ```
 
-The app declares **Payload** (`payload`, `@payloadcms/*`) and **`@dappermountain/design-system`** in its own `package.json`. **Next/React** are hoisted from the root workspace for **`@payloadcms/next`**. Dev: `bun dev` (Payload). CLI: `bun run payload`.
+The app declares **Payload** (`payload`, `@payloadcms/*`) and **`@dappermountain/ui`** in its own `package.json`. **Next/React** are hoisted from the root workspace for **`@payloadcms/next`**. Dev: `bun dev` (Payload). CLI: `bun run payload`.
 
 ## Runtime and commands
 
@@ -57,3 +58,4 @@ Lockfile: [`skills-lock.json`](skills-lock.json).
 | App | Agent entry |
 |-----|-------------|
 | `apps/accounting-for-life` | [apps/accounting-for-life/AGENTS.md](apps/accounting-for-life/AGENTS.md) |
+| `apps/mobile` | Expo + Uniwind spike — see [apps/mobile/README.md](apps/mobile/README.md) |
