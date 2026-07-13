@@ -1,13 +1,13 @@
-import type { Tenant, User } from '@/types'
+import type { User, Workspace } from '@/types'
 import { expect } from 'bun:test'
 import { CollectionSlug, Payload } from 'payload'
 
-export const createTenant = async (
+export const createWorkspace = async (
   payload: Payload,
-  data: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>,
+  data: Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>,
 ) => {
   const response = await payload.create({
-    collection: 'tenants',
+    collection: 'workspaces',
     data,
   })
 
@@ -15,6 +15,9 @@ export const createTenant = async (
 
   return response
 }
+
+/** @deprecated Use {@link createWorkspace}. */
+export const createTenant = createWorkspace
 
 export const findResourceByKey = async <T>(
   payload: Payload,
@@ -53,7 +56,7 @@ export const deleteResourceById = async (
 export const createUser = async (
   payload: Payload,
   data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & {
-    tenants: { tenant: string; roles: string[] }[]
+    workspaces: { workspace: string; roles: string[] }[]
   },
 ) => {
   const response = await payload.create({

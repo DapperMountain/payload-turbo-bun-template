@@ -1,10 +1,14 @@
-/**
- * Integration test utilities (requires Postgres — see `docs/TESTING.md`).
- */
+export { payload } from './config'
 export {
-  createTenant,
   createUser,
+  createWorkspace,
   deleteResourceById,
   findResourceByKey,
 } from './helpers'
-export { isTestEnv, payload, throwIfNotTestEnv } from './config'
+export {
+  expectAccessDenied,
+  loginAs,
+  seedAccessFixtures,
+  TEST_PASSWORD,
+} from './accessFixtures'
+export type { AccessFixtures, AccessFixtureUsers } from './accessFixtures'
