@@ -15,6 +15,10 @@ services:
     command: sh -c 'cd /app && bun install && cd apps/accounting-for-life && exec bun dev'
     env_file:
       - apps/accounting-for-life/.env
+    environment:
+      # Schema is synced via migrations run from the host (`bun run db:migrate:run`).
+      # Avoids blocking on Drizzle's interactive push prompt in non-TTY Docker logs.
+      PAYLOAD_DISABLE_DEV_PUSH: "true"
     ports:
       - 3001:3000
     volumes:

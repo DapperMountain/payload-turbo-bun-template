@@ -10,10 +10,6 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(appDir, '../../'),
   reactCompiler: true,
   transpilePackages: ['@dappermountain/ui'],
-  experimental: {
-    turbopackFileSystemCacheForDev: true,
-    turbopackServerFastRefresh: true,
-  },
   reactStrictMode: true,
 }
 
