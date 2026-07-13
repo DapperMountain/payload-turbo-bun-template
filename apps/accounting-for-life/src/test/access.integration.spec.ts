@@ -481,16 +481,16 @@ describe('collection access integration', () => {
     })
   })
 
-  describe('journal-lines', () => {
-    it('member cannot create journal lines directly', async () => {
+  describe('transaction-entries', () => {
+    it('member cannot create transaction entries directly', async () => {
       await expectAccessDenied(() =>
         payload.create({
-          collection: 'journal-lines',
+          collection: 'transaction-entries',
           user: workspaceAMember,
           overrideAccess: false,
           data: {
             workspace: fx.workspaceA.id,
-            entry: '00000000-0000-7000-8000-000000000001',
+            transaction: '00000000-0000-7000-8000-000000000001',
             account: '00000000-0000-7000-8000-000000000002',
             amount: 10,
             unit: '00000000-0000-7000-8000-000000000003',
