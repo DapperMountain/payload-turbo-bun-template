@@ -29,14 +29,14 @@ git-hooks.config.ts                # bun-git-hooks
 compose.yml
 ```
 
-The app declares **Payload** (`payload`, `@payloadcms/*`) and **`@dappermountain/ui`** in its own `package.json`. **Next/React** are hoisted from the root workspace for **`@payloadcms/next`**. Dev: `bun dev` (Payload). CLI: `bun run payload`.
+The app declares **Payload** (`payload`, `@payloadcms/*`) and **`@dappermountain/ui`** in its own `package.json`. **Next/React** are hoisted from the root workspace for **`@payloadcms/next`**. **Dev (default):** `./scripts/up.sh` → **`http://localhost:3001`**. Host `bun dev` on port 3000 is optional (Postgres-only workflow). CLI: `bun run payload`.
 
 ## Runtime and commands
 
 - **Package manager**: Bun only (`packageManager` in root `package.json`). See `.agents/rules/bun.mdc`.
 - **Install** (from repo root): `bun install` (also installs commit-msg hooks via `bun-git-hooks` — see `git-hooks.config.ts`)
 - **Build app** (with deps): `bunx turbo build --filter=@dappermountain/accounting-for-life...` from repo root — Turbo cascades `^build`; per-package `bun run build` is only for isolated/atomic work
-- **Docker full stack**: `./scripts/up.sh` (app on host port **3001**)
+- **Docker full stack**: `./scripts/up.sh` (app on host port **3001** — default dev URL for admin and API smoke tests)
 - **Lint / format** (root): `bun run lint`, `bun run format`
 - **Tests** (Payload app): from `apps/accounting-for-life`, `bun test` — see that app’s [`docs/TESTING.md`](apps/accounting-for-life/docs/TESTING.md)
 - **Commits:** [Devmoji](https://github.com/folke/devmoji) + Conventional Commits — [`docs/COMMITS.md`](docs/COMMITS.md); agents: [`.agents/rules/commits.mdc`](.agents/rules/commits.mdc); hooks install on `bun install` via `bun-git-hooks` — no AI `Co-authored-by:` trailers

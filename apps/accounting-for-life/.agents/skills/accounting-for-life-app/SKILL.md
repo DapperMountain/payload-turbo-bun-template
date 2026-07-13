@@ -39,6 +39,12 @@ Upstream examples often assume `pnpm`, `payload-types.ts`, and MongoDB.
 
 [plugin-multi-tenant](https://github.com/payloadcms/payload/tree/main/packages/plugin-multi-tenant)
 
+## Development server
+
+- **Default:** `./scripts/up.sh` from repo root → admin at **`http://localhost:3001/admin`**.
+- **Do not** start host `bun dev` (port 3000) when Docker is already running the app — duplicate servers cause confusing admin/API state and separate `.next` caches.
+- Smoke tests and manual checks: use **3001** unless the user explicitly uses the host-only workflow.
+
 ## Keeping docs in sync
 
 After code changes that affect paths, env, scripts, validation (e.g. replacing Zod), DB/test workflow, or i18n layout:

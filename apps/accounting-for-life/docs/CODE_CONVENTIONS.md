@@ -78,7 +78,7 @@ Use an `index.ts` at the **public boundary** of a folder when the folder has mul
 | `utils/` | Shared utilities |
 | `lang/` | `i18n`, `localization`, `custom` (English source); `types.ts` for `CustomTranslationKeys` |
 | `utils/i18n.client.ts`, `utils/i18n.server.ts` | `useAppTranslation`, `getRequestI18n` (not in `@/utils` barrel) |
-| `endpoints/` | `default` array |
+| `endpoints/` | `default` array (`health` only — prefer collection hooks over custom endpoints) |
 | `endpoints/health/` | `default` endpoint |
 | `database/seed/` | `seed()` |
 | `database/seed/users/` | `seedUsers` |

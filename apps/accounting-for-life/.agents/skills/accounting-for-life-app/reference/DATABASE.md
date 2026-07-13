@@ -20,6 +20,8 @@ Configured in `config/payload.ts`:
 
 **Development (not deployed):** `prodMigrations` is empty. Payload pushes schema on connect when `NODE_ENV !== 'production'`. Use `bun run db:push` from the host (`DATABASE_URL` → `localhost:5442`) after collection/field renames.
 
+After a wipe (`PAYLOAD_DROP_DATABASE=true bun run db:push`), users and demo data seed automatically when `DATA_SEED_ENABLED=1`. Otherwise run `bun run db:seed all` (requires `DATA_SEED_*` in `.env`).
+
 **Wipe dev data and recreate tables** (undeployed only):
 
 ```bash
@@ -76,14 +78,19 @@ Run one seeder without enabling full `onInit` seeding:
 
 ```bash
 cd apps/accounting-for-life
+bun run db:seed all          # users → workspaces → budgets → ledger (after a fresh db:push)
 bun run db:seed repair      # remove duplicate budgets / catalog rows
+bun run db:seed users        # admin@example.com + user@example.com only
 bun run db:seed workspaces   # Demo Household (localhost:3001)
 bun run db:seed budgets        # Household + Vacation on demo → categories via hook
 bun run db:seed categories   # backfill groups + categories for existing budgets
 bun run db:seed categories --budget=<uuid>
+bun run db:seed ledger       # USD unit, Checking + Savings, sample transfer (Demo Household)
 ```
 
-Implemented as a Payload bin script (`payload seed` in `config/payload.ts`). `categories` is never gated by `DATA_SEED_ENABLED`. Creating a budget in admin also runs `seedCategories` via the collection hook.
+**Ledger seed** (`seed/ledger/`): per workspace, creates a **USD** unit and **Checking** + **Savings** accounts on the default budget. On **Demo Household**, also posts a sample **transfer** transaction so **Accounts** and **Transactions** lists are non-empty in admin.
+
+Implemented as a Payload bin script (`payload seed` in `config/payload.ts`). `categories` and `ledger` are never gated by `DATA_SEED_ENABLED`. Creating a budget in admin also runs `seedCategories` via the collection hook.
 
 When the app runs in Docker, run this **from the host** with a `DATABASE_URL` that reaches Postgres on `localhost:5442` (the compose `db` hostname only works inside the network).
 

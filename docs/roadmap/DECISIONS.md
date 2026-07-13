@@ -26,12 +26,12 @@ Decisions captured during initial planning (July 2026).
 |------------|---------|------------|
 | `units` | Workspace currency/commodity registry (`code`, `kind`, `decimalPlaces`) | No |
 | `accounts` | Chart accounts: `classification`, `subtype`, `unit`, `budget`, optional `category` (credit cards only) | Yes (50) |
-| `journal-entries` | Header: `date`, `memo`, `type`, `status`, `budget` | Yes (50) |
-| `journal-lines` | Legs: `account`, signed `amount`, `unit`, optional `category` | No |
+| `transactions` | Header: `date`, `memo`, `type`, `status`, `budget` | Yes (50) |
+| `transaction-entries` | Legs: `account`, signed `amount`, `unit`, optional `category` | No |
 
-- **Posting:** `postJournalEntry` service + `POST /api/ledger/post` — lines are not writable via collection access.
+- **Posting:** `POST /api/transactions` with `postingLines` on create — collection hooks validate balance and write `transaction-entries`. Legs are not writable via the entries collection API.
 - **Entry types:** `transaction`, `transfer`, `adjustment`, `opening_balance`. **Status:** `draft`, `posted`, `void`.
-- **Transfers:** `type: transfer`, balanced lines, no categories on lines (asset ↔ asset MVP).
+- **Transfers:** `type: transfer`, one **transaction header** with balanced legs (Model A). Asset ↔ asset: no categories on lines (MVP). A second header per account (Model B) is out of scope until import/register UX requires it.
 - **Credit cards:** `subtype: credit_card` auto-creates a `credit_card_payments` group + `credit_card_payment` category on account create.
 
 ## Categories & category groups
@@ -53,7 +53,7 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 | **Credit card payment** (checking → card) | **No** — transfer only | Reduces card balance; payment category already holds reserved cash |
 | **External payment** (off-budget account) | Credit Card Payment category on inflow | Manual assign to payment category |
 
-- **Linked transfer pairs** (Epic 4, US-4.3): one amount edit propagates to both legs; validation skips category when both legs are non–credit-card asset accounts.
+- **Linked transfer editing** (Epic 4, US-4.3): single amount edit updates offsetting legs on the **same** transaction; validation skips category when both legs are non–credit-card asset accounts.
 - **Credit card accounts** are a distinct account subtype (liability) that triggers auto-creation of a matching payment category under the Credit Card Payments group.
 
 ## Swaps & multi-leg transactions

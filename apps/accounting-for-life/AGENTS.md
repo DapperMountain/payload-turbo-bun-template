@@ -20,9 +20,12 @@ This app is part of the monorepo. Start with the root [AGENTS.md](../../AGENTS.m
 
 ## Common commands (from this directory)
 
+**Default dev:** run the app in Docker from the **repo root** (`./scripts/up.sh`) and use **`http://localhost:3001/admin`**. Do **not** start a second Payload dev server on the host (port 3000) unless you are explicitly using the host-only workflow below.
+
 | Command | Purpose |
 |---------|---------|
-| `bun dev` | Payload dev server (port 3000; `@payloadcms/next`) |
+| `./scripts/up.sh` (repo root) | Docker Compose — app on **3001**, Postgres on **5442** |
+| `bun dev` | Optional: Payload on the **host** only (port **3000**); use when DB is in Docker but not the app container |
 | `bun run generate:types` | Regenerate `src/types.ts` |
 | `bun run db:migrate:run` | Run migrations (production / CI) |
 | `bun run db:push` | Dev: push schema to Postgres (`localhost:5442` from host) |

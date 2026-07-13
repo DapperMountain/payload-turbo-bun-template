@@ -16,10 +16,12 @@ Monorepo overview, Docker, and Turborepo build flow: **[`../../README.md`](../..
 
 | Environment | App URL | Admin |
 |-------------|---------|--------|
-| **Docker Compose** (root `compose.yml`) | `http://localhost:3001` | `http://localhost:3001/admin` |
-| **Local `bun dev`** (Payload dev; default port 3000) | `http://localhost:3000` | `http://localhost:3000/admin` |
+| **Docker Compose** (default — root `compose.yml`) | `http://localhost:3001` | `http://localhost:3001/admin` |
+| **Host `bun dev`** (optional; DB-only Docker) | `http://localhost:3000` | `http://localhost:3000/admin` |
 
 Compose maps host **3001 → container 3000**. Postgres is exposed on host **5442** when using the root compose file.
+
+Use **one** dev server at a time — Docker **3001** or host **3000**, not both.
 
 ---
 
@@ -41,9 +43,9 @@ Compose maps host **3001 → container 3000**. Postgres is exposed on host **544
 
 ## Development
 
-### Option A — Full stack with Docker (from monorepo root)
+### Option A — Full stack with Docker (default)
 
-Best match for “works the same on every machine.”
+Best match for “works the same on every machine.” This is the **expected** day-to-day workflow.
 
 ```bash
 # From repository root
@@ -53,7 +55,22 @@ cp apps/accounting-for-life/.env.example apps/accounting-for-life/.env
 
 Then open **`http://localhost:3001/admin`**. The repo is mounted into the container; changes under `src/` and workspace packages reload via **`bun dev`** (Payload dev server).
 
-### Option B — Payload on the host
+**After collection renames or large config changes**, if admin nav is missing collections or logs show stale import errors (`JournalEntries`, etc.), clear the isolated Next cache volume and recreate the app container (from repo root):
+
+```bash
+docker compose stop app
+docker compose rm -f app
+docker volume rm accounting-for-life_app_cache
+docker compose up -d app
+```
+
+Compose keeps `.next` in a named volume (`app_cache`) so Linux in Docker does not share a macOS host Turbopack cache. That volume can hold outdated bundles until removed.
+
+**Host `bun dev` on port 3000** and **Docker on 3001** share the same Postgres on `localhost:5442` when using root Compose, but they use **separate** Next dev caches — run only one app server. Agents and smoke tests should target **3001** when Docker is up.
+
+### Option B — Payload on the host (optional)
+
+Use only when you run Postgres in Docker (or elsewhere) but **not** the app container.
 
 ```bash
 # From repository root
