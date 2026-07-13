@@ -351,6 +351,155 @@ describe('collection access integration', () => {
     })
   })
 
+  describe('units', () => {
+    it('workspace member only sees units in their workspace', async () => {
+      const unitA = await payload.create({
+        collection: 'units',
+        data: {
+          code: 'USD-A',
+          name: 'Dollar A',
+          kind: 'currency',
+          decimalPlaces: 2,
+          workspace: fx.workspaceA.id,
+        },
+        overrideAccess: true,
+      })
+
+      const unitB = await payload.create({
+        collection: 'units',
+        data: {
+          code: 'USD-B',
+          name: 'Dollar B',
+          kind: 'currency',
+          decimalPlaces: 2,
+          workspace: fx.workspaceB.id,
+        },
+        overrideAccess: true,
+      })
+
+      const memberView = await payload.find({
+        collection: 'units',
+        user: workspaceAMember,
+        overrideAccess: false,
+        pagination: false,
+      })
+
+      expect(memberView.docs.some((doc) => doc.id === unitA.id)).toBe(true)
+      expect(memberView.docs.some((doc) => doc.id === unitB.id)).toBe(false)
+    })
+
+    it('workspace admin can create units; member cannot', async () => {
+      await payload.create({
+        collection: 'units',
+        user: workspaceAAdmin,
+        overrideAccess: false,
+        data: {
+          code: 'EUR',
+          name: 'Euro',
+          kind: 'currency',
+          decimalPlaces: 2,
+          workspace: fx.workspaceA.id,
+        },
+      })
+
+      await expectAccessDenied(() =>
+        payload.create({
+          collection: 'units',
+          user: workspaceAMember,
+          overrideAccess: false,
+          data: {
+            code: 'GBP',
+            name: 'Pound',
+            kind: 'currency',
+            decimalPlaces: 2,
+            workspace: fx.workspaceA.id,
+          },
+        }),
+      )
+    })
+  })
+
+  describe('accounts', () => {
+    it('workspace member can create accounts in their workspace', async () => {
+      const unit = await payload.create({
+        collection: 'units',
+        data: {
+          code: 'USD-ACC',
+          name: 'US Dollar',
+          kind: 'currency',
+          decimalPlaces: 2,
+          workspace: fx.workspaceA.id,
+        },
+        overrideAccess: true,
+      })
+
+      const account = await payload.create({
+        collection: 'accounts',
+        user: workspaceAMember,
+        overrideAccess: false,
+        data: {
+          name: 'Member Checking',
+          classification: 'asset',
+          subtype: 'checking',
+          unit: unit.id,
+          budget: fx.budgetA.id,
+          workspace: fx.workspaceA.id,
+        },
+      })
+
+      expect(account.id).toBeDefined()
+    })
+
+    it('outsider cannot create accounts', async () => {
+      const unit = await payload.create({
+        collection: 'units',
+        data: {
+          code: 'USD-OUT',
+          name: 'US Dollar',
+          kind: 'currency',
+          decimalPlaces: 2,
+          workspace: fx.workspaceA.id,
+        },
+        overrideAccess: true,
+      })
+
+      await expectAccessDenied(() =>
+        payload.create({
+          collection: 'accounts',
+          user: outsider,
+          overrideAccess: false,
+          data: {
+            name: 'Denied',
+            classification: 'asset',
+            subtype: 'checking',
+            unit: unit.id,
+            budget: fx.budgetA.id,
+            workspace: fx.workspaceA.id,
+          },
+        }),
+      )
+    })
+  })
+
+  describe('journal-lines', () => {
+    it('member cannot create journal lines directly', async () => {
+      await expectAccessDenied(() =>
+        payload.create({
+          collection: 'journal-lines',
+          user: workspaceAMember,
+          overrideAccess: false,
+          data: {
+            workspace: fx.workspaceA.id,
+            entry: '00000000-0000-7000-8000-000000000001',
+            account: '00000000-0000-7000-8000-000000000002',
+            amount: 10,
+            unit: '00000000-0000-7000-8000-000000000003',
+          },
+        }),
+      )
+    })
+  })
+
   describe('users', () => {
     it('user can read self but not other users', async () => {
       const self = await payload.findByID({
