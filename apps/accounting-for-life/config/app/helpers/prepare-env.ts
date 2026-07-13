@@ -37,7 +37,7 @@ function setEnv(key: string, value: string): void {
   ;(process.env as Record<string, string | undefined>)[key] = value
 }
 
-function loadEnvFile(filename: string): void {
+function loadEnvFile(filename: string, options?: { override?: boolean }): void {
   const path = join(APP_ROOT, filename)
 
   if (!existsSync(path)) {
@@ -49,7 +49,18 @@ function loadEnvFile(filename: string): void {
   for (const line of content.split('\n')) {
     const parsed = parseEnvLine(line)
 
-    if (!parsed || process.env[parsed.key]?.trim()) {
+    if (!parsed) {
+      continue
+    }
+
+    const existing = process.env[parsed.key]?.trim()
+
+    // Shell / Compose / CI env wins — never overwrite keys set before file load.
+    if (inheritedEnvKeys.has(parsed.key)) {
+      continue
+    }
+
+    if (!options?.override && existing) {
       continue
     }
 
@@ -57,14 +68,20 @@ function loadEnvFile(filename: string): void {
   }
 }
 
+/** Keys present in `process.env` before any app env file is loaded. */
+const inheritedEnvKeys = new Set(
+  Object.keys(process.env).filter((key) => process.env[key]?.trim()),
+)
+
 /**
  * Loads `.env` then `.env.local` from the app package root into `process.env`.
  *
- * Does not override variables already set (shell / CI / Docker wins).
+ * `.env.local` overrides `.env` for the same key. Variables already set in the
+ * environment (Compose `env_file`, shell exports, CI) are never overwritten.
  */
 export function loadEnvFiles(): void {
   loadEnvFile('.env')
-  loadEnvFile('.env.local')
+  loadEnvFile('.env.local', { override: true })
 }
 
 /**

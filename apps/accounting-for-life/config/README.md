@@ -91,7 +91,7 @@ When `NODE_ENV=test`, seeding is **always off** in `parseSeedConfig` (even if `.
 
 ### Tests (`bun test`)
 
-Before Zod runs, `prepareEnvForConfig()` loads `.env` and `.env.local` (unset keys only). During `bun test`, it also loads `.env.test` when present. Same `appConfigSchema` as dev/prod — no separate test schema. See [`.env.test.example`](../.env.test.example) (local) and [`docs/TESTING.md`](../docs/TESTING.md); CI/Docker inject the same keys via the environment.
+Before Zod runs, `prepareEnvForConfig()` loads `.env`, then `.env.local` (overrides `.env` for the same key). Variables already set in the process environment (Compose, shell, CI) are never overwritten. During `bun test`, it also loads `.env.test` when present. For host `bun dev`, add `.env.local` with `DATABASE_URL=...@localhost:5442/...` — see [`.env.example`](../.env.example).
 
 ### Feature flags (optional)
 
