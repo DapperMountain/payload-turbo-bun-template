@@ -28,9 +28,9 @@ One **workspace = household**. Multiple **budgets** per workspace with shared ac
 
 ## Epic 2 — Currencies & FX
 
-| ID | Story | Pts | Sprint |
-|----|-------|-----|--------|
-| US-2.1 | Currency registry: fiat, crypto, and custom user-defined currencies | 5 | 2 |
+| ID | Story | Pts | Sprint | Status |
+|----|-------|-----|--------|--------|
+| US-2.1 | Currency registry: fiat, crypto, and custom user-defined currencies | 5 | 2 | **Partial** — `units` collection (workspace-scoped); crypto/custom kinds TBD |
 | US-2.2 | Per-account default currency; workspace reporting currency setting | 3 | 2 |
 | US-2.3 | Store FX rates on journal lines at posting time | 5 | 2 |
 
@@ -38,12 +38,12 @@ One **workspace = household**. Multiple **budgets** per workspace with shared ac
 
 ## Epic 3 — Accounts
 
-| ID | Story | Pts | Sprint |
-|----|-------|-----|--------|
-| US-3.1 | Account types (asset, liability, credit card, equity, income, expense) and chart structure | 3 | 2 |
-| US-3.4 | Auto-create Credit Card Payment category + group when credit card account added | 3 | 3 |
-| US-3.2 | Account CRUD with workspace + budget scope and access rules | 5 | 3 |
-| US-3.3 | Derive running balance from posted journal entries | 5 | 3 |
+| ID | Story | Pts | Sprint | Status |
+|----|-------|-----|--------|--------|
+| US-3.1 | Account types (asset, liability, credit card, equity, income, expense) and chart structure | 3 | 2 | **Done** |
+| US-3.4 | Auto-create Credit Card Payment category + group when credit card account added | 3 | 3 | **Done** |
+| US-3.2 | Account CRUD with workspace + budget scope and access rules | 5 | 3 | **Partial** — access + CRUD; visibility rules TBD |
+| US-3.3 | Derive running balance from posted journal entries | 5 | 3 | |
 
 ---
 
@@ -51,12 +51,12 @@ One **workspace = household**. Multiple **budgets** per workspace with shared ac
 
 Foundation for all money movement.
 
-| ID | Story | Pts | Sprint |
-|----|-------|-----|--------|
-| US-4.1 | Journal entry schema: balanced debit/credit lines | 5 | 3 |
-| US-4.2 | Posting engine with validation (must balance, min 2 lines) | 8 | 4 |
-| US-4.3 | Transfer pairs: linked legs, single amount edit; YNAB “category not needed” for asset↔asset | 5 | 4 |
-| US-4.4 | Credit card spending moves funds to payment category; payment transfers skip category | 5 | 4 |
+| ID | Story | Pts | Sprint | Status |
+|----|-------|-----|--------|--------|
+| US-4.1 | Journal entry schema: balanced debit/credit lines | 5 | 3 | **Done** |
+| US-4.2 | Posting engine with validation (must balance, min 2 lines) | 8 | 4 | **Done** — `postJournalEntry` + `POST /api/ledger/post` |
+| US-4.3 | Transfer pairs: linked legs, single amount edit; YNAB “category not needed” for asset↔asset | 5 | 4 | **Partial** — asset↔asset transfer posting; linked-pair edit TBD |
+| US-4.4 | Credit card spending moves funds to payment category; payment transfers skip category | 5 | 4 | |
 
 ---
 

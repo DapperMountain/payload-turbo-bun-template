@@ -20,6 +20,20 @@ Decisions captured during initial planning (July 2026).
 - **Default currency per account**; UI can show converted amounts without persisting (live FX fetch).
 - **FX at execution time** stored on journal lines for reporting currency comparisons.
 
+### Implemented schema (July 2026)
+
+| Collection | Purpose | Versioning |
+|------------|---------|------------|
+| `units` | Workspace currency/commodity registry (`code`, `kind`, `decimalPlaces`) | No |
+| `accounts` | Chart accounts: `classification`, `subtype`, `unit`, `budget`, optional `category` (credit cards only) | Yes (50) |
+| `journal-entries` | Header: `date`, `memo`, `type`, `status`, `budget` | Yes (50) |
+| `journal-lines` | Legs: `account`, signed `amount`, `unit`, optional `category` | No |
+
+- **Posting:** `postJournalEntry` service + `POST /api/ledger/post` — lines are not writable via collection access.
+- **Entry types:** `transaction`, `transfer`, `adjustment`, `opening_balance`. **Status:** `draft`, `posted`, `void`.
+- **Transfers:** `type: transfer`, balanced lines, no categories on lines (asset ↔ asset MVP).
+- **Credit cards:** `subtype: credit_card` auto-creates a `credit_card_payments` group + `credit_card_payment` category on account create.
+
 ## Categories & category groups
 
 - **Category groups → categories** (Monarch-style UI), scoped to a **budget** (not a flat tree).
