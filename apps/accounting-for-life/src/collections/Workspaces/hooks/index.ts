@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 /**
- * Hooks for the `tenants` collection.
+ * Hooks for the `workspaces` collection.
  *
  * @see {@link https://payloadcms.com/docs/hooks/collections Payload collection hooks}
  */

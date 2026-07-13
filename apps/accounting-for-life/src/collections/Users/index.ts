@@ -1,5 +1,5 @@
 /**
- * `users` collection — auth, system roles, and per-tenant membership via the multi-tenant plugin.
+ * `users` collection — auth, system roles, and per-workspace membership via the multi-tenant plugin.
  */
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
@@ -15,10 +15,6 @@ const Users: CollectionConfig = {
   trash: true,
   access: usersAccess,
   versions: true,
-  /**
-   * Relationship pickers only `select` the `useAsTitle` field (`fullName`). That virtual field is
-   * not in the DB — merge these so `afterRead` can compute `fullName` for admin labels.
-   */
   forceSelect: {
     firstName: true,
     lastName: true,
@@ -32,7 +28,6 @@ const Users: CollectionConfig = {
     { name: 'firstName', type: 'text', required: true, label: 'First name' },
     { name: 'lastName', type: 'text', required: true, label: 'Last name' },
     {
-      /** Virtual title — not stored in DB. `afterRead` uses `siblingData` (requires `forceSelect`). */
       name: 'fullName',
       type: 'text',
       virtual: true,
@@ -54,16 +49,19 @@ const Users: CollectionConfig = {
     },
     {
       ...tenantsArrayField({
+        tenantsArrayFieldName: 'workspaces',
+        tenantsArrayTenantFieldName: 'workspace',
+        tenantsCollectionSlug: 'workspaces',
         rowFields: [
           {
             name: 'roles',
             type: 'select',
             label: 'Roles',
-            defaultValue: ['TENANT_USER'],
+            defaultValue: ['WORKSPACE_USER'],
             hasMany: true,
             options: [
-              { label: custom.roles.TENANT_ADMIN, value: 'TENANT_ADMIN' },
-              { label: custom.roles.TENANT_USER, value: 'TENANT_USER' },
+              { label: custom.roles.WORKSPACE_ADMIN, value: 'WORKSPACE_ADMIN' },
+              { label: custom.roles.WORKSPACE_USER, value: 'WORKSPACE_USER' },
             ],
             required: true,
           },

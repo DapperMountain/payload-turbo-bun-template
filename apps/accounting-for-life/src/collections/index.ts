@@ -1,16 +1,16 @@
 /**
  * Payload collection registry.
- *
- * Each collection lives in `collections/<Name>/index.ts`. See `collections/README.md`
- * and `docs/CODE_CONVENTIONS.md`.
  */
 import type { CollectionConfig } from 'payload'
 
-import Tenants from './Tenants'
+import Budgets from './Budgets'
+import Categories from './Categories'
+import CategoryGroups from './CategoryGroups'
 import Users from './Users'
+import Workspaces from './Workspaces'
 
-const collections: CollectionConfig[] = [Users, Tenants]
+const collections: CollectionConfig[] = [Users, Workspaces, Budgets, CategoryGroups, Categories]
 
 export default collections
 
-export { Tenants, Users }
+export { Budgets, Categories, CategoryGroups, Users, Workspaces }

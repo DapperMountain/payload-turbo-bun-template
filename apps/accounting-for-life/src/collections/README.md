@@ -11,7 +11,7 @@ Payload collections use a **folder per collection** (not a single `Users.ts` at 
 Optional CRUD smoke tests live next to the collection:
 
 ```text
-collections/Tenants/tenants.integration.spec.ts
+collections/Workspaces/workspaces.integration.spec.ts
 ```
 
 - Naming: `<slug>.integration.spec.ts`

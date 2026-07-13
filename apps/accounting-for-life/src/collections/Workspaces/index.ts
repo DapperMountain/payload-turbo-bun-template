@@ -1,16 +1,20 @@
 /**
- * `tenants` collection — workspace records (name, domain, description).
+ * `workspaces` collection — household / workspace records (name, domain, description).
  */
 import type { CollectionConfig } from 'payload'
 
-import { tenantsAccess } from '@/access/collections'
+import { workspacesAccess } from '@/access/collections'
 
 import { hooks } from './hooks'
 
-const Tenants: CollectionConfig = {
-  slug: 'tenants',
+const Workspaces: CollectionConfig = {
+  slug: 'workspaces',
   trash: true,
-  access: tenantsAccess,
+  access: workspacesAccess,
+  labels: {
+    singular: 'Workspace',
+    plural: 'Workspaces',
+  },
   admin: {
     useAsTitle: 'name',
   },
@@ -22,4 +26,4 @@ const Tenants: CollectionConfig = {
   hooks,
 }
 
-export default Tenants
+export default Workspaces

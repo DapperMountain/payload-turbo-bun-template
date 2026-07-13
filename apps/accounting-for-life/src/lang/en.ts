@@ -9,10 +9,10 @@ export default {
     roles: {
       SYSTEM_ADMIN: 'System administrator',
       SYSTEM_USER: 'System user',
-      TENANT_ADMIN: 'Workspace administrator',
-      TENANT_USER: 'Workspace user',
+      WORKSPACE_ADMIN: 'Workspace administrator',
+      WORKSPACE_USER: 'Workspace user',
     },
-    defaultTenant: 'Default workspace',
+    defaultWorkspace: 'Default workspace',
     frontend: {
       appName: 'Accounting for Life',
       logoAlt: 'Accounting for Life',

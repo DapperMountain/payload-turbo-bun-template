@@ -1,3 +1,6 @@
-export { tenantContentAccess, tenantContentReadAccess } from './tenantContent'
-export { tenantsAccess, tenantsReadAccess } from './tenants'
+export { budgetsAccess } from './budgets'
+export { categoriesAccess } from './categories'
+export { categoryGroupsAccess } from './categoryGroups'
+export { workspaceContentAccess, workspaceContentReadAccess } from './workspaceContent'
+export { workspacesAccess, workspacesReadAccess } from './workspaces'
 export { usersAccess } from './users'

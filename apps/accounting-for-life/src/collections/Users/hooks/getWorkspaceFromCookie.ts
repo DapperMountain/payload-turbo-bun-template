@@ -1,4 +1,4 @@
 /**
  * @deprecated Import from `@/utils` instead.
  */
-export { getTenantFromCookie } from '@/utils'
+export { getWorkspaceFromCookie } from '@/utils'

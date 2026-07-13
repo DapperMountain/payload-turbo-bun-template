@@ -6,10 +6,10 @@ export default {
     roles: {
       SYSTEM_ADMIN: 'Administrador del sistema',
       SYSTEM_USER: 'Usuario del sistema',
-      TENANT_ADMIN: 'Administrador del espacio',
-      TENANT_USER: 'Usuario del espacio',
+      WORKSPACE_ADMIN: 'Administrador del espacio',
+      WORKSPACE_USER: 'Usuario del espacio',
     },
-    defaultTenant: 'Espacio predeterminado',
+    defaultWorkspace: 'Espacio predeterminado',
     frontend: {
       appName: 'Accounting for Life',
       logoAlt: 'Accounting for Life',

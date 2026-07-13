@@ -3,8 +3,8 @@ import type { CollectionAfterLoginHook } from 'payload'
 import { generateCookie, getCookieExpiration } from 'payload'
 
 export const setCookieBasedOnDomain: CollectionAfterLoginHook = async ({ req, user }) => {
-  const tenant = await req.payload.find({
-    collection: 'tenants',
+  const workspaces = await req.payload.find({
+    collection: 'workspaces',
     depth: 0,
     limit: 1,
     where: {
@@ -14,25 +14,24 @@ export const setCookieBasedOnDomain: CollectionAfterLoginHook = async ({ req, us
     },
   })
 
-  // If a matching tenant is found, set the 'payload-tenant' cookie
-  const tenantId = tenant?.docs?.[0]?.id
+  // If a matching workspace is found, set the plugin's `payload-tenant` cookie
+  const workspaceId = workspaces?.docs?.[0]?.id
 
-  if (!tenantId) return user
+  if (!workspaceId) return user
 
-  const tenantCookie = generateCookie({
+  const workspaceCookie = generateCookie({
     name: 'payload-tenant',
     expires: getCookieExpiration({ seconds: 7200 }),
     path: '/',
     returnCookieAsObject: false,
-    value: tenant?.docs?.[0]?.id,
+    value: workspaceId,
   })
 
-  // Merge existing responseHeaders with the new Set-Cookie header
   if (!req.responseHeaders) {
     req.responseHeaders = new Headers()
   }
 
-  req.responseHeaders.append('Set-Cookie', tenantCookie as string)
+  req.responseHeaders.append('Set-Cookie', workspaceCookie as string)
 
   return user
 }

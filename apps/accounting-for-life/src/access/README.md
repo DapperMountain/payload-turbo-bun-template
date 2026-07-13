@@ -5,7 +5,7 @@ access/
 ├── helpers/          # Composable utilities (no collection-specific rules)
 ├── auth/             # Authentication primitives
 ├── roles/            # System-wide role checks
-├── tenants/          # Tenant membership / tenant-admin scopes
+├── workspaces/       # Workspace membership / workspace-admin scopes
 ├── collections/      # Collection `access` maps (create/read/update/delete)
 └── index.ts          # Public exports
 ```
@@ -18,8 +18,8 @@ access/
 | “Is user logged in?” | `auth/` |
 | System roles (`SYSTEM_ADMIN`, `SYSTEM_USER`, self, admin or self) | `roles/` |
 | Allow / deny all | `helpers/allowAll`, `helpers/denyAll` |
-| Tenant **workspace** scope (`id: { in: … }`) | `tenants/` (`tenantScope` on `tenants` collection) |
-| Tenant **content** scope (`tenant: { in: … }`) | `tenants/` (`tenantContentScope`, `isTenantContent*`) |
+| Workspace document scope (`id: { in: … }`) | `workspaces/` (`workspaceScope` on `workspaces` collection) |
+| Workspace **content** scope (`workspace: { in: … }`) | `workspaces/` (`workspaceContentScope`, `isWorkspaceContent*`) |
 | Which operations a **collection** allows | `collections/<slug>.ts` |
 
 Collection configs import maps from `@/access/collections` (or `@/access/collections/<slug>` when only one map is needed).
@@ -28,8 +28,8 @@ Collection configs import maps from `@/access/collections` (or `@/access/collect
 
 | Use case | Import |
 |----------|--------|
-| Plugin callbacks, hooks, plain functions | `userIsSystemAdmin`, `userIsSystemUser`, `userHasTenantRole`, `userCanAccessActiveTenant` from `@/utils` |
-| Collection / field / global `access` | `isSystemAdmin`, `isSystemUser`, `isTenant`, `isCreatedBy`, … from `@/access` or sub-barrels |
+| Plugin callbacks, hooks, plain functions | `userIsSystemAdmin`, `userIsSystemUser`, `userHasWorkspaceRole`, `userCanAccessActiveWorkspace` from `@/utils` |
+| Collection / field / global `access` | `isSystemAdmin`, `isSystemUser`, `isWorkspace`, `isCreatedBy`, … from `@/access` or sub-barrels |
 
 ## Wiring a collection
 
@@ -42,24 +42,24 @@ const Users: CollectionConfig = {
 }
 ```
 
-## Tenants collection read policy
+## Workspaces collection read policy
 
-`tenantsAccess.read` uses `requireOne(isSystemAdmin, isTenant)` so members can read their workspace rows, not only system admins. See the module comment in `collections/tenants.ts`.
+`workspacesAccess.read` uses `requireOne(isSystemAdmin, isWorkspace)` so members can read their workspace rows, not only system admins. See the module comment in `collections/workspaces.ts`.
 
-## Tenant-owned collections
+## Workspace-owned collections
 
 Register slugs in `multiTenantPlugin({ collections: { pages: {} } })`, then assign access — starter map:
 
 ```typescript
-import { tenantContentAccess } from '@/access/collections'
+import { workspaceContentAccess } from '@/access/collections'
 
 const Pages: CollectionConfig = {
   slug: 'pages',
-  access: tenantContentAccess,
+  access: workspaceContentAccess,
 }
 ```
 
-With default `useTenantAccess: true`, the plugin also ANDs membership on the `tenant` field. See `collections/tenantContent.ts` and `reference/MULTI-TENANT.md`.
+With default `useTenantAccess: true`, the plugin also ANDs membership on the `workspace` field. See `collections/workspaceContent.ts` and `reference/MULTI-TENANT.md`.
 
 ## Tests
 
@@ -70,8 +70,8 @@ Spec files mirror folder responsibility — not one spec per source file.
 | `helpers/` | `helpers.spec.ts` | `<folder>.spec.ts` — all composable helpers in one file |
 | `auth/` | `auth.spec.ts` | `<folder>.spec.ts` |
 | `roles/` | `roles.spec.ts` | `<folder>.spec.ts` — all role/ownership `Access` exports |
-| `tenants/` | `tenants.spec.ts` | `<folder>.spec.ts` — workspace + content scope factories |
-| `collections/` | `<slug>.access.spec.ts` | Matches policy source (`tenants.ts` → `tenants.access.spec.ts`) |
+| `workspaces/` | `workspaces.spec.ts` | `<folder>.spec.ts` — workspace + content scope factories |
+| `collections/` | `<slug>.access.spec.ts` | Matches policy source (`workspaces.ts` → `workspaces.access.spec.ts`) |
 | `test/` | *(none)* | Fixtures only (`accessArgs`, test users) — not production access |
 
 **Do not add** `isTenant.spec.ts`, `requireOne.spec.ts`, etc. beside each module; extend the folder spec or the collection policy spec instead.
@@ -80,7 +80,7 @@ Spec files mirror folder responsibility — not one spec per source file.
 
 - New helper → `helpers.spec.ts` `describe` block
 - New role export → `roles.spec.ts`
-- New tenant scope preset → `tenants.spec.ts`
+- New workspace scope preset → `workspaces.spec.ts`
 - New collection policy file → `collections/<slug>.access.spec.ts`
 
 **Collection spec layout** — mirror `usersAccess` keys:
@@ -100,17 +100,17 @@ Run: `bun test ./src/access` from the app directory (see `docs/TESTING.md`).
 | Access | Util | Use |
 |--------|------|-----|
 | `isSystemUser` | `userIsSystemUser` | Platform staff (`SYSTEM_ADMIN` or `SYSTEM_USER`) |
-| `isSystemAdmin` | `userIsSystemAdmin` | Cross-tenant administrators only |
+| `isSystemAdmin` | `userIsSystemAdmin` | Cross-workspace administrators only |
 | `isAdminOrSelf` | — | Admins see all rows; others only `id === req.user.id` (alternative `users` map) |
 | `isCreatedBy` / `isCreatedByScope(field)` | — | Author-owned documents (`createdBy` field) |
 | `allowAll` / `denyAll` | — | Explicit public or locked operations |
 
-## Imperative tenant checks (hooks / endpoints)
+## Imperative workspace checks (hooks / endpoints)
 
 | Util | Use |
 |------|-----|
-| `userHasTenantRole(user, tenantId, role?)` | General membership + optional role |
-| `userBelongsToTenant(user, tenantId)` | Member of workspace (any role) |
-| `userIsTenantAdmin(user, tenantId?)` | `TENANT_ADMIN` on one or any tenant |
-| `userCanAccessActiveTenant(req, role?)` | `payload-tenant` cookie + membership |
-| `getTenantFromCookie(headers, idType)` | Read selected tenant id from cookie |
+| `userHasWorkspaceRole(user, workspaceId, role?)` | General membership + optional role |
+| `userBelongsToWorkspace(user, workspaceId)` | Member of workspace (any role) |
+| `userIsWorkspaceAdmin(user, workspaceId?)` | `WORKSPACE_ADMIN` on one or any workspace |
+| `userCanAccessActiveWorkspace(req, role?)` | `payload-tenant` cookie + membership |
+| `getWorkspaceFromCookie(headers, idType)` | Read selected workspace id from cookie |
