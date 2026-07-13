@@ -69,7 +69,10 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
-    tenants: Tenant;
+    workspaces: Workspace;
+    budgets: Budget;
+    'category-groups': CategoryGroup;
+    categories: Category;
     'payload-mcp-api-keys': PayloadMcpApiKey;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -79,7 +82,10 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
-    tenants: TenantsSelect<false> | TenantsSelect<true>;
+    workspaces: WorkspacesSelect<false> | WorkspacesSelect<true>;
+    budgets: BudgetsSelect<false> | BudgetsSelect<true>;
+    'category-groups': CategoryGroupsSelect<false> | CategoryGroupsSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
     'payload-mcp-api-keys': PayloadMcpApiKeysSelect<false> | PayloadMcpApiKeysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -148,10 +154,10 @@ export interface User {
   lastName: string;
   fullName?: string | null;
   roles?: ('SYSTEM_ADMIN' | 'SYSTEM_USER')[] | null;
-  tenants?:
+  workspaces?:
     | {
-        tenant: string | Tenant;
-        roles: ('TENANT_ADMIN' | 'TENANT_USER')[];
+        workspace: string | Workspace;
+        roles: ('WORKSPACE_ADMIN' | 'WORKSPACE_USER')[];
         id?: string | null;
       }[]
     | null;
@@ -180,13 +186,74 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tenants".
+ * via the `definition` "workspaces".
  */
-export interface Tenant {
+export interface Workspace {
   id: string;
   name: string;
   description: string;
   domain: string;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "budgets".
+ */
+export interface Budget {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  name: string;
+  /**
+   * Primary budget for this household when none is selected.
+   */
+  isDefault?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "category-groups".
+ */
+export interface CategoryGroup {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  name: string;
+  /**
+   * Credit card payment groups are auto-created when a credit card account is added.
+   */
+  kind: 'income' | 'expense' | 'credit_card_payments';
+  sortOrder?: number | null;
+  budget: string | Budget;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  name: string;
+  /**
+   * Single emoji shown in the category list.
+   */
+  emoji?: string | null;
+  purpose: 'income' | 'spending' | 'credit_card_payment';
+  /**
+   * Seeded catalog entry; user may customize or hide later.
+   */
+  isSystemDefault?: boolean | null;
+  sortOrder?: number | null;
+  categoryGroup: string | CategoryGroup;
+  /**
+   * Denormalized for queries; must match the selected group’s budget.
+   */
+  budget: string | Budget;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -229,21 +296,75 @@ export interface PayloadMcpApiKey {
      */
     delete?: boolean | null;
   };
-  tenants?: {
+  workspaces?: {
     /**
-     * Allow clients to find tenants.
+     * Allow clients to find workspaces.
      */
     find?: boolean | null;
     /**
-     * Allow clients to create tenants.
+     * Allow clients to create workspaces.
      */
     create?: boolean | null;
     /**
-     * Allow clients to update tenants.
+     * Allow clients to update workspaces.
      */
     update?: boolean | null;
     /**
-     * Allow clients to delete tenants.
+     * Allow clients to delete workspaces.
+     */
+    delete?: boolean | null;
+  };
+  budgets?: {
+    /**
+     * Allow clients to find budgets.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create budgets.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update budgets.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete budgets.
+     */
+    delete?: boolean | null;
+  };
+  categoryGroups?: {
+    /**
+     * Allow clients to find category-groups.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create category-groups.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update category-groups.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete category-groups.
+     */
+    delete?: boolean | null;
+  };
+  categories?: {
+    /**
+     * Allow clients to find categories.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create categories.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update categories.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete categories.
      */
     delete?: boolean | null;
   };
@@ -283,8 +404,20 @@ export interface PayloadLockedDocument {
         value: string | User;
       } | null)
     | ({
-        relationTo: 'tenants';
-        value: string | Tenant;
+        relationTo: 'workspaces';
+        value: string | Workspace;
+      } | null)
+    | ({
+        relationTo: 'budgets';
+        value: string | Budget;
+      } | null)
+    | ({
+        relationTo: 'category-groups';
+        value: string | CategoryGroup;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: string | Category;
       } | null)
     | ({
         relationTo: 'payload-mcp-api-keys';
@@ -351,10 +484,10 @@ export interface UsersSelect<T extends boolean = true> {
   lastName?: T;
   fullName?: T;
   roles?: T;
-  tenants?:
+  workspaces?:
     | T
     | {
-        tenant?: T;
+        workspace?: T;
         roles?: T;
         id?: T;
       };
@@ -381,12 +514,55 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tenants_select".
+ * via the `definition` "workspaces_select".
  */
-export interface TenantsSelect<T extends boolean = true> {
+export interface WorkspacesSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   domain?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "budgets_select".
+ */
+export interface BudgetsSelect<T extends boolean = true> {
+  workspace?: T;
+  name?: T;
+  isDefault?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "category-groups_select".
+ */
+export interface CategoryGroupsSelect<T extends boolean = true> {
+  workspace?: T;
+  name?: T;
+  kind?: T;
+  sortOrder?: T;
+  budget?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  workspace?: T;
+  name?: T;
+  emoji?: T;
+  purpose?: T;
+  isSystemDefault?: T;
+  sortOrder?: T;
+  categoryGroup?: T;
+  budget?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -407,7 +583,31 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         update?: T;
         delete?: T;
       };
-  tenants?:
+  workspaces?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  budgets?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  categoryGroups?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  categories?:
     | T
     | {
         find?: T;

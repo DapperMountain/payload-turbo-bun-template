@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url'
 
 import { migrations } from '@/database/migrations'
 
-import collections, { Tenants, Users } from '@/collections'
+import collections, { Budgets, Categories, CategoryGroups, Users, Workspaces } from '@/collections'
 import { seed } from '@/database/seed'
 import endpoints from '@/endpoints'
 import { i18n, localization } from '@/lang'
@@ -25,6 +25,16 @@ const rootDir = path.resolve(path.dirname(filename), '..')
 export default buildConfig({
   serverURL: config.server.serverURL,
   admin: { user: Users.slug, suppressHydrationWarning: true },
+  bin: [
+    {
+      key: 'seed',
+      scriptPath: path.resolve(rootDir, 'src', 'database', 'seed', 'run.ts'),
+    },
+    {
+      key: 'push-schema',
+      scriptPath: path.resolve(rootDir, 'src', 'database', 'push-schema.ts'),
+    },
+  ],
   collections,
   endpoints,
   i18n,
@@ -46,9 +56,19 @@ export default buildConfig({
   csrf: config.server.corsOrigins,
   plugins: [
     multiTenantPlugin<Config>({
-      collections: {},
-      tenantsSlug: 'tenants',
-      tenantsArrayField: { includeDefaultField: false },
+      collections: {
+        [Budgets.slug]: {},
+        [CategoryGroups.slug]: {},
+        [Categories.slug]: {},
+      },
+      tenantsSlug: 'workspaces',
+      tenantField: { name: 'workspace' },
+      tenantsArrayField: {
+        includeDefaultField: false,
+        arrayFieldName: 'workspaces',
+        arrayTenantFieldName: 'workspace',
+      },
+      tenantSelectorLabel: 'Workspace',
       userHasAccessToAllTenants: (user) => isAppUser(user) && userIsSystemAdmin(user),
     }),
     mcpPlugin({
@@ -57,11 +77,23 @@ export default buildConfig({
       collections: {
         [Users.slug]: {
           enabled: true,
-          description: 'Application users and tenant memberships.',
+          description: 'Application users and workspace memberships.',
         },
-        [Tenants.slug]: {
+        [Workspaces.slug]: {
           enabled: true,
-          description: 'Multi-tenant organizations.',
+          description: 'Household workspaces.',
+        },
+        [Budgets.slug]: {
+          enabled: true,
+          description: 'Household budgets with category groups and envelopes.',
+        },
+        [CategoryGroups.slug]: {
+          enabled: true,
+          description: 'Category groups within a budget (Income, Fixed, …).',
+        },
+        [Categories.slug]: {
+          enabled: true,
+          description: 'Budget categories for income and spending.',
         },
       },
       mcp: {

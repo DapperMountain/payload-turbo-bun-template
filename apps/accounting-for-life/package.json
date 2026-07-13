@@ -13,6 +13,8 @@
     "generate:types": "payload generate:types",
     "db:migrate:run": "payload migrate",
     "db:migrate:create": "payload migrate:create",
+    "db:push": "payload push-schema",
+    "db:seed": "payload seed",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "start": "next start",

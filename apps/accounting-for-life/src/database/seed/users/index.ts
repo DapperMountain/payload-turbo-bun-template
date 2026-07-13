@@ -2,6 +2,8 @@ import type { User } from '@/types'
 import config from '@config'
 import type { Payload } from 'payload'
 
+import type { SeedRunOptions } from '../types'
+
 /**
  * Seeds default admin and system user accounts from `config.database.seed`.
  *
@@ -9,11 +11,19 @@ import type { Payload } from 'payload'
  * before role-based access is fully established.
  *
  * @param payload - Initialized Payload instance.
+ * @param options - Pass `{ force: true }` from `db:seed` to bypass `DATA_SEED_ENABLED`.
  */
-export async function seedUsers(payload: Payload): Promise<void> {
+export async function seedUsers(payload: Payload, options?: SeedRunOptions): Promise<void> {
   const seed = config.database.seed
 
+  if (!options?.force && !seed.enabled) {
+    return
+  }
+
   if (!seed.enabled) {
+    payload.logger.error(
+      '❌ [Users] Cannot seed users while DATA_SEED_ENABLED is false — set seed env vars and enable, or use admin to create users.',
+    )
     return
   }
 
