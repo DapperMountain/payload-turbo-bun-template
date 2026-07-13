@@ -5,8 +5,6 @@ import type { LanguageOptions } from 'payload'
 import type { I18nClient, I18nOptions } from '@payloadcms/translations'
 import type { ReactNode } from 'react'
 
-import { LanguageSwitcher } from './language-switcher'
-
 export type FrontendProvidersProps = {
   children: ReactNode
   dateFNSKey: I18nClient['dateFNSKey']
@@ -38,14 +36,7 @@ export function FrontendProviders(props: FrontendProvidersProps) {
       switchLanguageServerAction={switchLanguageServerAction}
       translations={translations}
     >
-      <div className="relative flex min-h-screen w-full flex-col">
-        <LanguageSwitcher
-          language={language}
-          languageOptions={languageOptions}
-          switchLanguage={switchLanguageServerAction}
-        />
-        {children}
-      </div>
+      {children}
     </TranslationProvider>
   )
 }

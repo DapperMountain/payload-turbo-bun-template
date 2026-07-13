@@ -13,6 +13,7 @@ import { Separator } from '@dappermountain/ui/components/separator'
 import { ArrowUpRight, BookOpen, Wallet } from '@dappermountain/ui/icons'
 import Image from 'next/image'
 
+import { LanguageSwitcher } from '@/app/(frontend)/_components/language-switcher'
 import { useAppTranslation } from '@/utils/i18n.client'
 
 export type HomePageProps = {
@@ -26,6 +27,7 @@ export function HomePage(props: HomePageProps) {
 
   return (
     <main className="relative flex min-h-screen flex-1 flex-col items-center justify-center overflow-hidden p-6">
+      <LanguageSwitcher variant="overlay" />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.97_0_0),oklch(1_0_0)_50%)] dark:bg-[radial-gradient(ellipse_at_top,oklch(0.22_0_0),oklch(0.145_0_0)_55%)]"
@@ -69,7 +71,15 @@ export function HomePage(props: HomePageProps) {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button asChild className="w-full sm:w-auto" size="lg">
+            {userEmail ? (
+              <Button asChild className="w-full sm:w-auto" size="lg">
+                <a href="/dashboard">
+                  <Wallet className="size-4" />
+                  {t('custom:frontend:openApp')}
+                </a>
+              </Button>
+            ) : null}
+            <Button asChild className="w-full sm:w-auto" size="lg" variant={userEmail ? 'outline' : 'default'}>
               <a href={adminHref} rel="noopener noreferrer" target="_blank">
                 <Wallet className="size-4" />
                 {t('custom:frontend:openAdmin')}
