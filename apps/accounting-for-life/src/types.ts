@@ -70,9 +70,13 @@ export interface Config {
   collections: {
     users: User;
     workspaces: Workspace;
+    units: Unit;
     budgets: Budget;
     'category-groups': CategoryGroup;
     categories: Category;
+    accounts: Account;
+    'journal-entries': JournalEntry;
+    'journal-lines': JournalLine;
     'payload-mcp-api-keys': PayloadMcpApiKey;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -83,9 +87,13 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     workspaces: WorkspacesSelect<false> | WorkspacesSelect<true>;
+    units: UnitsSelect<false> | UnitsSelect<true>;
     budgets: BudgetsSelect<false> | BudgetsSelect<true>;
     'category-groups': CategoryGroupsSelect<false> | CategoryGroupsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    accounts: AccountsSelect<false> | AccountsSelect<true>;
+    'journal-entries': JournalEntriesSelect<false> | JournalEntriesSelect<true>;
+    'journal-lines': JournalLinesSelect<false> | JournalLinesSelect<true>;
     'payload-mcp-api-keys': PayloadMcpApiKeysSelect<false> | PayloadMcpApiKeysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -199,6 +207,24 @@ export interface Workspace {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "units".
+ */
+export interface Unit {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  /**
+   * ISO 4217 code for currency (e.g. USD) or a stable identifier for other units.
+   */
+  code: string;
+  name: string;
+  kind: 'currency' | 'commodity' | 'other';
+  decimalPlaces: number;
+  symbol?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "budgets".
  */
 export interface Budget {
@@ -257,6 +283,76 @@ export interface Category {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounts".
+ */
+export interface Account {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  name: string;
+  classification: 'asset' | 'liability' | 'equity' | 'income' | 'expense';
+  subtype: 'checking' | 'savings' | 'cash' | 'credit_card' | 'loan' | 'holding' | 'other';
+  unit: string | Unit;
+  /**
+   * Payment envelope for credit card accounts only.
+   */
+  category?: (string | null) | Category;
+  isOnBudget?: boolean | null;
+  budget: string | Budget;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "journal-entries".
+ */
+export interface JournalEntry {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  budget: string | Budget;
+  date: string;
+  memo?: string | null;
+  type: 'transaction' | 'transfer' | 'adjustment' | 'opening_balance';
+  status: 'draft' | 'posted' | 'void';
+  /**
+   * Links the two sides of a transfer when posted separately.
+   */
+  transferGroupId?: string | null;
+  /**
+   * When this entry voids another posted entry.
+   */
+  voidOf?: (string | null) | JournalEntry;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "journal-lines".
+ */
+export interface JournalLine {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  entry: string | JournalEntry;
+  account: string | Account;
+  category?: (string | null) | Category;
+  /**
+   * Signed amount in the line unit (negative = credit, positive = debit).
+   */
+  amount: number;
+  unit: string | Unit;
+  sortOrder?: number | null;
+  /**
+   * Amount in budget reporting currency when FX applies.
+   */
+  reportingAmount?: number | null;
+  /**
+   * Exchange rate applied for reportingAmount.
+   */
+  fxRate?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * API keys control which collections, resources, tools, and prompts MCP clients can access
@@ -368,6 +464,78 @@ export interface PayloadMcpApiKey {
      */
     delete?: boolean | null;
   };
+  units?: {
+    /**
+     * Allow clients to find units.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create units.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update units.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete units.
+     */
+    delete?: boolean | null;
+  };
+  accounts?: {
+    /**
+     * Allow clients to find accounts.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create accounts.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update accounts.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete accounts.
+     */
+    delete?: boolean | null;
+  };
+  journalEntries?: {
+    /**
+     * Allow clients to find journal-entries.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create journal-entries.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update journal-entries.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete journal-entries.
+     */
+    delete?: boolean | null;
+  };
+  journalLines?: {
+    /**
+     * Allow clients to find journal-lines.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create journal-lines.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update journal-lines.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete journal-lines.
+     */
+    delete?: boolean | null;
+  };
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -408,6 +576,10 @@ export interface PayloadLockedDocument {
         value: string | Workspace;
       } | null)
     | ({
+        relationTo: 'units';
+        value: string | Unit;
+      } | null)
+    | ({
         relationTo: 'budgets';
         value: string | Budget;
       } | null)
@@ -418,6 +590,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'categories';
         value: string | Category;
+      } | null)
+    | ({
+        relationTo: 'accounts';
+        value: string | Account;
+      } | null)
+    | ({
+        relationTo: 'journal-entries';
+        value: string | JournalEntry;
+      } | null)
+    | ({
+        relationTo: 'journal-lines';
+        value: string | JournalLine;
       } | null)
     | ({
         relationTo: 'payload-mcp-api-keys';
@@ -526,6 +710,20 @@ export interface WorkspacesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "units_select".
+ */
+export interface UnitsSelect<T extends boolean = true> {
+  workspace?: T;
+  code?: T;
+  name?: T;
+  kind?: T;
+  decimalPlaces?: T;
+  symbol?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "budgets_select".
  */
 export interface BudgetsSelect<T extends boolean = true> {
@@ -569,6 +767,55 @@ export interface CategoriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounts_select".
+ */
+export interface AccountsSelect<T extends boolean = true> {
+  workspace?: T;
+  name?: T;
+  classification?: T;
+  subtype?: T;
+  unit?: T;
+  category?: T;
+  isOnBudget?: T;
+  budget?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "journal-entries_select".
+ */
+export interface JournalEntriesSelect<T extends boolean = true> {
+  workspace?: T;
+  budget?: T;
+  date?: T;
+  memo?: T;
+  type?: T;
+  status?: T;
+  transferGroupId?: T;
+  voidOf?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "journal-lines_select".
+ */
+export interface JournalLinesSelect<T extends boolean = true> {
+  workspace?: T;
+  entry?: T;
+  account?: T;
+  category?: T;
+  amount?: T;
+  unit?: T;
+  sortOrder?: T;
+  reportingAmount?: T;
+  fxRate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-mcp-api-keys_select".
  */
 export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
@@ -608,6 +855,38 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         delete?: T;
       };
   categories?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  units?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  accounts?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  journalEntries?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  journalLines?:
     | T
     | {
         find?: T;

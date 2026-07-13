@@ -8,7 +8,17 @@ import { fileURLToPath } from 'url'
 
 import { migrations } from '@/database/migrations'
 
-import collections, { Budgets, Categories, CategoryGroups, Users, Workspaces } from '@/collections'
+import collections, {
+  Accounts,
+  Budgets,
+  Categories,
+  CategoryGroups,
+  JournalEntries,
+  JournalLines,
+  Units,
+  Users,
+  Workspaces,
+} from '@/collections'
 import { seed } from '@/database/seed'
 import endpoints from '@/endpoints'
 import { i18n, localization } from '@/lang'
@@ -60,6 +70,10 @@ export default buildConfig({
         [Budgets.slug]: {},
         [CategoryGroups.slug]: {},
         [Categories.slug]: {},
+        [Units.slug]: {},
+        [Accounts.slug]: {},
+        [JournalEntries.slug]: {},
+        [JournalLines.slug]: {},
       },
       tenantsSlug: 'workspaces',
       tenantField: { name: 'workspace' },
@@ -94,6 +108,22 @@ export default buildConfig({
         [Categories.slug]: {
           enabled: true,
           description: 'Budget categories for income and spending.',
+        },
+        [Units.slug]: {
+          enabled: true,
+          description: 'Currency and commodity units for accounts and journal lines.',
+        },
+        [Accounts.slug]: {
+          enabled: true,
+          description: 'Asset, liability, and other accounts within a budget.',
+        },
+        [JournalEntries.slug]: {
+          enabled: true,
+          description: 'Posted and draft journal entry headers.',
+        },
+        [JournalLines.slug]: {
+          enabled: true,
+          description: 'Journal entry legs (written via the posting engine).',
         },
       },
       mcp: {

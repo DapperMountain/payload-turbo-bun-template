@@ -4,7 +4,8 @@
 import type { Endpoint } from 'payload'
 
 import health from './health'
+import ledgerPost from './ledger'
 
-const endpoints: Endpoint[] = [health]
+const endpoints: Endpoint[] = [health, ledgerPost]
 
 export default endpoints
