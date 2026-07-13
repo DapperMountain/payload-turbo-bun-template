@@ -7,6 +7,7 @@ services:
       args:
         PROJECT: "@dappermountain/accounting-for-life"
         PROJECT_PATH: "apps/accounting-for-life"
+        BUN_VERSION: "1.3.13"
         # Raise (e.g. 4096) if `bun install` OOMs; use 0 if your builder forbids swap
         BUILD_SWAP_MB: 2048
     # Install from monorepo root (workspace), then run Next in the app package.
