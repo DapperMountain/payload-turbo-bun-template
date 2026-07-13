@@ -1,20 +1,25 @@
 import type { CollectionConfig } from 'payload'
 
-import { journalLinesAccess } from '@/access/collections'
+import { transactionEntriesAccess } from '@/access/collections'
+import { custom } from '@/lang'
 
-const JournalLines: CollectionConfig = {
-  slug: 'journal-lines',
-  access: journalLinesAccess,
+const TransactionEntries: CollectionConfig = {
+  slug: 'transaction-entries',
+  access: transactionEntriesAccess,
+  labels: {
+    singular: custom.collections.transactionEntries.singular,
+    plural: custom.collections.transactionEntries.plural,
+  },
   admin: {
     useAsTitle: 'id',
-    defaultColumns: ['entry', 'account', 'amount', 'unit', 'workspace'],
+    defaultColumns: ['transaction', 'account', 'amount', 'unit', 'workspace'],
     hidden: true,
   },
   fields: [
     {
-      name: 'entry',
+      name: 'transaction',
       type: 'relationship',
-      relationTo: 'journal-entries',
+      relationTo: 'transactions',
       required: true,
       index: true,
     },
@@ -35,7 +40,7 @@ const JournalLines: CollectionConfig = {
       type: 'number',
       required: true,
       admin: {
-        description: 'Signed amount in the line unit (negative = credit, positive = debit).',
+        description: custom.fields.transactionEntries.amountDescription,
       },
     },
     {
@@ -53,17 +58,17 @@ const JournalLines: CollectionConfig = {
       name: 'reportingAmount',
       type: 'number',
       admin: {
-        description: 'Amount in budget reporting currency when FX applies.',
+        description: custom.fields.transactionEntries.reportingAmountDescription,
       },
     },
     {
       name: 'fxRate',
       type: 'number',
       admin: {
-        description: 'Exchange rate applied for reportingAmount.',
+        description: custom.fields.transactionEntries.fxRateDescription,
       },
     },
   ],
 }
 
-export default JournalLines
+export default TransactionEntries

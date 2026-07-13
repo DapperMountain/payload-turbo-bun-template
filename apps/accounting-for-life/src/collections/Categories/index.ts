@@ -10,6 +10,7 @@ const Categories: CollectionConfig = {
   trash: true,
   access: categoriesAccess,
   admin: {
+    group: 'Budgeting',
     useAsTitle: 'name',
     defaultColumns: ['emoji', 'name', 'categoryGroup', 'purpose', 'sortOrder'],
   },

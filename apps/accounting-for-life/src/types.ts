@@ -74,16 +74,21 @@ export interface Config {
     budgets: Budget;
     'category-groups': CategoryGroup;
     categories: Category;
+    'envelope-balances': EnvelopeBalance;
     accounts: Account;
-    'journal-entries': JournalEntry;
-    'journal-lines': JournalLine;
+    transactions: Transaction;
+    'transaction-entries': TransactionEntry;
     'payload-mcp-api-keys': PayloadMcpApiKey;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    transactions: {
+      entries: 'transaction-entries';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     workspaces: WorkspacesSelect<false> | WorkspacesSelect<true>;
@@ -91,9 +96,10 @@ export interface Config {
     budgets: BudgetsSelect<false> | BudgetsSelect<true>;
     'category-groups': CategoryGroupsSelect<false> | CategoryGroupsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    'envelope-balances': EnvelopeBalancesSelect<false> | EnvelopeBalancesSelect<true>;
     accounts: AccountsSelect<false> | AccountsSelect<true>;
-    'journal-entries': JournalEntriesSelect<false> | JournalEntriesSelect<true>;
-    'journal-lines': JournalLinesSelect<false> | JournalLinesSelect<true>;
+    transactions: TransactionsSelect<false> | TransactionsSelect<true>;
+    'transaction-entries': TransactionEntriesSelect<false> | TransactionEntriesSelect<true>;
     'payload-mcp-api-keys': PayloadMcpApiKeysSelect<false> | PayloadMcpApiKeysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -206,6 +212,8 @@ export interface Workspace {
   deletedAt?: string | null;
 }
 /**
+ * Currencies and other units of measure for accounts and transactions.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "units".
  */
@@ -286,6 +294,26 @@ export interface Category {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "envelope-balances".
+ */
+export interface EnvelopeBalance {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  budget: string | Budget;
+  category: string | Category;
+  year: number;
+  month: number;
+  /**
+   * Amount assigned to this envelope for the month (reporting currency).
+   */
+  assigned: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Checking, savings, credit cards, and other balance accounts.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts".
  */
 export interface Account {
@@ -305,36 +333,53 @@ export interface Account {
   createdAt: string;
 }
 /**
+ * Money movement. Include postingLines on create to post balanced legs.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "journal-entries".
+ * via the `definition` "transactions".
  */
-export interface JournalEntry {
+export interface Transaction {
   id: string;
   workspace?: (string | null) | Workspace;
   budget: string | Budget;
   date: string;
   memo?: string | null;
   type: 'transaction' | 'transfer' | 'adjustment' | 'opening_balance';
-  status: 'draft' | 'posted' | 'void';
+  status: 'pending' | 'posted';
   /**
-   * Links the two sides of a transfer when posted separately.
+   * Balanced legs to post on create (not stored on the saved document). Omit for pending headers.
    */
-  transferGroupId?: string | null;
+  postingLines?:
+    | {
+        account: string | Account;
+        /**
+         * Signed amount (negative = credit, positive = debit).
+         */
+        amount: number;
+        category?: (string | null) | Category;
+        sortOrder?: number | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
-   * When this entry voids another posted entry.
+   * Posted legs (written by the create hook from postingLines).
    */
-  voidOf?: (string | null) | JournalEntry;
+  entries?: {
+    docs?: (string | TransactionEntry)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "journal-lines".
+ * via the `definition` "transaction-entries".
  */
-export interface JournalLine {
+export interface TransactionEntry {
   id: string;
   workspace?: (string | null) | Workspace;
-  entry: string | JournalEntry;
+  transaction: string | Transaction;
   account: string | Account;
   category?: (string | null) | Category;
   /**
@@ -464,6 +509,24 @@ export interface PayloadMcpApiKey {
      */
     delete?: boolean | null;
   };
+  envelopeBalances?: {
+    /**
+     * Allow clients to find envelope-balances.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create envelope-balances.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update envelope-balances.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete envelope-balances.
+     */
+    delete?: boolean | null;
+  };
   units?: {
     /**
      * Allow clients to find units.
@@ -500,39 +563,39 @@ export interface PayloadMcpApiKey {
      */
     delete?: boolean | null;
   };
-  journalEntries?: {
+  transactions?: {
     /**
-     * Allow clients to find journal-entries.
+     * Allow clients to find transactions.
      */
     find?: boolean | null;
     /**
-     * Allow clients to create journal-entries.
+     * Allow clients to create transactions.
      */
     create?: boolean | null;
     /**
-     * Allow clients to update journal-entries.
+     * Allow clients to update transactions.
      */
     update?: boolean | null;
     /**
-     * Allow clients to delete journal-entries.
+     * Allow clients to delete transactions.
      */
     delete?: boolean | null;
   };
-  journalLines?: {
+  transactionEntries?: {
     /**
-     * Allow clients to find journal-lines.
+     * Allow clients to find transaction-entries.
      */
     find?: boolean | null;
     /**
-     * Allow clients to create journal-lines.
+     * Allow clients to create transaction-entries.
      */
     create?: boolean | null;
     /**
-     * Allow clients to update journal-lines.
+     * Allow clients to update transaction-entries.
      */
     update?: boolean | null;
     /**
-     * Allow clients to delete journal-lines.
+     * Allow clients to delete transaction-entries.
      */
     delete?: boolean | null;
   };
@@ -592,16 +655,20 @@ export interface PayloadLockedDocument {
         value: string | Category;
       } | null)
     | ({
+        relationTo: 'envelope-balances';
+        value: string | EnvelopeBalance;
+      } | null)
+    | ({
         relationTo: 'accounts';
         value: string | Account;
       } | null)
     | ({
-        relationTo: 'journal-entries';
-        value: string | JournalEntry;
+        relationTo: 'transactions';
+        value: string | Transaction;
       } | null)
     | ({
-        relationTo: 'journal-lines';
-        value: string | JournalLine;
+        relationTo: 'transaction-entries';
+        value: string | TransactionEntry;
       } | null)
     | ({
         relationTo: 'payload-mcp-api-keys';
@@ -767,6 +834,20 @@ export interface CategoriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "envelope-balances_select".
+ */
+export interface EnvelopeBalancesSelect<T extends boolean = true> {
+  workspace?: T;
+  budget?: T;
+  category?: T;
+  year?: T;
+  month?: T;
+  assigned?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts_select".
  */
 export interface AccountsSelect<T extends boolean = true> {
@@ -783,27 +864,35 @@ export interface AccountsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "journal-entries_select".
+ * via the `definition` "transactions_select".
  */
-export interface JournalEntriesSelect<T extends boolean = true> {
+export interface TransactionsSelect<T extends boolean = true> {
   workspace?: T;
   budget?: T;
   date?: T;
   memo?: T;
   type?: T;
   status?: T;
-  transferGroupId?: T;
-  voidOf?: T;
+  postingLines?:
+    | T
+    | {
+        account?: T;
+        amount?: T;
+        category?: T;
+        sortOrder?: T;
+        id?: T;
+      };
+  entries?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "journal-lines_select".
+ * via the `definition` "transaction-entries_select".
  */
-export interface JournalLinesSelect<T extends boolean = true> {
+export interface TransactionEntriesSelect<T extends boolean = true> {
   workspace?: T;
-  entry?: T;
+  transaction?: T;
   account?: T;
   category?: T;
   amount?: T;
@@ -862,6 +951,14 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         update?: T;
         delete?: T;
       };
+  envelopeBalances?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
   units?:
     | T
     | {
@@ -878,7 +975,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         update?: T;
         delete?: T;
       };
-  journalEntries?:
+  transactions?:
     | T
     | {
         find?: T;
@@ -886,7 +983,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         update?: T;
         delete?: T;
       };
-  journalLines?:
+  transactionEntries?:
     | T
     | {
         find?: T;

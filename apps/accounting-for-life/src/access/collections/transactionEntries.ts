@@ -1,7 +1,7 @@
 import { workspaceContentReadAccess } from './workspaceContent'
 
-/** Lines are written only through the posting engine (`postJournalEntry`). */
-export const journalLinesAccess = {
+/** Legs are written only through the transactions create hook (`postingLines`). */
+export const transactionEntriesAccess = {
   read: workspaceContentReadAccess,
   create: () => false,
   update: () => false,

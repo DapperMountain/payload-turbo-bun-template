@@ -13,15 +13,16 @@ import collections, {
   Budgets,
   Categories,
   CategoryGroups,
-  JournalEntries,
-  JournalLines,
+  EnvelopeBalances,
+  TransactionEntries,
+  Transactions,
   Units,
   Users,
   Workspaces,
 } from '@/collections'
 import { seed } from '@/database/seed'
 import endpoints from '@/endpoints'
-import { i18n, localization } from '@/lang'
+import { i18n, localization, custom } from '@/lang'
 import type { Config } from '@/types'
 import { isAppUser, userIsSystemAdmin } from '@/utils'
 
@@ -58,6 +59,7 @@ export default buildConfig({
     migrationDir: path.resolve(rootDir, 'src', 'database', 'migrations'),
     prodMigrations: migrations,
     pool: postgresPoolOptions(config.database),
+    ...(process.env.PAYLOAD_DISABLE_DEV_PUSH === 'true' ? { push: false } : {}),
   }),
   onInit(payload) {
     seed(payload)
@@ -70,10 +72,11 @@ export default buildConfig({
         [Budgets.slug]: {},
         [CategoryGroups.slug]: {},
         [Categories.slug]: {},
+        [EnvelopeBalances.slug]: {},
         [Units.slug]: {},
         [Accounts.slug]: {},
-        [JournalEntries.slug]: {},
-        [JournalLines.slug]: {},
+        [Transactions.slug]: {},
+        [TransactionEntries.slug]: {},
       },
       tenantsSlug: 'workspaces',
       tenantField: { name: 'workspace' },
@@ -82,7 +85,7 @@ export default buildConfig({
         arrayFieldName: 'workspaces',
         arrayTenantFieldName: 'workspace',
       },
-      tenantSelectorLabel: 'Workspace',
+      tenantSelectorLabel: custom.tenantSelector.label,
       userHasAccessToAllTenants: (user) => isAppUser(user) && userIsSystemAdmin(user),
     }),
     mcpPlugin({
@@ -109,6 +112,10 @@ export default buildConfig({
           enabled: true,
           description: 'Budget categories for income and spending.',
         },
+        [EnvelopeBalances.slug]: {
+          enabled: true,
+          description: 'Monthly assigned amounts per category envelope.',
+        },
         [Units.slug]: {
           enabled: true,
           description: 'Currency and commodity units for accounts and journal lines.',
@@ -117,13 +124,13 @@ export default buildConfig({
           enabled: true,
           description: 'Asset, liability, and other accounts within a budget.',
         },
-        [JournalEntries.slug]: {
+        [Transactions.slug]: {
           enabled: true,
-          description: 'Posted and draft journal entry headers.',
+          description: 'Posted and pending transactions (money movement headers).',
         },
-        [JournalLines.slug]: {
+        [TransactionEntries.slug]: {
           enabled: true,
-          description: 'Journal entry legs (written via the posting engine).',
+          description: 'Transaction legs (written via transactions create hook).',
         },
       },
       mcp: {

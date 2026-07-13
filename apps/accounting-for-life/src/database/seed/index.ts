@@ -2,6 +2,7 @@ import config from '@config'
 import type { Payload } from 'payload'
 
 import { seedBudgets } from './budgets'
+import { seedLedger } from './ledger'
 import { seedUsers } from './users'
 import { seedWorkspaces } from './workspaces'
 
@@ -10,7 +11,7 @@ import { seedWorkspaces } from './workspaces'
  *
  * Called from `onInit` in `config/payload.ts`. Add seeders to the `seeders` array.
  *
- * Order: users → workspaces (demo household + membership) → budgets (categories via hook).
+ * Order: users → workspaces → budgets (categories via hook) → ledger (units, accounts, sample transfer).
  *
  * @param payload - Initialized Payload instance.
  */
@@ -23,6 +24,7 @@ export async function seed(payload: Payload): Promise<void> {
     { name: 'Users', seedFunction: seedUsers },
     { name: 'Workspaces', seedFunction: seedWorkspaces },
     { name: 'Budgets', seedFunction: seedBudgets },
+    { name: 'Ledger', seedFunction: seedLedger },
   ]
 
   for (const { name, seedFunction } of seeders) {

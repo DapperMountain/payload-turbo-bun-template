@@ -12,6 +12,7 @@ const Budgets: CollectionConfig = {
   trash: true,
   access: budgetsAccess,
   admin: {
+    group: 'Budgeting',
     useAsTitle: 'name',
     defaultColumns: ['name', 'isDefault', 'workspace'],
   },

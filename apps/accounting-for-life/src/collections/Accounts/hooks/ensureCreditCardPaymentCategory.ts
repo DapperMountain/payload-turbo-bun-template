@@ -3,13 +3,18 @@ import type { CollectionAfterChangeHook } from 'payload'
 import type { Account } from '@/types'
 
 /**
- * When a credit card account is created, ensure a payment envelope category exists and link it.
+ * Auto-provisions a per-card payment envelope when a credit card account is created (US-3.4).
+ *
+ * Runs in `afterChange` because we need the persisted account `id` and the category must
+ * exist before we can link it. Uses `overrideAccess` — this is system bookkeeping, not
+ * a user-facing create on category-groups/categories.
  */
 export const ensureCreditCardPaymentCategory: CollectionAfterChangeHook<Account> = async ({
   doc,
   operation,
   req,
 }) => {
+  // Updates skip this path; category is set once on create.
   if (operation !== 'create' || doc.subtype !== 'credit_card') {
     return doc
   }
@@ -25,6 +30,7 @@ export const ensureCreditCardPaymentCategory: CollectionAfterChangeHook<Account>
     throw new Error('Credit card accounts require workspace and budget')
   }
 
+  // One "Credit Card Payments" group per budget (YNAB reserved group kind).
   const existingGroup = await req.payload.find({
     collection: 'category-groups',
     where: {
@@ -57,6 +63,7 @@ export const ensureCreditCardPaymentCategory: CollectionAfterChangeHook<Account>
     groupId = group.id
   }
 
+  // One payment envelope per card — funded when spending on that card.
   const category = await req.payload.create({
     collection: 'categories',
     data: {
@@ -71,6 +78,7 @@ export const ensureCreditCardPaymentCategory: CollectionAfterChangeHook<Account>
     overrideAccess: true,
   })
 
+  // Second write on the same account — links the envelope we just created.
   return req.payload.update({
     collection: 'accounts',
     id: doc.id,

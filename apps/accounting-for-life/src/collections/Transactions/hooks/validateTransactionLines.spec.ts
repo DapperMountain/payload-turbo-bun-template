@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 
-import { validateJournalLinesBalance, validateTransferLines } from '@/ledger'
+import { validateTransactionLinesBalance, validateTransferEntries } from './validateTransactionLines'
 
-describe('validateJournalLinesBalance', () => {
+describe('validateTransactionLinesBalance', () => {
   it('accepts balanced lines', () => {
     expect(() =>
-      validateJournalLinesBalance([
+      validateTransactionLinesBalance([
         { amount: 100 },
         { amount: -100 },
       ]),
@@ -14,7 +14,7 @@ describe('validateJournalLinesBalance', () => {
 
   it('rejects unbalanced lines', () => {
     expect(() =>
-      validateJournalLinesBalance([
+      validateTransactionLinesBalance([
         { amount: 100 },
         { amount: -50 },
       ]),
@@ -22,14 +22,14 @@ describe('validateJournalLinesBalance', () => {
   })
 
   it('requires at least two lines', () => {
-    expect(() => validateJournalLinesBalance([{ amount: 0 }])).toThrow(/at least two/)
+    expect(() => validateTransactionLinesBalance([{ amount: 0 }])).toThrow(/at least two/)
   })
 })
 
-describe('validateTransferLines', () => {
+describe('validateTransferEntries', () => {
   it('rejects categories on transfer lines', () => {
     expect(() =>
-      validateTransferLines('transfer', [
+      validateTransferEntries('transfer', [
         { amount: 100, category: 'cat-1' },
         { amount: -100 },
       ]),
@@ -38,7 +38,7 @@ describe('validateTransferLines', () => {
 
   it('allows categories on non-transfer entries', () => {
     expect(() =>
-      validateTransferLines('transaction', [
+      validateTransferEntries('transaction', [
         { amount: 100, category: 'cat-1' },
         { amount: -100 },
       ]),

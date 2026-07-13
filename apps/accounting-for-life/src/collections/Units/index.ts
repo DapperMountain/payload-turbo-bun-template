@@ -1,13 +1,20 @@
 import type { CollectionConfig } from 'payload'
 
 import { unitsAccess } from '@/access/collections'
+import { custom } from '@/lang'
 
 const Units: CollectionConfig = {
   slug: 'units',
   access: unitsAccess,
+  labels: {
+    singular: custom.collections.units.singular,
+    plural: custom.collections.units.plural,
+  },
   admin: {
+    group: custom.adminGroups.ledger,
     useAsTitle: 'code',
     defaultColumns: ['code', 'name', 'kind', 'workspace'],
+    description: custom.collections.units.description,
   },
   fields: [
     {
@@ -16,7 +23,7 @@ const Units: CollectionConfig = {
       required: true,
       index: true,
       admin: {
-        description: 'ISO 4217 code for currency (e.g. USD) or a stable identifier for other units.',
+        description: custom.fields.units.codeDescription,
       },
     },
     {
@@ -30,9 +37,9 @@ const Units: CollectionConfig = {
       required: true,
       defaultValue: 'currency',
       options: [
-        { label: 'Currency', value: 'currency' },
-        { label: 'Commodity', value: 'commodity' },
-        { label: 'Other', value: 'other' },
+        { label: custom.fields.units.kind.currency, value: 'currency' },
+        { label: custom.fields.units.kind.commodity, value: 'commodity' },
+        { label: custom.fields.units.kind.other, value: 'other' },
       ],
     },
     {

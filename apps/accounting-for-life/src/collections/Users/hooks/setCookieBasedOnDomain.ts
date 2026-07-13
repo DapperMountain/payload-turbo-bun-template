@@ -3,6 +3,7 @@ import type { CollectionAfterLoginHook } from 'payload'
 import { generateCookie, getCookieExpiration } from 'payload'
 
 export const setCookieBasedOnDomain: CollectionAfterLoginHook = async ({ req, user }) => {
+  // Match request host to a workspace domain so admin opens with the right tenant selected.
   const workspaces = await req.payload.find({
     collection: 'workspaces',
     depth: 0,

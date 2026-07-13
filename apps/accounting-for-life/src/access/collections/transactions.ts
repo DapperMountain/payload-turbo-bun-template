@@ -4,10 +4,10 @@ import { isWorkspaceContent } from '@/access/workspaces'
 
 import { workspaceContentAccess } from './workspaceContent'
 
-/** Members create and read journal entries; only system admins delete. */
-export const journalEntriesAccess = {
+/** Members create, update, and delete transactions in their workspace. */
+export const transactionsAccess = {
   ...workspaceContentAccess,
   create: requireOne(isSystemAdmin, isWorkspaceContent),
   update: requireOne(isSystemAdmin, isWorkspaceContent),
-  delete: isSystemAdmin,
+  delete: requireOne(isSystemAdmin, isWorkspaceContent),
 }
