@@ -14,15 +14,15 @@ Story points use Fibonacci (1, 2, 3, 5, 8). Sprint capacity: **16–20 points** 
 
 ---
 
-## Epic 1 — Workspace, tenants & budgets
+## Epic 1 — Workspaces & budgets
 
-One **tenant = household**. Multiple **budgets** per tenant with shared access (YNAB-style).
+One **workspace = household**. Multiple **budgets** per workspace with shared access (YNAB-style).
 
-| ID | Story | Pts | Sprint |
-|----|-------|-----|--------|
-| US-1.1 | Model budgets collection scoped to tenant; seed default budget | 5 | 1 |
-| US-1.2 | Budget membership with base roles (admin, member, readonly) | 5 | 1 |
-| US-1.3 | Active-budget context in API hooks and access control | 3 | 1 |
+| ID | Story | Pts | Sprint | Status |
+|----|-------|-----|--------|--------|
+| US-1.1 | Model budgets + category groups + categories per budget; seed default catalog | 5 | 1 | **Done** |
+| US-1.2 | Budget membership with base roles (admin, member, readonly) | 5 | 1 | Next |
+| US-1.3 | Active-budget context in API hooks and access control | 3 | 1 | |
 
 ---
 
@@ -40,8 +40,9 @@ One **tenant = household**. Multiple **budgets** per tenant with shared access (
 
 | ID | Story | Pts | Sprint |
 |----|-------|-----|--------|
-| US-3.1 | Account types (asset, liability, equity, income, expense) and chart structure | 3 | 2 |
-| US-3.2 | Account CRUD with tenant + budget scope and access rules | 5 | 3 |
+| US-3.1 | Account types (asset, liability, credit card, equity, income, expense) and chart structure | 3 | 2 |
+| US-3.4 | Auto-create Credit Card Payment category + group when credit card account added | 3 | 3 |
+| US-3.2 | Account CRUD with workspace + budget scope and access rules | 5 | 3 |
 | US-3.3 | Derive running balance from posted journal entries | 5 | 3 |
 
 ---
@@ -54,7 +55,8 @@ Foundation for all money movement.
 |----|-------|-----|--------|
 | US-4.1 | Journal entry schema: balanced debit/credit lines | 5 | 3 |
 | US-4.2 | Posting engine with validation (must balance, min 2 lines) | 8 | 4 |
-| US-4.3 | Transfer pairs: linked legs, single amount edit propagates | 5 | 4 |
+| US-4.3 | Transfer pairs: linked legs, single amount edit; YNAB “category not needed” for asset↔asset | 5 | 4 |
+| US-4.4 | Credit card spending moves funds to payment category; payment transfers skip category | 5 | 4 |
 
 ---
 
@@ -85,7 +87,7 @@ YNAB-style link manual entries to imported transactions.
 
 | ID | Story | Pts | Sprint |
 |----|-------|-----|--------|
-| US-7.1 | Hierarchical category tree per budget | 5 | 7 |
+| US-7.1 | Category groups + ordered categories per budget; reorder UI | 5 | 7 |
 | US-7.2 | Free-form tags (many-to-many on transactions) | 3 | 7 |
 | US-7.3 | File attachments on transactions (Payload upload) | 5 | 7 |
 | US-7.4 | Assign category and tags to journal lines | 3 | 7 |
@@ -110,7 +112,7 @@ Zero-based envelope budgeting as optional layer on ledger.
 
 | ID | Story | Pts | Sprint |
 |----|-------|-----|--------|
-| US-9.1 | Budget period and envelope (category group) schema | 5 | 9 |
+| US-9.1 | Budget period and envelope balances (category + group) | 5 | 9 |
 | US-9.2 | Assign income to envelopes (“ready to assign”) | 5 | 9 |
 | US-9.3 | Envelope available balance from categorized spending | 5 | 9 |
 | US-9.4 | Rollover and overspend policy per envelope | 5 | 10 |

@@ -19,9 +19,10 @@ From `apps/accounting-for-life`:
 |------|---------|
 | Full suite | `bun test` |
 | Unit — access | `bun test ./src/access` |
+| Integration — collections | `bun test ./src/collections` |
+| Integration — access (DB) | `bun test ./src/test/access.integration.spec.ts` |
 | Unit — config | `bun test ./config/app` |
 | Unit — utils | `bun test ./src/utils` |
-| Integration — collections | `bun test ./src/collections` |
 
 [`bunfig.toml`](../bunfig.toml) `[test] preload` runs `src/test/preload.ts`: loads env files, then the Payload harness (**skipped** for unit-only paths above).
 
@@ -33,6 +34,8 @@ From `apps/accounting-for-life`:
 4. Run tests (`bun test` or a scoped command above).
 
 Unit-only commands do not need a running database.
+
+**Bun version:** Pin to **1.3.13** (`.tool-versions`, `packageManager`, Docker `BUN_VERSION`). **Avoid 1.3.14** — breaks Lexical under `bun test` ([oven-sh/bun#30949](https://github.com/oven-sh/bun/issues/30949)).
 
 ### CI / Docker / hosted environments
 
@@ -55,7 +58,8 @@ Do **not** rely on `.env.test` on disk. Inject the same variables (`NODE_ENV=tes
 | Unit — utils | `src/utils/` | `<module>.spec.ts` |
 | Unit — config parsers | `config/app/` | `*.spec.ts` |
 | Integration — collections | `src/collections/<Name>/` | `<slug>.integration.spec.ts` |
-| Harness | `src/test/` | No `*.spec.ts` — `preload.ts`, `config.ts`, `helpers.ts` |
+| Integration — access (DB) | `src/test/` | `access.integration.spec.ts` |
+| Harness | `src/test/` | No other `*.spec.ts` — `preload.ts`, `config.ts`, `helpers.ts` |
 
 Co-locate specs with the code they exercise. Do **not** put integration tests under `src/access/`.
 
@@ -89,24 +93,24 @@ Boot **Payload + Postgres**; real `create` / `find` / `update` / `delete`.
 ```typescript
 import { describe, expect, it } from 'bun:test'
 
-import type { Tenant } from '@/types'
-import { createTenant, deleteResourceById, findResourceByKey, payload } from '@/test'
+import type { Workspace } from '@/types'
+import { createWorkspace, deleteResourceById, findResourceByKey, payload } from '@/test'
 
-describe('tenants collection', () => {
+describe('workspaces collection', () => {
   let resourceId: string
 
   it('creates a document with expected fields', async () => {
-    const doc = await createTenant(payload, {
-      name: 'Test Tenant',
+    const doc = await createWorkspace(payload, {
+      name: 'Test Workspace',
       description: 'Integration smoke',
       domain: 'integration.example.com',
     })
     resourceId = doc.id
-    expect(doc.name).toBe('Test Tenant')
+    expect(doc.name).toBe('Test Workspace')
   })
 
   it('reads the document back', async () => {
-    const doc = await findResourceByKey<Tenant>(payload, 'tenants', 'name', 'Test Tenant')
+    const doc = await findResourceByKey<Workspace>(payload, 'workspaces', 'name', 'Test Workspace')
     expect(doc.id).toBe(resourceId)
   })
 
@@ -118,7 +122,7 @@ describe('tenants collection', () => {
 
 1. **File name** — `<collection-slug>.integration.spec.ts` next to the collection config.
 2. **Import `payload` from `@/test`** — preload handles setup/teardown; do not call `getPayload` per file.
-3. **Use `@/test` helpers** — factories in `src/test/helpers.ts` (`createTenant`, `createUser`, …).
+3. **Use `@/test` helpers** — factories in `src/test/helpers.ts` (`createWorkspace`, `createUser`, …).
 4. **`overrideAccess: true`** on Local API unless the test explicitly verifies access.
 5. **Order** — tests in one file share DB state until `afterAll` truncates.
 6. **Names** — plain-English `it` titles (see [CODE_CONVENTIONS.md](./CODE_CONVENTIONS.md)).
@@ -131,7 +135,7 @@ Add when behavior needs the DB (constraints, migrations, field types) or the col
 
 | Area | Spec |
 |------|------|
-| `tenants` (integration) | `src/collections/Tenants/tenants.integration.spec.ts` |
-| Access / utils / config | See `src/access/`, `src/utils/`, `config/app/` |
-
-`users` has no integration spec yet; `createUser` exists in `src/test/helpers.ts` for when you add one.
+| Collection access (integration, DB) | `src/test/access.integration.spec.ts` |
+| `workspaces` (integration CRUD) | `src/collections/Workspaces/workspaces.integration.spec.ts` |
+| `budgets` (integration CRUD) | `src/collections/Budgets/budgets.integration.spec.ts` |
+| Access / utils / config (unit) | `src/access/`, `src/utils/`, `config/app/` |

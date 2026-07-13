@@ -6,7 +6,7 @@ Product vision, architecture decisions, and sprint plan for a self-hosted person
 
 | Area | Direction |
 |------|-----------|
-| **Tenancy** | Payload `plugin-multi-tenant`: one **tenant = household/workspace**. Multiple **budgets** per tenant (YNAB-style); share budgets with granular roles. |
+| **Tenancy** | Payload `plugin-multi-tenant`: one **workspace = household**. Multiple **budgets** per workspace (YNAB-style); share budgets with granular roles. |
 | **Ledger** | Double-entry journal as source of truth. All transactions, transfers, splits, and swaps are balanced entries. |
 | **Swaps** | First-class **multi-leg transactions** (crypto swaps, barter, fees) — not a separate “crypto” feature. |
 | **Budgeting** | Separate **budget module** on top of the ledger (zero-based envelopes). Optional per business entity filter. |
@@ -58,7 +58,7 @@ apps/accounting-for-life/
       currencies/       # fiat, crypto, custom; FX snapshots
       transactions/     # user-facing txn + swap engine
       matching/         # manual ↔ imported link (YNAB-style)
-      categories/       # category tree
+      categories/       # category groups + categories; default seed catalog
       tags/
       attachments/
       budgets/          # envelope budgeting (optional module)

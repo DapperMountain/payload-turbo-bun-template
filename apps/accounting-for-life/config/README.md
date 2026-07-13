@@ -101,7 +101,7 @@ Before Zod runs, `prepareEnvForConfig()` loads `.env` and `.env.local` (unset ke
 | `GRAPHQL_ENABLED` | `config.features.graphql` | `true` |
 | `MCP_ENABLED` | `config.features.mcp` | `true` |
 
-When enabled, `mcpPlugin` in `payload.ts` exposes `users` and `tenants` at `/api/mcp`. See [`docs/MCP.md`](../docs/MCP.md).
+When enabled, `mcpPlugin` in `payload.ts` exposes `users` and `workspaces` at `/api/mcp`. See [`docs/MCP.md`](../docs/MCP.md).
 
 ## Runtime helpers
 

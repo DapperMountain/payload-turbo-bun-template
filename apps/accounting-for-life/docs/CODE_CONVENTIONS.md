@@ -41,10 +41,11 @@ collections/
 │       └── fields/
 │           ├── index.ts    # per-field `fieldHooks` (`Field['hooks']`) for that field’s config
 │           └── *.ts        # Field hook implementations
-└── Tenants/
+└── Workspaces/
     ├── index.ts
-    └── hooks/
-        └── index.ts
+    ├── hooks/
+    │   └── index.ts
+    └── workspaces.integration.spec.ts
 ```
 
 **Rules:**
@@ -70,10 +71,10 @@ Use an `index.ts` at the **public boundary** of a folder when the folder has mul
 
 | Folder | Barrel exports |
 |--------|----------------|
-| `collections/` | `default` array + `{ Users, Tenants }` |
+| `collections/` | `default` array + `{ Users, Workspaces, Budgets, … }` |
 | `collections/Users/hooks/` | `hooks`, `fieldHooks` |
 | `access/` | Public access API (see `access/index.ts`) |
-| `access/helpers/`, `auth/`, `roles/`, `tenants/`, `collections/` | Sub-barrels re-exported from `@/access` |
+| `access/helpers/`, `auth/`, `roles/`, `workspaces/`, `collections/` | Sub-barrels re-exported from `@/access` |
 | `utils/` | Shared utilities |
 | `lang/` | `i18n`, `localization`, `custom` (English source); `types.ts` for `CustomTranslationKeys` |
 | `utils/i18n.client.ts`, `utils/i18n.server.ts` | `useAppTranslation`, `getRequestI18n` (not in `@/utils` barrel) |
@@ -81,6 +82,8 @@ Use an `index.ts` at the **public boundary** of a folder when the folder has mul
 | `endpoints/health/` | `default` endpoint |
 | `database/seed/` | `seed()` |
 | `database/seed/users/` | `seedUsers` |
+| `database/seed/budgets/` | `seedBudgets` |
+| `database/seed/categories/` | `seedCategories` |
 | `test/` | `payload`, test helpers (integration tests only) |
 
 **Import rules:**
@@ -98,7 +101,7 @@ Barrels mark a **stable public boundary**. Skip `index.ts` when a barrel would a
 | Skip barrels for… | Instead |
 |-------------------|---------|
 | Generated output (`types.ts`) | `import type { User } from '@/types'` |
-| Same feature / sibling files | Relative paths (`./hooks`, `./tenantScope`) |
+| Same feature / sibling files | Relative paths (`./hooks`, `./workspaceScope`) |
 | Single-file folder unlikely to grow | Keep one module (e.g. `formatDate.ts`) until a second file appears |
 | Private implementation (one consumer, unstable) | Import the concrete file; do not re-export from a parent barrel |
 | Internal subfolder with tests only (e.g. `config/app/parsers/`) | Co-locate `*.spec.ts`; **no** `index.ts` unless another package imports the folder |
@@ -216,12 +219,12 @@ Testing guide: [TESTING.md](./TESTING.md). Access unit details: [`src/access/REA
 
 ```typescript
 /**
- * Row-level access to tenant documents the user belongs to.
+ * Row-level access to workspace documents the user belongs to.
  *
  * System administrators bypass via {@link withAuth}. Returns a `Where` filter
- * or `false` when the user has no tenant memberships.
+ * or `false` when the user has no workspace memberships.
  */
-export const isTenant = tenantScope()
+export const isWorkspace = workspaceScope()
 ```
 
 ## Related docs

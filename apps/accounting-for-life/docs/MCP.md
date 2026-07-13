@@ -16,7 +16,7 @@ After changing the flag or first install, restart the dev server.
 
 - **HTTP endpoint:** `{SERVER_URL}/api/mcp` (e.g. `http://localhost:3000/api/mcp` for local `bun dev`, or `http://localhost:3001/api/mcp` with root Docker Compose).
 - **Admin:** **MCP → API Keys** — create keys and toggle which collections, globals, tools, prompts, and resources each key may use.
-- **Collections exposed in config:** `users`, `tenants` (capabilities still gated per API key and by Payload access control).
+- **Collections exposed in config:** `users`, `workspaces`, `budgets`, `category-groups`, `categories` (capabilities still gated per API key and by Payload access control).
 
 Enabling a collection in `mcpPlugin({ collections: … })` only makes tools *available*; each API key must allow the operations you want in the admin UI.
 

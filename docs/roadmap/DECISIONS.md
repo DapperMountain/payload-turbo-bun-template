@@ -4,8 +4,8 @@ Decisions captured during initial planning (July 2026).
 
 ## Tenancy & budgets
 
-- **Tenant = household/workspace** (Payload multi-tenant plugin).
-- **Multiple budgets per tenant** — e.g. personal budget, daughter’s budget, or filtered views by business entity within one budget.
+- **Workspace = household** (Payload multi-tenant plugin; collection slug `workspaces`).
+- **Multiple budgets per workspace** — e.g. personal budget, daughter’s budget, or filtered views by business entity within one budget.
 - Open-source friendly: same model supports self-hosted single household or future multi-household hosting.
 
 ## Permissions & review
@@ -19,6 +19,28 @@ Decisions captured during initial planning (July 2026).
 - **Double-entry ledger** is the foundation; budgeting is a **separate module** that reads ledger state (supports both YNAB-style envelopes and Monarch-style cash-flow views later).
 - **Default currency per account**; UI can show converted amounts without persisting (live FX fetch).
 - **FX at execution time** stored on journal lines for reporting currency comparisons.
+
+## Categories & category groups
+
+- **Category groups → categories** (Monarch-style UI), scoped to a **budget** (not a flat tree).
+- Each budget seeds a **default category catalog** on create (Income group + expense groups: Fixed, Food & Dining, Subscriptions, Lifestyle, Shopping, Health & Wellness, Financial, Other, Savings). Catalog lives in `src/database/seed/categories/index.ts`.
+- Seeded categories are **`isSystemDefault: true`** — user-editable later; “Custom” labels in Monarch reference screenshots are still part of the default seed.
+- **Credit Card Payments** is a reserved group kind (`credit_card_payments`), auto-created when a credit card **account** is added (Epic 3) — not part of the manual seed catalog.
+- Category **purpose** distinguishes income, everyday spending, and per-card payment envelopes (`credit_card_payment`).
+
+## Transfers & credit cards (YNAB semantics)
+
+Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handling-credit-cards-overview-ry7cNub1s).
+
+| Transaction | Category required? | Budget effect |
+|-------------|-------------------|---------------|
+| **Asset ↔ asset transfer** (checking → savings) | **No** — “category not needed” | None |
+| **Credit card spending** (purchase on card) | **Yes** — expense category | Moves funded amount from spending category → that card’s **Credit Card Payment** category |
+| **Credit card payment** (checking → card) | **No** — transfer only | Reduces card balance; payment category already holds reserved cash |
+| **External payment** (off-budget account) | Credit Card Payment category on inflow | Manual assign to payment category |
+
+- **Linked transfer pairs** (Epic 4, US-4.3): one amount edit propagates to both legs; validation skips category when both legs are non–credit-card asset accounts.
+- **Credit card accounts** are a distinct account subtype (liability) that triggers auto-creation of a matching payment category under the Credit Card Payments group.
 
 ## Swaps & multi-leg transactions
 
