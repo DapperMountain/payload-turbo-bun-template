@@ -191,6 +191,11 @@ export type RegisterRowsOptions = {
 export function primaryEntryIndex(entries: TransactionEntry[]): number {
   if (!entries.length) return 0
 
+  // Prefer the payment/cash leg (no category) so register amount matches account effect
+  // (inflows positive, outflows negative) — not the opposite-signed category offset.
+  const cashIdx = entries.findIndex((entry) => !entry.category)
+  if (cashIdx >= 0) return cashIdx
+
   const categorizedIdx = entries.findIndex((entry) => entry.category)
   if (categorizedIdx >= 0) return categorizedIdx
 
