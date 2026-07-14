@@ -90,6 +90,60 @@ describe('transactions integration', () => {
     expect(entries.docs[1]?.amount).toBe(100)
   })
 
+  it('syncs both transfer legs when one leg amount is updated', async () => {
+    const { updatePrimaryAmountInLines } = await import('@/lib/frontend/transactions.display')
+
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        memo: 'Resize transfer',
+        type: 'transfer',
+        entries: [
+          { account: checkingA.id, amount: -100, sortOrder: 0 },
+          { account: checkingB.id, amount: 100, sortOrder: 1 },
+        ],
+      },
+    })
+
+    const nextLines = updatePrimaryAmountInLines(
+      [
+        { account: checkingA.id, amount: -100, sortOrder: 0 },
+        { account: checkingB.id, amount: 100, sortOrder: 1 },
+      ],
+      0,
+      -250,
+    )
+
+    await payload.update({
+      collection: 'transactions',
+      id: transaction.id,
+      user: member,
+      overrideAccess: false,
+      data: {
+        entries: nextLines,
+      },
+    })
+
+    const entries = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: transaction.id } },
+      sort: 'sortOrder',
+      overrideAccess: true,
+    })
+
+    expect(entries.totalDocs).toBe(2)
+    expect(entries.docs.map((entry) => entry.amount).sort((a, b) => a - b)).toEqual([-250, 250])
+    expect(entries.docs.every((entry) => getCollectionId(entry.transaction) === transaction.id)).toBe(
+      true,
+    )
+    expect(entries.docs.every((entry) => !entry.category)).toBe(true)
+  })
+
   it('rejects unbalanced entries', async () => {
     await expect(
       payload.create({

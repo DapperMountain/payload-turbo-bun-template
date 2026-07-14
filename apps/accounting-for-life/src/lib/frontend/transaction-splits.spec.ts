@@ -14,6 +14,7 @@ import {
   splitAmountFromPercent,
   splitPercentOfTotal,
   splitsToEntries,
+  syncSingleTransferSplitAmount,
 } from '@/lib/frontend/transaction-splits'
 
 describe('transaction-splits', () => {
@@ -248,5 +249,16 @@ describe('transaction-splits', () => {
     expect(debit[1]?.amount).toBe(100)
     expect(credit[0]?.amount).toBe(100)
     expect(credit[1]?.amount).toBe(-100)
+  })
+
+  it('keeps a single transfer split amount aligned with the transaction total', () => {
+    const synced = syncSingleTransferSplitAmount({
+      paymentAccount: 'checking',
+      totalAmount: '-175.5',
+      splits: [newTransferSplitDraft('savings', '100')],
+    })
+
+    expect(synced.splits).toHaveLength(1)
+    expect(synced.splits[0]?.amount).toBe('175.5')
   })
 })

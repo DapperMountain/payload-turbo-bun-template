@@ -55,7 +55,7 @@ Foundation for all money movement.
 |----|-------|-----|--------|--------|
 | US-4.1 | Journal entry schema: balanced debit/credit lines | 5 | 3 | **Done** |
 | US-4.2 | Posting engine with validation (must balance, min 2 lines) | 8 | 4 | **Done** — `transactions` hooks + virtual `entries` |
-| US-4.3 | Transfer leg sync: single amount edit on one leg updates the other (same header); YNAB “category not needed” for asset↔asset | 5 | 4 | **Partial** — asset↔asset transfer posting; leg sync on edit TBD |
+| US-4.3 | Transfer leg sync: single amount edit on one leg updates the other (same header); YNAB “category not needed” for asset↔asset | 5 | 4 | **Done** — register/`updatePrimaryAmountInLines` + detail total sync; integration coverage |
 | US-4.4 | Credit card spending moves funds to payment category; payment transfers skip category | 5 | 4 | |
 
 ---
