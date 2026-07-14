@@ -2,27 +2,22 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { normalizeTransactionDateTime } from '@/lib/frontend/transaction-datetime'
-import type { PostingLineInput } from '@/collections/Transactions/hooks/prepareTransactionPosting'
+import { applyCategoryToEntries, type TransactionEntryInput } from '@/collections/Transactions/lib/entries'
 import { requireAppUser } from '@/lib/frontend/auth.server'
 import { getAppPayload } from '@/lib/frontend/payload.server'
-import {
-  applyCategoryToLines,
-  postingLinesFromEntries,
-  transactionEntries,
-} from '@/lib/frontend/transactions.server'
+import { entriesFromTransaction, transactionEntries } from '@/lib/frontend/transactions.server'
 import { resolveActiveWorkspace } from '@/lib/frontend/workspace.server'
 import type { Transaction } from '@/types'
 import { getCollectionId } from '@/utils'
 
-export type PostingLineInputClient = PostingLineInput
+export type TransactionEntryInputClient = TransactionEntryInput
 
 export type CreateTransactionInput = {
   budget: string
   date: string
   memo?: string
   type: Transaction['type']
-  postingLines?: PostingLineInput[]
+  entries?: TransactionEntryInput[]
 }
 
 export type UpdateTransactionInput = {
@@ -31,7 +26,7 @@ export type UpdateTransactionInput = {
   memo?: string | null
   status?: Transaction['status']
   type?: Transaction['type']
-  postingLines?: PostingLineInput[]
+  entries?: TransactionEntryInput[]
 }
 
 export type BulkTransactionHeaderPatch = {
@@ -79,17 +74,16 @@ export async function createTransactionAction(
       data: {
         workspace: workspace.id,
         budget: input.budget,
-        date: normalizeTransactionDateTime(input.date),
+        date: input.date,
         memo: input.memo,
         type: input.type,
-        status: input.postingLines?.length ? 'posted' : 'pending',
-        postingLines: input.postingLines,
+        entries: input.entries,
       },
       user,
       overrideAccess: false,
     })
 
-    revalidatePaths(accountIdsFromPostingLines(input.postingLines))
+    revalidatePaths(accountIdsFromEntries(input.entries))
     return { ok: true }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Failed to create transaction' }
@@ -126,19 +120,19 @@ export async function updateTransactionAction(
         .map((entry) => getCollectionId(entry.account))
         .filter((id): id is string => Boolean(id)),
     )
-    for (const accountId of accountIdsFromPostingLines(input.postingLines)) {
+    for (const accountId of accountIdsFromEntries(input.entries)) {
       affectedAccountIds.add(accountId)
     }
 
     const data: Record<string, unknown> = {}
 
-    if (input.date !== undefined) data.date = normalizeTransactionDateTime(input.date)
+    if (input.date !== undefined) data.date = input.date
     if (input.memo !== undefined) data.memo = input.memo
     if (input.status !== undefined) data.status = input.status
     if (input.type !== undefined) data.type = input.type
 
-    if (input.postingLines) {
-      data.postingLines = input.postingLines
+    if (input.entries) {
+      data.entries = input.entries
     } else if (existing.status === 'posted' && (input.date !== undefined || input.memo !== undefined)) {
       // header-only edit on posted tx — no entry rewrite
     }
@@ -178,7 +172,7 @@ export async function bulkUpdateTransactionsAction(input: {
     const payload = await getAppPayload()
     const data: Record<string, unknown> = {}
 
-    if (input.patch.date !== undefined) data.date = normalizeTransactionDateTime(input.patch.date)
+    if (input.patch.date !== undefined) data.date = input.patch.date
     if (input.patch.memo !== undefined) data.memo = input.patch.memo
     if (input.patch.status !== undefined) data.status = input.patch.status
 
@@ -223,18 +217,6 @@ export async function bulkSetTransactionCategoryAction(input: {
     }
 
     const payload = await getAppPayload()
-    const category = await payload.findByID({
-      collection: 'categories',
-      id: input.categoryId,
-      depth: 0,
-      user,
-      overrideAccess: false,
-    })
-
-    if (getCollectionId(category.workspace) !== workspace.id) {
-      return { ok: false, error: 'Category not in active workspace' }
-    }
-
     const errors: { id: string; message: string }[] = []
     let updated = 0
 
@@ -253,32 +235,14 @@ export async function bulkSetTransactionCategoryAction(input: {
           continue
         }
 
-        if (transaction.status !== 'posted') {
-          errors.push({ id, message: 'Only posted transactions can be categorized' })
-          continue
-        }
-
-        if (transaction.type === 'transfer') {
-          errors.push({ id, message: 'Transfers cannot be categorized' })
-          continue
-        }
-
-        const txBudgetId = getCollectionId(transaction.budget)
-        const categoryBudgetId = getCollectionId(category.budget)
-
-        if (txBudgetId !== categoryBudgetId) {
-          errors.push({ id, message: 'Category budget does not match transaction' })
-          continue
-        }
-
-        const entries = transactionEntries(transaction)
-        if (!entries.length) {
+        const existingEntries = transactionEntries(transaction)
+        if (!existingEntries.length) {
           errors.push({ id, message: 'No entries to update' })
           continue
         }
 
-        const postingLines = applyCategoryToLines(
-          postingLinesFromEntries(entries),
+        const nextEntries = applyCategoryToEntries(
+          entriesFromTransaction(transaction),
           transaction.type,
           input.categoryId,
         )
@@ -286,7 +250,7 @@ export async function bulkSetTransactionCategoryAction(input: {
         await payload.update({
           collection: 'transactions',
           id,
-          data: { postingLines },
+          data: { entries: nextEntries },
           user,
           overrideAccess: false,
           depth: 0,
@@ -407,7 +371,7 @@ function revalidatePaths(accountIds?: string[]) {
   }
 }
 
-function accountIdsFromPostingLines(lines?: PostingLineInput[]): string[] {
+function accountIdsFromEntries(lines?: TransactionEntryInput[]): string[] {
   if (!lines?.length) return []
   return [...new Set(lines.map((line) => line.account))]
 }

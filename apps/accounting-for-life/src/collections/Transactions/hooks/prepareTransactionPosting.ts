@@ -1,39 +1,65 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
+import {
+  normalizeEntryInputs,
+  type TransactionEntryInput,
+} from '@/collections/Transactions/lib/entries'
+import { normalizeTransactionDateTime } from '@/lib/frontend/transaction-datetime'
 import type { Transaction } from '@/types'
+import { getCollectionId } from '@/utils/getCollectionId'
 
 import {
   validateTransactionLinesBalance,
   validateTransferEntries,
 } from './validateTransactionLines'
 
-export type PostingLineInput = {
-  account: string
-  amount: number
-  category?: string | null
-  sortOrder?: number
-}
+export type { TransactionEntryInput } from '@/collections/Transactions/lib/entries'
 
-function normalizePostingLines(lines: PostingLineInput[]): PostingLineInput[] {
-  return lines.map((line) => ({
-    ...line,
-    account: typeof line.account === 'string' ? line.account : (line.account as { id: string }).id,
-    category:
-      line.category == null
-        ? undefined
-        : typeof line.category === 'string'
-          ? line.category
-          : (line.category as { id: string }).id,
-  }))
-}
-
-async function validatePostingAccounts(
+async function validateEntryCategories(
   req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
-  postingLines: PostingLineInput[],
+  lines: TransactionEntryInput[],
+  budgetId: string,
+  workspaceId: string,
+): Promise<void> {
+  for (const line of lines) {
+    if (line.category == null || line.category === '') continue
+
+    const category = await req.payload.findByID({
+      collection: 'categories',
+      id: line.category,
+      depth: 0,
+      overrideAccess: true,
+      req,
+    })
+
+    const categoryWorkspace = getCollectionId(category.workspace)
+    const categoryBudget = getCollectionId(category.budget)
+
+    if (categoryWorkspace !== workspaceId) {
+      throw new Error('Category must belong to the transaction workspace')
+    }
+
+    if (categoryBudget !== budgetId) {
+      throw new Error('Category must belong to the transaction budget')
+    }
+
+    // Income is credited (negative signed amount); expense/spending is debited (positive).
+    // An outflow tagged as income puts a positive amount on the income category and inverts Ready to assign.
+    if (category.purpose === 'income' && line.amount > 0) {
+      throw new Error(
+        'Income category entries must be credits (negative amounts). Record income as an inflow.',
+      )
+    }
+  }
+}
+
+async function validateEntryAccounts(
+  req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
+  lines: TransactionEntryInput[],
   workspaceId: string,
   budgetId: string,
 ): Promise<void> {
-  for (const line of postingLines) {
+  for (const line of lines) {
     const account = await req.payload.findByID({
       collection: 'accounts',
       id: line.account,
@@ -56,18 +82,18 @@ async function validatePostingAccounts(
   }
 }
 
-function stashPostingLines(
+function stashEntries(
   req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
   context: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['context'],
-  key: 'postingLines' | 'replacePostingLines',
-  postingLines: PostingLineInput[],
+  key: 'entries' | 'replaceEntries',
+  lines: TransactionEntryInput[],
 ): void {
-  req.context[key] = postingLines
-  context[key] = postingLines
+  req.context[key] = lines
+  context[key] = lines
 }
 
 /**
- * Validates `postingLines` on create/update, stashes them on `context`, and strips them from persisted data.
+ * Validates virtual `entries` on create/update, stashes them on `context`, and strips them from persisted data.
  */
 export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> = async ({
   data,
@@ -76,20 +102,24 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
   context,
   req,
 }) => {
-  const rawLines = data?.postingLines
-  const hasPostingLines = Array.isArray(rawLines) && rawLines.length > 0
+  if (data?.date) {
+    data.date = normalizeTransactionDateTime(data.date)
+  }
+
+  const rawLines = data?.entries
+  const hasEntries = Array.isArray(rawLines) && rawLines.length > 0
 
   if (operation === 'update') {
     if (rawLines == null) {
       return data
     }
 
-    if (!hasPostingLines) {
-      const { postingLines: _removed, ...persisted } = data
+    if (!hasEntries) {
+      const { entries: _removed, ...persisted } = data
       return persisted
     }
 
-    const postingLines = normalizePostingLines(rawLines as PostingLineInput[])
+    const lines = normalizeEntryInputs(rawLines as TransactionEntryInput[])
     const type = (data.type ?? originalDoc?.type) ?? 'transaction'
     const workspaceId =
       typeof (data.workspace ?? originalDoc?.workspace) === 'string'
@@ -104,25 +134,26 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
       throw new Error('Posted transactions require workspace and budget')
     }
 
-    validateTransactionLinesBalance(postingLines)
-    validateTransferEntries(type, postingLines)
-    await validatePostingAccounts(req, postingLines, workspaceId as string, budgetId as string)
+    validateTransactionLinesBalance(lines)
+    validateTransferEntries(type, lines)
+    await validateEntryAccounts(req, lines, workspaceId as string, budgetId as string)
+    await validateEntryCategories(req, lines, budgetId as string, workspaceId as string)
 
-    stashPostingLines(req, context, 'replacePostingLines', postingLines)
+    stashEntries(req, context, 'replaceEntries', lines)
 
-    const { postingLines: _removed, ...persisted } = data
+    const { entries: _removed, ...persisted } = data
     return persisted
   }
 
-  if (operation !== 'create' || !hasPostingLines) {
+  if (operation !== 'create' || !hasEntries) {
     return data
   }
 
-  const postingLines = normalizePostingLines(rawLines as PostingLineInput[])
+  const lines = normalizeEntryInputs(rawLines as TransactionEntryInput[])
   const type = data.type ?? 'transaction'
 
-  validateTransactionLinesBalance(postingLines)
-  validateTransferEntries(type, postingLines)
+  validateTransactionLinesBalance(lines)
+  validateTransferEntries(type, lines)
 
   const workspaceId = typeof data.workspace === 'string' ? data.workspace : data.workspace?.id
   const budgetId = typeof data.budget === 'string' ? data.budget : data.budget?.id
@@ -131,11 +162,12 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
     throw new Error('Posted transactions require workspace and budget')
   }
 
-  await validatePostingAccounts(req, postingLines, workspaceId, budgetId)
+  await validateEntryAccounts(req, lines, workspaceId, budgetId)
+  await validateEntryCategories(req, lines, budgetId, workspaceId)
 
-  stashPostingLines(req, context, 'postingLines', postingLines)
+  stashEntries(req, context, 'entries', lines)
 
-  const { postingLines: _removed, ...persisted } = data
+  const { entries: _removed, ...persisted } = data
 
   return {
     ...persisted,

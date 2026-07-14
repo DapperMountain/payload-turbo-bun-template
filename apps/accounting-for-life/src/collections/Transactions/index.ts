@@ -66,11 +66,11 @@ const Transactions: CollectionConfig = {
       ],
     },
     {
-      name: 'postingLines',
+      name: 'entries',
       type: 'array',
       virtual: true,
       admin: {
-        description: custom.fields.transactions.postingLinesDescription,
+        description: custom.fields.transactions.entriesDescription,
       },
       fields: [
         {
@@ -84,7 +84,7 @@ const Transactions: CollectionConfig = {
           type: 'number',
           required: true,
           admin: {
-            description: custom.fields.transactions.postingLinesAmountDescription,
+            description: custom.fields.transactions.entryAmountDescription,
           },
         },
         {
@@ -99,14 +99,14 @@ const Transactions: CollectionConfig = {
       ],
     },
     {
-      name: 'entries',
+      name: 'entryJoin',
       type: 'join',
       collection: 'transaction-entries',
       on: 'transaction',
       admin: {
+        hidden: true,
         allowCreate: false,
         defaultColumns: ['account', 'amount', 'category', 'unit', 'sortOrder'],
-        description: custom.fields.transactions.entriesDescription,
       },
     },
   ],

@@ -2,12 +2,12 @@ import type { PayloadRequest } from 'payload'
 
 import type { Transaction } from '@/types'
 
-import type { PostingLineInput } from './prepareTransactionPosting'
+import type { TransactionEntryInput } from '@/collections/Transactions/lib/entries'
 
 export async function writeTransactionEntries(
   req: PayloadRequest,
   doc: Transaction,
-  postingLines: PostingLineInput[],
+  lines: TransactionEntryInput[],
 ): Promise<void> {
   const workspaceId = typeof doc.workspace === 'string' ? doc.workspace : doc.workspace?.id
 
@@ -15,7 +15,7 @@ export async function writeTransactionEntries(
     throw new Error('Transaction is missing workspace')
   }
 
-  for (const [index, line] of postingLines.entries()) {
+  for (const [index, line] of lines.entries()) {
     const account = await req.payload.findByID({
       collection: 'accounts',
       id: line.account,

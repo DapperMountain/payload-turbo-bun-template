@@ -86,7 +86,7 @@ export interface Config {
   };
   collectionsJoins: {
     transactions: {
-      entries: 'transaction-entries';
+      entryJoin: 'transaction-entries';
     };
   };
   collectionsSelect: {
@@ -333,7 +333,7 @@ export interface Account {
   createdAt: string;
 }
 /**
- * Money movement. Include postingLines on create to post balanced legs.
+ * Money movement. Include entries on create to post balanced legs.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "transactions".
@@ -347,9 +347,9 @@ export interface Transaction {
   type: 'transaction' | 'transfer' | 'adjustment' | 'opening_balance';
   status: 'pending' | 'posted';
   /**
-   * Balanced legs to post on create (not stored on the saved document). Omit for pending headers.
+   * Balanced legs to post on create/update (not stored on the transaction document). Omit for pending headers.
    */
-  postingLines?:
+  entries?:
     | {
         account: string | Account;
         /**
@@ -361,10 +361,7 @@ export interface Transaction {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Posted legs (written by the create hook from postingLines).
-   */
-  entries?: {
+  entryJoin?: {
     docs?: (string | TransactionEntry)[];
     hasNextPage?: boolean;
     totalDocs?: number;
@@ -873,7 +870,7 @@ export interface TransactionsSelect<T extends boolean = true> {
   memo?: T;
   type?: T;
   status?: T;
-  postingLines?:
+  entries?:
     | T
     | {
         account?: T;
@@ -882,7 +879,7 @@ export interface TransactionsSelect<T extends boolean = true> {
         sortOrder?: T;
         id?: T;
       };
-  entries?: T;
+  entryJoin?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -167,7 +167,7 @@ export async function seedLedger(payload: Payload, options?: SeedRunOptions): Pr
         return
       }
 
-      // Posted via transactions collection create + postingLines hook.
+      // Posted via transactions collection create + entries hook.
       await payload.create({
         collection: 'transactions',
         data: {
@@ -176,7 +176,7 @@ export async function seedLedger(payload: Payload, options?: SeedRunOptions): Pr
           date: new Date().toISOString().slice(0, 10),
           memo: 'Seed transfer to savings',
           type: 'transfer',
-          postingLines: [
+          entries: [
             { account: checking.id, amount: -100 },
             { account: savings.id, amount: 100 },
           ],

@@ -1,10 +1,12 @@
 import { syncTransactionEntries } from './createTransactionEntries'
 import { prepareTransactionPosting } from './prepareTransactionPosting'
 import { removeTransactionEntriesOnDelete } from './removeTransactionEntriesOnDelete'
+import { shapeTransactionEntriesOnRead } from './shapeTransactionEntriesOnRead'
 
-// beforeChange validates postingLines; afterChange writes transaction-entries in the same request.
+// beforeChange validates virtual `entries`; afterChange writes transaction-entries; afterRead shapes `entries` for API.
 export const hooks = {
   beforeChange: [prepareTransactionPosting],
   afterChange: [syncTransactionEntries],
+  afterRead: [shapeTransactionEntriesOnRead],
   beforeDelete: [removeTransactionEntriesOnDelete],
 }
