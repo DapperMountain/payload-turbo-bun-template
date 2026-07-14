@@ -20,17 +20,19 @@ Decisions captured during initial planning (July 2026).
 ## Ledger & budgeting
 
 - **Double-entry ledger** is the foundation; budgeting is a **separate module** that reads ledger state (supports both YNAB-style envelopes and Monarch-style cash-flow views later).
-- **Default currency per account**; UI can show converted amounts without persisting (live FX fetch).
-- **FX at execution time** stored on journal lines for reporting currency comparisons.
+- **Default currency per account** (`accounts.unit`); workspace **`reportingCurrency`** for FX snapshots.
+- **FX at execution time** on journal lines: `fxRate` = reporting units per 1 account unit; `reportingAmount = amount * fxRate`. Identity rate `1` when units match. Cross-currency posts must pass `fxRate` on the virtual `entries` leg.
+- UI may still show live converted amounts without changing the stored snapshot.
 
 ### Implemented schema (July 2026)
 
 | Collection | Purpose | Versioning |
 |------------|---------|------------|
-| `units` | Workspace currency/commodity registry (`code`, `kind`, `decimalPlaces`) | No |
+| `units` | Workspace currency registry (`code`, `kind`: fiat/crypto/custom, `decimalPlaces`) | No |
 | `accounts` | Chart accounts: `classification`, `subtype`, `unit`, `budget`, optional `category` (credit cards only) | Yes (50) |
 | `transactions` | Header: `date`, `memo`, `type`, `status`, `budget` | Yes (50) |
-| `transaction-entries` | Legs: `account`, signed `amount`, `unit`, optional `category` | No |
+| `transaction-entries` | Legs: `account`, signed `amount`, `unit`, optional `category`, `fxRate`, `reportingAmount` | No |
+| `workspaces` | Household + optional `reportingCurrency` → `units` | No |
 
 - **Balances:** Computed from posted `transaction-entries` (Σ signed amounts). Accounts list and account-register running balance use the same helper — not stored on the account document.
 - **Entry types:** `transaction`, `transfer`, `adjustment`, `opening_balance`. **Status:** `draft`, `posted`, `void`.

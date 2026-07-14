@@ -20,11 +20,18 @@ describe('transactions integration', () => {
       data: {
         code: 'USD',
         name: 'US Dollar',
-        kind: 'currency',
+        kind: 'fiat',
         decimalPlaces: 2,
         symbol: '$',
         workspace: fx.workspaceA.id,
       },
+      overrideAccess: true,
+    })
+
+    await payload.update({
+      collection: 'workspaces',
+      id: fx.workspaceA.id,
+      data: { reportingCurrency: usd.id },
       overrideAccess: true,
     })
 
@@ -687,5 +694,117 @@ describe('transactions integration', () => {
     })
 
     expect(envelopes.totalDocs).toBe(0)
+  })
+
+  it('snapshots identity FX when the account unit matches reporting currency', async () => {
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        memo: 'USD transfer with FX snapshot',
+        type: 'transfer',
+        entries: [
+          { account: checkingA.id, amount: -25 },
+          { account: checkingB.id, amount: 25 },
+        ],
+      },
+    })
+
+    const legs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: transaction.id } },
+      sort: 'sortOrder',
+      overrideAccess: true,
+    })
+
+    expect(legs.docs).toHaveLength(2)
+    for (const leg of legs.docs) {
+      expect(leg.fxRate).toBe(1)
+      expect(leg.reportingAmount).toBe(leg.amount)
+    }
+  })
+
+  it('requires fxRate and persists reportingAmount for cross-currency legs', async () => {
+    const eur = await payload.create({
+      collection: 'units',
+      data: {
+        code: 'EUR',
+        name: 'Euro',
+        kind: 'fiat',
+        decimalPlaces: 2,
+        symbol: '€',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const eurChecking = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'EUR Checking',
+        classification: 'asset',
+        subtype: 'checking',
+        unit: eur.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    await expect(
+      payload.create({
+        collection: 'transactions',
+        user: member,
+        overrideAccess: false,
+        data: {
+          workspace: fx.workspaceA.id,
+          budget: fx.budgetA.id,
+          date: '2026-07-12',
+          memo: 'Missing FX',
+          type: 'transfer',
+          entries: [
+            { account: eurChecking.id, amount: -10 },
+            { account: checkingA.id, amount: 10 },
+          ],
+        },
+      }),
+    ).rejects.toThrow(/fxRate is required/)
+
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        memo: 'EUR to USD with rate',
+        type: 'transfer',
+        entries: [
+          { account: eurChecking.id, amount: -10, fxRate: 1.1 },
+          { account: checkingA.id, amount: 10 },
+        ],
+      },
+    })
+
+    const legs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: transaction.id } },
+      sort: 'sortOrder',
+      overrideAccess: true,
+    })
+
+    const eurLeg = legs.docs.find((leg) => getCollectionId(leg.account) === eurChecking.id)
+    const usdLeg = legs.docs.find((leg) => getCollectionId(leg.account) === checkingA.id)
+
+    expect(eurLeg?.fxRate).toBe(1.1)
+    expect(eurLeg?.reportingAmount).toBe(-11)
+    expect(usdLeg?.fxRate).toBe(1)
+    expect(usdLeg?.reportingAmount).toBe(10)
   })
 })

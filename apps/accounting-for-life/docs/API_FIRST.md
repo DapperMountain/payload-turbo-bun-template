@@ -86,7 +86,7 @@ Shared helpers live under `collections/Transactions/lib/` (e.g. `applyCategoryTo
 Legs are **not** embedded on the transaction document because they must be:
 
 - Queryable by account (register filters, running balances)
-- Scoped per workspace with their own fields (`unit`, future `reportingAmount`, `fxRate`)
+- Scoped per workspace with their own fields (`unit`, `reportingAmount`, `fxRate`)
 - Owned exclusively by transaction hooks (direct client writes blocked)
 
 The virtual `entries` field gives REST clients a **symmetric read/write** shape without sacrificing query performance.
@@ -104,14 +104,20 @@ The register UI builds `entries` in the browser (splits, payee → transfer dest
 
 Budget-owned collections (`accounts`, `transactions`, `categories`, `category-groups`, `envelope-balances`) require a body **`budget`**. Access checks membership on that id for create/update. The `payload-budget` cookie only selects which budget the Next UI opens — it is not applied to Local/REST writes.
 
+## Currencies & FX (Epic 2)
+
+- **`units.kind`:** `fiat` | `crypto` | `custom`. Codes are unique per workspace (normalized to uppercase).
+- **`workspaces.reportingCurrency`:** relationship to a unit in that workspace (seed sets USD).
+- **Posting:** `writeTransactionEntries` snapshots `fxRate` / `reportingAmount`. Same unit → rate `1`. Different unit → require `fxRate` on the virtual entry (`reportingAmount = amount * fxRate`).
+
 ## Other collections
 
 | Collection | API-first notes |
 |------------|-----------------|
-| **accounts** | Credit-card payment category rules in hooks; balance computed from posted legs (not stored) |
+| **accounts** | Credit-card payment category rules in hooks; balance computed from posted legs (not stored); required `unit` is the account currency |
 | **budgets** | `enforceSingleDefaultBudget` hook — only one `isDefault` per workspace |
 | **envelope-balances** | `validateEnvelopeBalance` hook — category must match budget; income categories rejected |
-| **transaction-entries** | Read-oriented for clients; writes via transaction hooks |
+| **transaction-entries** | Read-oriented for clients; writes via transaction hooks; stores FX snapshot fields |
 
 ## Server actions (intentionally thin)
 

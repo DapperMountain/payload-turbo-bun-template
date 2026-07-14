@@ -1,8 +1,10 @@
 import type { PayloadRequest } from 'payload'
 
 import type { Transaction } from '@/types'
+import { getCollectionId } from '@/utils/getCollectionId'
 
 import type { TransactionEntryInput } from '@/collections/Transactions/lib/entries'
+import { resolveEntryFx } from '@/collections/Transactions/lib/fx'
 
 export async function writeTransactionEntries(
   req: PayloadRequest,
@@ -14,6 +16,16 @@ export async function writeTransactionEntries(
   if (!workspaceId) {
     throw new Error('Transaction is missing workspace')
   }
+
+  const workspace = await req.payload.findByID({
+    collection: 'workspaces',
+    id: workspaceId,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  })
+
+  const reportingUnitId = getCollectionId(workspace.reportingCurrency)
 
   for (const [index, line] of lines.entries()) {
     const account = await req.payload.findByID({
@@ -30,6 +42,13 @@ export async function writeTransactionEntries(
       throw new Error(`Account ${account.id} is missing a unit`)
     }
 
+    const fx = resolveEntryFx({
+      amount: line.amount,
+      unitId,
+      reportingUnitId,
+      fxRate: line.fxRate,
+    })
+
     await req.payload.create({
       collection: 'transaction-entries',
       data: {
@@ -40,6 +59,8 @@ export async function writeTransactionEntries(
         amount: line.amount,
         unit: unitId,
         sortOrder: line.sortOrder ?? index,
+        reportingAmount: fx.reportingAmount,
+        fxRate: fx.fxRate,
       },
       req,
       overrideAccess: true,

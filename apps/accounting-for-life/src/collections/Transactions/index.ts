@@ -106,6 +106,13 @@ const Transactions: CollectionConfig = {
           name: 'sortOrder',
           type: 'number',
         },
+        {
+          name: 'fxRate',
+          type: 'number',
+          admin: {
+            description: custom.fields.transactions.entryFxRateDescription,
+          },
+        },
       ],
     },
     {

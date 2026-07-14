@@ -217,9 +217,36 @@ export interface Workspace {
   name: string;
   description: string;
   domain: string;
+  /**
+   * Default unit for reportingAmount / FX snapshots on journal lines.
+   */
+  reportingCurrency?: (string | null) | Unit;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * Currencies and other units of measure for accounts and transactions.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "units".
+ */
+export interface Unit {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  /**
+   * ISO 4217 code for fiat (e.g. USD), ticker for crypto (e.g. BTC), or a stable id for custom units.
+   */
+  code: string;
+  name: string;
+  /**
+   * Fiat currency, crypto asset, or custom unit (hours, points, …).
+   */
+  kind: 'fiat' | 'crypto' | 'custom';
+  decimalPlaces: number;
+  symbol?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -236,26 +263,6 @@ export interface Budget {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-}
-/**
- * Currencies and other units of measure for accounts and transactions.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "units".
- */
-export interface Unit {
-  id: string;
-  workspace?: (string | null) | Workspace;
-  /**
-   * ISO 4217 code for currency (e.g. USD) or a stable identifier for other units.
-   */
-  code: string;
-  name: string;
-  kind: 'currency' | 'commodity' | 'other';
-  decimalPlaces: number;
-  symbol?: string | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -375,6 +382,10 @@ export interface Transaction {
         amount: number;
         category?: (string | null) | Category;
         sortOrder?: number | null;
+        /**
+         * Optional. Reporting units per 1 account unit when the account currency differs from the workspace reporting currency.
+         */
+        fxRate?: number | null;
         id?: string | null;
       }[]
     | null;
@@ -403,11 +414,11 @@ export interface TransactionEntry {
   unit: string | Unit;
   sortOrder?: number | null;
   /**
-   * Amount in budget reporting currency when FX applies.
+   * Amount in workspace reporting currency when FX applies.
    */
   reportingAmount?: number | null;
   /**
-   * Exchange rate applied for reportingAmount.
+   * Exchange rate applied for reportingAmount (reporting units per 1 account unit).
    */
   fxRate?: number | null;
   updatedAt: string;
@@ -792,6 +803,7 @@ export interface WorkspacesSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   domain?: T;
+  reportingCurrency?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -902,6 +914,7 @@ export interface TransactionsSelect<T extends boolean = true> {
         amount?: T;
         category?: T;
         sortOrder?: T;
+        fxRate?: T;
         id?: T;
       };
   entryJoin?: T;

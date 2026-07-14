@@ -20,7 +20,7 @@ async function findAdminUser(payload: Payload): Promise<User | null> {
   return found.docs[0] ?? null
 }
 
-/** Idempotent — one USD unit per workspace. */
+/** Idempotent — one USD unit per workspace; sets workspace reporting currency when missing. */
 async function ensureUnit(payload: Payload, workspace: Workspace): Promise<Unit> {
   const existing = await payload.find({
     collection: 'units',
@@ -31,22 +31,32 @@ async function ensureUnit(payload: Payload, workspace: Workspace): Promise<Unit>
     overrideAccess: true,
   })
 
-  if (existing.docs[0]) {
-    return existing.docs[0]
+  const unit =
+    existing.docs[0] ??
+    (await payload.create({
+      collection: 'units',
+      data: {
+        workspace: workspace.id,
+        code: 'USD',
+        name: 'US Dollar',
+        kind: 'fiat',
+        decimalPlaces: 2,
+        symbol: '$',
+      },
+      overrideAccess: true,
+    }))
+
+  if (!getCollectionId(workspace.reportingCurrency)) {
+    await payload.update({
+      collection: 'workspaces',
+      id: workspace.id,
+      data: { reportingCurrency: unit.id },
+      overrideAccess: true,
+    })
+    workspace.reportingCurrency = unit.id
   }
 
-  return payload.create({
-    collection: 'units',
-    data: {
-      workspace: workspace.id,
-      code: 'USD',
-      name: 'US Dollar',
-      kind: 'currency',
-      decimalPlaces: 2,
-      symbol: '$',
-    },
-    overrideAccess: true,
-  })
+  return unit
 }
 
 /** Idempotent — keyed by workspace + budget + account name. */

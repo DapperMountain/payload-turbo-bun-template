@@ -3,9 +3,11 @@ import type { CollectionConfig } from 'payload'
 import { unitsAccess } from '@/access/collections'
 import { custom } from '@/lang'
 
+import { hooks } from './hooks'
+
 const Units: CollectionConfig = {
   slug: 'units',
-  access: unitsAccess,
+  access: { ...unitsAccess },
   labels: {
     singular: custom.collections.units.singular,
     plural: custom.collections.units.plural,
@@ -16,6 +18,7 @@ const Units: CollectionConfig = {
     defaultColumns: ['code', 'name', 'kind', 'workspace'],
     description: custom.collections.units.description,
   },
+  hooks,
   fields: [
     {
       name: 'code',
@@ -35,12 +38,15 @@ const Units: CollectionConfig = {
       name: 'kind',
       type: 'select',
       required: true,
-      defaultValue: 'currency',
+      defaultValue: 'fiat',
       options: [
-        { label: custom.fields.units.kind.currency, value: 'currency' },
-        { label: custom.fields.units.kind.commodity, value: 'commodity' },
-        { label: custom.fields.units.kind.other, value: 'other' },
+        { label: custom.fields.units.kind.fiat, value: 'fiat' },
+        { label: custom.fields.units.kind.crypto, value: 'crypto' },
+        { label: custom.fields.units.kind.custom, value: 'custom' },
       ],
+      admin: {
+        description: custom.fields.units.kindDescription,
+      },
     },
     {
       name: 'decimalPlaces',

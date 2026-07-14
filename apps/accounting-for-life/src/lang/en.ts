@@ -300,12 +300,18 @@ export default {
         budgetsDescription: 'Budgets this user can access, with admin / member / read-only roles.',
       },
       units: {
-        codeDescription: 'ISO 4217 code for currency (e.g. USD) or a stable identifier for other units.',
+        codeDescription:
+          'ISO 4217 code for fiat (e.g. USD), ticker for crypto (e.g. BTC), or a stable id for custom units.',
+        kindDescription: 'Fiat currency, crypto asset, or custom unit (hours, points, …).',
         kind: {
-          currency: 'Currency',
-          commodity: 'Commodity',
-          other: 'Other',
+          fiat: 'Fiat',
+          crypto: 'Crypto',
+          custom: 'Custom',
         },
+      },
+      workspaces: {
+        reportingCurrencyDescription:
+          'Default unit for reportingAmount / FX snapshots on journal lines.',
       },
       accounts: {
         categoryDescription: 'Payment envelope for credit card accounts only.',
@@ -330,6 +336,8 @@ export default {
         entriesDescription:
           'Balanced legs to post on create/update (not stored on the transaction document). Omit for pending headers.',
         entryAmountDescription: 'Signed amount (negative = credit, positive = debit).',
+        entryFxRateDescription:
+          'Optional. Reporting units per 1 account unit when the account currency differs from the workspace reporting currency.',
         memoDescription: 'Payee or short title shown in the register.',
         notesDescription: 'Optional memo shown as a note icon in the register when set.',
         notes: 'Notes',
@@ -346,8 +354,8 @@ export default {
       },
       transactionEntries: {
         amountDescription: 'Signed amount in the line unit (negative = credit, positive = debit).',
-        reportingAmountDescription: 'Amount in budget reporting currency when FX applies.',
-        fxRateDescription: 'Exchange rate applied for reportingAmount.',
+        reportingAmountDescription: 'Amount in workspace reporting currency when FX applies.',
+        fxRateDescription: 'Exchange rate applied for reportingAmount (reporting units per 1 account unit).',
       },
       categoryGroups: {
         kind: {

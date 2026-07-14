@@ -30,9 +30,9 @@ One **workspace = household**. Multiple **budgets** per workspace with shared ac
 
 | ID | Story | Pts | Sprint | Status |
 |----|-------|-----|--------|--------|
-| US-2.1 | Currency registry: fiat, crypto, and custom user-defined currencies | 5 | 2 | **Partial** — `units` collection (workspace-scoped); crypto/custom kinds TBD |
-| US-2.2 | Per-account default currency; workspace reporting currency setting | 3 | 2 |
-| US-2.3 | Store FX rates on journal lines at posting time | 5 | 2 |
+| US-2.1 | Currency registry: fiat, crypto, and custom user-defined currencies | 5 | 2 | **Done** — `units.kind` fiat/crypto/custom; unique code/workspace |
+| US-2.2 | Per-account default currency; workspace reporting currency setting | 3 | 2 | **Done** — `accounts.unit` + `workspaces.reportingCurrency` |
+| US-2.3 | Store FX rates on journal lines at posting time | 5 | 2 | **Done** — `fxRate` / `reportingAmount` snapshot at post |
 
 ---
 

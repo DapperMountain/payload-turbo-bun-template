@@ -304,12 +304,17 @@ export default {
       },
       units: {
         codeDescription:
-          'Código ISO 4217 para moneda (p. ej. USD) o un identificador estable para otras unidades.',
+          'Código ISO 4217 para fiat (p. ej. USD), ticker para cripto (p. ej. BTC) o un id estable para unidades personalizadas.',
+        kindDescription: 'Moneda fiat, criptoactivo o unidad personalizada (horas, puntos, …).',
         kind: {
-          currency: 'Moneda',
-          commodity: 'Materia prima',
-          other: 'Otro',
+          fiat: 'Fiat',
+          crypto: 'Cripto',
+          custom: 'Personalizada',
         },
+      },
+      workspaces: {
+        reportingCurrencyDescription:
+          'Unidad por defecto para reportingAmount / instantáneas FX en partidas del diario.',
       },
       accounts: {
         categoryDescription: 'Sobre de pago solo para cuentas de tarjeta de crédito.',
@@ -334,6 +339,8 @@ export default {
         entriesDescription:
           'Partidas equilibradas al crear/actualizar (no se guardan en el documento de transacción). Omita para transacciones pendientes.',
         entryAmountDescription: 'Importe con signo (negativo = crédito, positivo = débito).',
+        entryFxRateDescription:
+          'Opcional. Unidades de informe por 1 unidad de la cuenta cuando la moneda difiere de la de informe del espacio.',
         memoDescription: 'Beneficiario o título corto en el registro.',
         notesDescription: 'Nota opcional; se muestra como icono en el registro cuando está definida.',
         notes: 'Notas',
@@ -350,8 +357,9 @@ export default {
       },
       transactionEntries: {
         amountDescription: 'Importe con signo en la unidad de la partida (negativo = crédito, positivo = débito).',
-        reportingAmountDescription: 'Importe en moneda de informe del presupuesto cuando aplica FX.',
-        fxRateDescription: 'Tipo de cambio aplicado a reportingAmount.',
+        reportingAmountDescription: 'Importe en la moneda de informe del espacio cuando aplica FX.',
+        fxRateDescription:
+          'Tipo de cambio aplicado a reportingAmount (unidades de informe por 1 unidad de la cuenta).',
       },
       categoryGroups: {
         kind: {

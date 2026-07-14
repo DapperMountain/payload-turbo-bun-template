@@ -375,7 +375,7 @@ describe('collection access integration', () => {
         data: {
           code: 'USD-A',
           name: 'Dollar A',
-          kind: 'currency',
+          kind: 'fiat',
           decimalPlaces: 2,
           workspace: fx.workspaceA.id,
         },
@@ -387,7 +387,7 @@ describe('collection access integration', () => {
         data: {
           code: 'USD-B',
           name: 'Dollar B',
-          kind: 'currency',
+          kind: 'fiat',
           decimalPlaces: 2,
           workspace: fx.workspaceB.id,
         },
@@ -413,7 +413,7 @@ describe('collection access integration', () => {
         data: {
           code: 'EUR',
           name: 'Euro',
-          kind: 'currency',
+          kind: 'fiat',
           decimalPlaces: 2,
           workspace: fx.workspaceA.id,
         },
@@ -427,7 +427,7 @@ describe('collection access integration', () => {
           data: {
             code: 'GBP',
             name: 'Pound',
-            kind: 'currency',
+            kind: 'fiat',
             decimalPlaces: 2,
             workspace: fx.workspaceA.id,
           },
@@ -443,7 +443,7 @@ describe('collection access integration', () => {
         data: {
           code: 'USD-ACC',
           name: 'US Dollar',
-          kind: 'currency',
+          kind: 'fiat',
           decimalPlaces: 2,
           workspace: fx.workspaceA.id,
         },
@@ -484,7 +484,7 @@ describe('collection access integration', () => {
         data: {
           code: 'USD-XBUD',
           name: 'US Dollar',
-          kind: 'currency',
+          kind: 'fiat',
           decimalPlaces: 2,
           workspace: fx.workspaceA.id,
         },
@@ -514,7 +514,7 @@ describe('collection access integration', () => {
         data: {
           code: 'USD-OUT',
           name: 'US Dollar',
-          kind: 'currency',
+          kind: 'fiat',
           decimalPlaces: 2,
           workspace: fx.workspaceA.id,
         },

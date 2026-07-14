@@ -7,11 +7,17 @@ export type TransactionEntryInput = {
   amount: number
   category?: string | null
   sortOrder?: number
+  /**
+   * Reporting-currency units per 1 unit of `amount` when the account unit
+   * differs from the workspace reporting currency.
+   */
+  fxRate?: number | null
 }
 
 /** Read shape returned on `transactions.entries` after `shapeTransactionEntriesOnRead`. */
 export type TransactionEntryView = TransactionEntryInput & {
   id: string
+  reportingAmount?: number | null
 }
 
 export function normalizeEntryInputs(lines: TransactionEntryInput[]): TransactionEntryInput[] {
@@ -34,6 +40,8 @@ export function entryViewsFromStoredDocs(docs: TransactionEntry[]): TransactionE
     amount: entry.amount,
     category: getCollectionId(entry.category),
     sortOrder: entry.sortOrder ?? index,
+    fxRate: entry.fxRate,
+    reportingAmount: entry.reportingAmount,
   }))
 }
 
