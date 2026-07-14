@@ -22,6 +22,7 @@ Upstream examples often assume `pnpm`, `payload-types.ts`, and MongoDB.
 
 | Topic | File |
 |-------|------|
+| **API-first design (hooks vs Next actions)** | [`docs/API_FIRST.md`](../../../docs/API_FIRST.md) |
 | Layout, config, types, plugins, validation | [reference/PROJECT.md](reference/PROJECT.md) |
 | Frontend design system (`@dappermountain/design-system`) | [`docs/DESIGN_SYSTEM.md`](../../../docs/DESIGN_SYSTEM.md) |
 | Postgres, migrations, seeding | [reference/DATABASE.md](reference/DATABASE.md) |

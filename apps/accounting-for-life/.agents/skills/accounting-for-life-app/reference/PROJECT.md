@@ -81,6 +81,12 @@ Import from `@/types` — **not** `@/payload-types`. Do not barrel-export genera
 
 Website-template plugins (redirects, search, form-builder, nested-docs) are **not** in this app.
 
+## API-first ledger
+
+Domain rules for transactions, envelopes, and budgets live in **collection hooks**, not Next.js server actions. The virtual `entries` field on `transactions` is the read/write contract for posting legs; `transaction-entries` are hook-derived rows in a separate collection for queryability.
+
+See **[`docs/API_FIRST.md`](../../../docs/API_FIRST.md)** for REST examples, hook pipeline, and what belongs in `app/(frontend)/actions/`.
+
 ## Code validation
 
 | Task | Command |

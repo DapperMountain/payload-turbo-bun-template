@@ -21,6 +21,7 @@ Agents: run this checklist **before marking the task complete**. Do not wait for
 | **`@dappermountain/design-system` usage** | `docs/DESIGN_SYSTEM.md`, `CODE_CONVENTIONS.md`, app `README.md` |
 | **Testing** (unit + integration) | `docs/TESTING.md`, `src/test/preload.ts`, `src/test/config.ts`, `bunfig.toml`, `.env.test.example`, `DATABASE.md`, `CODE_CONVENTIONS.md` (test section) |
 | **New collection** | `src/collections/index.ts` pattern, `CODE_CONVENTIONS.md`, `PROJECT.md` if layout diagram changes |
+| **Ledger / transactions / hooks** | [`API_FIRST.md`](API_FIRST.md), `src/collections/Transactions/hooks/`, integration tests |
 
 ## Keep in sync (pairs)
 

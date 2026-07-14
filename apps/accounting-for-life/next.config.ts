@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   transpilePackages: ['@dappermountain/ui'],
   reactStrictMode: true,
+  experimental: {
+    turbopackFileSystemCacheForDev: true,
+    turbopackServerFastRefresh: true,
+  },
 }
 
 export default withPayload(nextConfig, {

@@ -13,6 +13,7 @@ This app is part of the monorepo. Start with the root [AGENTS.md](../../AGENTS.m
 | Topic | File |
 |-------|------|
 | Layout, config, types, plugins | [`reference/PROJECT.md`](.agents/skills/accounting-for-life-app/reference/PROJECT.md) |
+| **API-first / ledger hooks** | [`docs/API_FIRST.md`](docs/API_FIRST.md) |
 | Frontend design system | [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) |
 | Migrations and seeding | [`reference/DATABASE.md`](.agents/skills/accounting-for-life-app/reference/DATABASE.md) |
 | Multi-tenant plugin | [`reference/MULTI-TENANT.md`](.agents/skills/accounting-for-life-app/reference/MULTI-TENANT.md) |

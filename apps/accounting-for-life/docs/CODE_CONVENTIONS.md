@@ -147,6 +147,7 @@ Route segment layout:
 | UI imports | `@dappermountain/design-system` (`Stack`, `Button`, `DesignSystemProvider`, …) |
 | New primitives | Add in `packages/design-system`, then import from the package in this app |
 | i18n | Copy in `src/lang`; runtime: `useAppTranslation` / `getRequestI18n`; keys `custom:*` |
+| **API / domain logic** | Prefer **Payload collections + hooks** — see [`API_FIRST.md`](./API_FIRST.md). Next.js `actions/` are for auth, cookies, and `revalidatePath` only. |
 
 Full guide: **[`docs/DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md)**.
 
@@ -230,6 +231,7 @@ export const isWorkspace = workspaceScope()
 ## Related docs
 
 - [`.agents/rules/README.md`](../../../.agents/rules/README.md) — workspace rule index
+- [`docs/API_FIRST.md`](./API_FIRST.md) — Payload hooks vs Next.js actions; REST contract for transactions
 - [`src/access/README.md`](../src/access/README.md) — access control layout
 - [`docs/DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — frontend UI package and imports
 - [`AGENTS.md`](../AGENTS.md) — AI agent entry point
