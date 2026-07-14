@@ -2,13 +2,14 @@ import { describe, it } from 'bun:test'
 
 import { accountsAccess } from '@/access/collections'
 import {
+  budgetReadonlyUser,
   expectAccess,
   systemAdminUser,
   workspaceAdminUser,
   workspaceMemberUser,
 } from '@/access/test'
 
-const workspaceScope = { workspace: { in: ['workspace-a'] } }
+const budgetScope = { budget: { in: ['budget-a'] } }
 
 describe('accountsAccess', () => {
   describe('read', () => {
@@ -18,8 +19,12 @@ describe('accountsAccess', () => {
       await expectAccess(read, systemAdminUser, true)
     })
 
-    it('scopes workspace members to their workspaces', async () => {
-      await expectAccess(read, workspaceMemberUser, workspaceScope)
+    it('scopes budget members to their budgets', async () => {
+      await expectAccess(read, workspaceMemberUser, budgetScope)
+    })
+
+    it('allows readonly members to read', async () => {
+      await expectAccess(read, budgetReadonlyUser, budgetScope)
     })
   })
 
@@ -30,8 +35,12 @@ describe('accountsAccess', () => {
       await expectAccess(access, systemAdminUser, true)
     })
 
-    it('allows workspace members in their workspace', async () => {
-      await expectAccess(access, workspaceMemberUser, workspaceScope)
+    it('allows budget members that can write', async () => {
+      await expectAccess(access, workspaceMemberUser, budgetScope)
+    })
+
+    it('denies readonly budget members', async () => {
+      await expectAccess(access, budgetReadonlyUser, false)
     })
 
     it('denies unauthenticated requests', async () => {
@@ -46,11 +55,11 @@ describe('accountsAccess', () => {
       await expectAccess(del, systemAdminUser, true)
     })
 
-    it('allows workspace admins in their workspace', async () => {
-      await expectAccess(del, workspaceAdminUser, workspaceScope)
+    it('allows budget admins', async () => {
+      await expectAccess(del, workspaceAdminUser, budgetScope)
     })
 
-    it('denies workspace members', async () => {
+    it('denies budget members', async () => {
       await expectAccess(del, workspaceMemberUser, false)
     })
   })

@@ -164,7 +164,17 @@ describe('collection access integration', () => {
       )
     })
 
-    it('workspace admin cannot delete budgets', async () => {
+    it('budget admin can update budgets; hard delete stays system-admin-only', async () => {
+      const updated = await payload.update({
+        collection: 'budgets',
+        id: fx.budgetA.id,
+        user: workspaceAAdmin,
+        overrideAccess: false,
+        data: { name: 'Budget A Updated' },
+      })
+
+      expect(updated.name).toBe('Budget A Updated')
+
       await expectAccessDenied(() =>
         payload.delete({
           collection: 'budgets',
@@ -344,10 +354,17 @@ describe('collection access integration', () => {
         payload.delete({
           collection: 'categories',
           id: categoryA.id,
-          user: workspaceAAdmin,
+          user: workspaceAMember,
           overrideAccess: false,
         }),
       )
+
+      await payload.delete({
+        collection: 'categories',
+        id: categoryA.id,
+        user: workspaceAAdmin,
+        overrideAccess: false,
+      })
     })
   })
 

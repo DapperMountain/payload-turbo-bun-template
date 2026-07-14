@@ -11,6 +11,9 @@ export default {
       SYSTEM_USER: 'System user',
       WORKSPACE_ADMIN: 'Workspace administrator',
       WORKSPACE_USER: 'Workspace user',
+      BUDGET_ADMIN: 'Budget administrator',
+      BUDGET_MEMBER: 'Budget member',
+      BUDGET_READONLY: 'Budget read-only',
     },
     defaultWorkspace: 'Default workspace',
     frontend: {
@@ -292,6 +295,10 @@ export default {
       },
     },
     fields: {
+      users: {
+        budgets: 'Budgets',
+        budgetsDescription: 'Budgets this user can access, with admin / member / read-only roles.',
+      },
       units: {
         codeDescription: 'ISO 4217 code for currency (e.g. USD) or a stable identifier for other units.',
         kind: {

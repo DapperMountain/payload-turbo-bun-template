@@ -69,6 +69,39 @@ const Users: CollectionConfig = {
       }),
       admin: { position: 'sidebar' },
     },
+    {
+      name: 'budgets',
+      type: 'array',
+      label: custom.fields.users.budgets,
+      saveToJWT: true,
+      admin: {
+        position: 'sidebar',
+        description: custom.fields.users.budgetsDescription,
+      },
+      fields: [
+        {
+          name: 'budget',
+          type: 'relationship',
+          relationTo: 'budgets',
+          required: true,
+          saveToJWT: true,
+        },
+        {
+          name: 'roles',
+          type: 'select',
+          label: 'Roles',
+          defaultValue: ['BUDGET_MEMBER'],
+          hasMany: true,
+          required: true,
+          saveToJWT: true,
+          options: [
+            { label: custom.roles.BUDGET_ADMIN, value: 'BUDGET_ADMIN' },
+            { label: custom.roles.BUDGET_MEMBER, value: 'BUDGET_MEMBER' },
+            { label: custom.roles.BUDGET_READONLY, value: 'BUDGET_READONLY' },
+          ],
+        },
+      ],
+    },
   ],
   hooks,
 }

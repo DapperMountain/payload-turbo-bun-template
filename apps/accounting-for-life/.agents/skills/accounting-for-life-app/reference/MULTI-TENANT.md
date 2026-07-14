@@ -72,8 +72,9 @@ See `src/access/README.md`.
 | Self-only | `src/access/roles/isSelf.ts` |
 | Workspace document scope (`id`) | `src/access/workspaces/workspaceScope.ts` → `isWorkspace`, `isWorkspaceAdmin` |
 | Workspace **content** scope (`workspace` field) | `src/access/workspaces/workspaceContentScope.ts` → `isWorkspaceContent*` |
-| Starter content collection access | `src/access/collections/workspaceContent.ts` |
-| Membership (util) | `@/utils` → `userHasWorkspaceRole`, `userBelongsToWorkspace`, `userIsWorkspaceAdmin` |
+| Budget membership scope (`budget` / budget `id`) | `src/access/budgets/` → `isBudgetContent*`, `isBudgetMember` |
+| Starter content collection access | `src/access/collections/workspaceContent.ts` (workspace) / `budgetContent.ts` (budget) |
+| Membership (util) | `@/utils` → `userHasWorkspaceRole`, `userBelongsToWorkspace`, `userIsWorkspaceAdmin`, `userHasBudgetRole`, `getUserBudgetIds` |
 | Admin-selected workspace (util) | `@/utils` → `userCanAccessActiveWorkspace`, `getWorkspaceFromCookie` |
 | Workspaces `read` policy | `requireOne(isSystemAdmin, isWorkspace)` in `src/access/collections/workspaces.ts` |
 

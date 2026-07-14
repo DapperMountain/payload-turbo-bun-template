@@ -1,4 +1,5 @@
 export { accountsAccess } from './accounts'
+export { budgetContentAccess } from './budgetContent'
 export { budgetsAccess } from './budgets'
 export { categoriesAccess } from './categories'
 export { categoryGroupsAccess } from './categoryGroups'

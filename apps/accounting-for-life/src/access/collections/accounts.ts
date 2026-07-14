@@ -1,13 +1,14 @@
 import { requireOne } from '@/access/helpers'
 import { isSystemAdmin } from '@/access/roles'
-import { isWorkspaceContent, isWorkspaceContentAdmin } from '@/access/workspaces'
+import { isBudgetContent, isBudgetContentAdmin, isBudgetContentWriter } from '@/access/budgets'
 
-import { workspaceContentAccess } from './workspaceContent'
+import { budgetContentAccess } from './budgetContent'
 
-/** Members manage on-budget accounts; admins retain full workspace control. */
+/** Members manage on-budget accounts; budget admins retain delete. */
 export const accountsAccess = {
-  ...workspaceContentAccess,
-  create: requireOne(isSystemAdmin, isWorkspaceContent),
-  update: requireOne(isSystemAdmin, isWorkspaceContent),
-  delete: requireOne(isSystemAdmin, isWorkspaceContentAdmin),
+  ...budgetContentAccess,
+  read: requireOne(isSystemAdmin, isBudgetContent),
+  create: requireOne(isSystemAdmin, isBudgetContentWriter),
+  update: requireOne(isSystemAdmin, isBudgetContentWriter),
+  delete: requireOne(isSystemAdmin, isBudgetContentAdmin),
 }

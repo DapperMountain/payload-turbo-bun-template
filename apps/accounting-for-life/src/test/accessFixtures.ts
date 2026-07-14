@@ -35,12 +35,32 @@ const emails = {
   outsider: 'access-outsider@example.com',
 } as const
 
+async function deleteUsersByEmail(payload: Payload, emailList: string[]): Promise<void> {
+  for (const email of emailList) {
+    const existing = await payload.find({
+      collection: 'users',
+      where: { email: { equals: email } },
+      limit: 10,
+      overrideAccess: true,
+    })
+    for (const doc of existing.docs) {
+      await payload.delete({
+        collection: 'users',
+        id: doc.id,
+        overrideAccess: true,
+      })
+    }
+  }
+}
+
 /**
  * Seeds two workspaces, budgets, and users for collection access integration tests.
  *
  * Uses `overrideAccess: true` — callers must pass `overrideAccess: false` when exercising rules.
  */
 export async function seedAccessFixtures(payload: Payload): Promise<AccessFixtures> {
+  await deleteUsersByEmail(payload, Object.values(emails))
+
   const workspaceA = await payload.create({
     collection: 'workspaces',
     data: {
@@ -92,6 +112,7 @@ export async function seedAccessFixtures(payload: Payload): Promise<AccessFixtur
       password: TEST_PASSWORD,
       roles: ['SYSTEM_ADMIN'],
       workspaces: [],
+      budgets: [],
     },
     overrideAccess: true,
   })
@@ -105,6 +126,7 @@ export async function seedAccessFixtures(payload: Payload): Promise<AccessFixtur
       password: TEST_PASSWORD,
       roles: ['SYSTEM_USER'],
       workspaces: [{ workspace: workspaceA.id, roles: ['WORKSPACE_ADMIN'] }],
+      budgets: [{ budget: budgetA.id, roles: ['BUDGET_ADMIN'] }],
     },
     overrideAccess: true,
   })
@@ -118,6 +140,7 @@ export async function seedAccessFixtures(payload: Payload): Promise<AccessFixtur
       password: TEST_PASSWORD,
       roles: ['SYSTEM_USER'],
       workspaces: [{ workspace: workspaceA.id, roles: ['WORKSPACE_USER'] }],
+      budgets: [{ budget: budgetA.id, roles: ['BUDGET_MEMBER'] }],
     },
     overrideAccess: true,
   })
@@ -131,6 +154,7 @@ export async function seedAccessFixtures(payload: Payload): Promise<AccessFixtur
       password: TEST_PASSWORD,
       roles: ['SYSTEM_USER'],
       workspaces: [{ workspace: workspaceB.id, roles: ['WORKSPACE_USER'] }],
+      budgets: [{ budget: budgetB.id, roles: ['BUDGET_MEMBER'] }],
     },
     overrideAccess: true,
   })
@@ -144,6 +168,7 @@ export async function seedAccessFixtures(payload: Payload): Promise<AccessFixtur
       password: TEST_PASSWORD,
       roles: ['SYSTEM_USER'],
       workspaces: [],
+      budgets: [],
     },
     overrideAccess: true,
   })

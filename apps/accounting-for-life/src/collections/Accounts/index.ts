@@ -7,7 +7,7 @@ import { hooks } from './hooks'
 
 const Accounts: CollectionConfig = {
   slug: 'accounts',
-  access: accountsAccess,
+  access: { ...accountsAccess },
   labels: {
     singular: custom.collections.accounts.singular,
     plural: custom.collections.accounts.plural,

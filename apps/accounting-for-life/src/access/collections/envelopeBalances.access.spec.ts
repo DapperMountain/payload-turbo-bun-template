@@ -2,13 +2,14 @@ import { describe, it } from 'bun:test'
 
 import { envelopeBalancesAccess } from '@/access/collections'
 import {
+  budgetReadonlyUser,
   expectAccess,
   systemAdminUser,
   workspaceAdminUser,
   workspaceMemberUser,
 } from '@/access/test'
 
-const workspaceScope = { workspace: { in: ['workspace-a'] } }
+const budgetScope = { budget: { in: ['budget-a'] } }
 
 describe('envelopeBalancesAccess', () => {
   describe.each(['create', 'update'] as const)('%s', (operation) => {
@@ -18,12 +19,16 @@ describe('envelopeBalancesAccess', () => {
       await expectAccess(access, systemAdminUser, true)
     })
 
-    it('scopes workspace members to their workspaces', async () => {
-      await expectAccess(access, workspaceMemberUser, workspaceScope)
+    it('scopes budget writers to their budgets', async () => {
+      await expectAccess(access, workspaceMemberUser, budgetScope)
     })
 
-    it('scopes workspace admins to their workspaces', async () => {
-      await expectAccess(access, workspaceAdminUser, workspaceScope)
+    it('scopes budget admins to their budgets', async () => {
+      await expectAccess(access, workspaceAdminUser, budgetScope)
+    })
+
+    it('denies readonly members', async () => {
+      await expectAccess(access, budgetReadonlyUser, false)
     })
   })
 

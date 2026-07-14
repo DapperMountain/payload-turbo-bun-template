@@ -6,6 +6,7 @@ access/
 ├── auth/             # Authentication primitives
 ├── roles/            # System-wide role checks
 ├── workspaces/       # Workspace membership / workspace-admin scopes
+├── budgets/          # Budget membership scopes (`BUDGET_ADMIN` / `_MEMBER` / `_READONLY`)
 ├── collections/      # Collection `access` maps (create/read/update/delete)
 └── index.ts          # Public exports
 ```
@@ -20,6 +21,7 @@ access/
 | Allow / deny all | `helpers/allowAll`, `helpers/denyAll` |
 | Workspace document scope (`id: { in: … }`) | `workspaces/` (`workspaceScope` on `workspaces` collection) |
 | Workspace **content** scope (`workspace: { in: … }`) | `workspaces/` (`workspaceContentScope`, `isWorkspaceContent*`) |
+| Budget membership scope (`budget: { in: … }` / budget `id`) | `budgets/` (`budgetContentScope`, `isBudgetContent*`) |
 | Which operations a **collection** allows | `collections/<slug>.ts` |
 
 Collection configs import maps from `@/access/collections` (or `@/access/collections/<slug>` when only one map is needed).
@@ -114,3 +116,14 @@ Run: `bun test ./src/access` from the app directory (see `docs/TESTING.md`).
 | `userIsWorkspaceAdmin(user, workspaceId?)` | `WORKSPACE_ADMIN` on one or any workspace |
 | `userCanAccessActiveWorkspace(req, role?)` | `payload-tenant` cookie + membership |
 | `getWorkspaceFromCookie(headers, idType)` | Read selected workspace id from cookie |
+
+## Budget membership (US-1.2)
+
+| Util / access | Use |
+|---------------|-----|
+| `user.budgets[]` on Users | `{ budget, roles: BUDGET_ADMIN \| BUDGET_MEMBER \| BUDGET_READONLY }` |
+| `getUserBudgetIds` / `getUserWritableBudgetIds` | Membership lists for scopes |
+| `userHasBudgetRole` / `userBelongsToBudget` / `userIsBudgetAdmin` | Imperative checks |
+| `addUserBudgetMembership` | Idempotent grant (create hook + seeds) |
+| `budgetContentAccess` | Read = any membership; write = admin/member |
+| `budgetsAccess` | Document scope by membership; create = workspace admin |

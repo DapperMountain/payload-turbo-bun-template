@@ -29,6 +29,12 @@ export const workspaceMemberUser: User = {
       roles: ['WORKSPACE_USER'],
     },
   ],
+  budgets: [
+    {
+      budget: 'budget-a',
+      roles: ['BUDGET_MEMBER'],
+    },
+  ],
 }
 
 /** Workspace admin for one workspace. */
@@ -43,6 +49,32 @@ export const workspaceAdminUser: User = {
       roles: ['WORKSPACE_ADMIN'],
     },
   ],
+  budgets: [
+    {
+      budget: 'budget-a',
+      roles: ['BUDGET_ADMIN'],
+    },
+  ],
+}
+
+/** Budget read-only member (can view, not edit content). */
+export const budgetReadonlyUser: User = {
+  ...baseUser,
+  id: 'budget-readonly-1',
+  email: 'budget-readonly@example.com',
+  roles: ['SYSTEM_USER'],
+  workspaces: [
+    {
+      workspace: 'workspace-a',
+      roles: ['WORKSPACE_USER'],
+    },
+  ],
+  budgets: [
+    {
+      budget: 'budget-a',
+      roles: ['BUDGET_READONLY'],
+    },
+  ],
 }
 
 /** Authenticated user with no workspace memberships. */
@@ -52,6 +84,7 @@ export const userWithoutWorkspaces: User = {
   email: 'no-workspace@example.com',
   roles: ['SYSTEM_USER'],
   workspaces: [],
+  budgets: [],
 }
 
 /** @deprecated Use {@link workspaceMemberUser}. */

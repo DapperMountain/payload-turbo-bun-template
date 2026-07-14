@@ -9,7 +9,7 @@ import { hooks } from './hooks'
 
 const EnvelopeBalances: CollectionConfig = {
   slug: 'envelope-balances',
-  access: envelopeBalancesAccess,
+  access: { ...envelopeBalancesAccess },
   hooks,
   admin: {
     group: 'Budgeting',

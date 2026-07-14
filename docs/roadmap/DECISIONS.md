@@ -11,6 +11,7 @@ Decisions captured during initial planning (July 2026).
 ## Permissions & review
 
 - Generic **roles with granular ACL** — read-only budget access, account-scoped edit restrictions, hide sensitive accounts from certain members.
+- **Budget membership (US-1.2):** `user.budgets[]` with `BUDGET_ADMIN` | `BUDGET_MEMBER` | `BUDGET_READONLY`. Creating a budget grants admin to the creator and seeds membership for workspace peers. Budget-scoped collections filter by membership; writers exclude readonly.
 - **Review workflow** — assign transactions to users; rules can auto-assign. Approval states TBD during Epic 10 implementation.
 - Hiding transactions from some members may use **account-level visibility** rather than deleting ledger rows.
 

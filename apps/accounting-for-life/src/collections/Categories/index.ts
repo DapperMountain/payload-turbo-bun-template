@@ -8,7 +8,7 @@ import { categoriesAccess } from '@/access/collections'
 const Categories: CollectionConfig = {
   slug: 'categories',
   trash: true,
-  access: categoriesAccess,
+  access: { ...categoriesAccess },
   admin: {
     group: 'Budgeting',
     useAsTitle: 'name',

@@ -175,6 +175,16 @@ export interface User {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Budgets this user can access, with admin / member / read-only roles.
+   */
+  budgets?:
+    | {
+        budget: string | Budget;
+        roles: ('BUDGET_ADMIN' | 'BUDGET_MEMBER' | 'BUDGET_READONLY')[];
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -212,6 +222,22 @@ export interface Workspace {
   deletedAt?: string | null;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "budgets".
+ */
+export interface Budget {
+  id: string;
+  workspace?: (string | null) | Workspace;
+  name: string;
+  /**
+   * Primary budget for this household when none is selected.
+   */
+  isDefault?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
  * Currencies and other units of measure for accounts and transactions.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -230,22 +256,6 @@ export interface Unit {
   symbol?: string | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "budgets".
- */
-export interface Budget {
-  id: string;
-  workspace?: (string | null) | Workspace;
-  name: string;
-  /**
-   * Primary budget for this household when none is selected.
-   */
-  isDefault?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -743,6 +753,13 @@ export interface UsersSelect<T extends boolean = true> {
     | T
     | {
         workspace?: T;
+        roles?: T;
+        id?: T;
+      };
+  budgets?:
+    | T
+    | {
+        budget?: T;
         roles?: T;
         id?: T;
       };

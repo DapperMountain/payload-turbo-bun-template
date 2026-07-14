@@ -10,7 +10,8 @@ import { hooks } from './hooks'
 const Budgets: CollectionConfig = {
   slug: 'budgets',
   trash: true,
-  access: budgetsAccess,
+  // Shallow copy so the multi-tenant plugin can wrap access without mutating the export.
+  access: { ...budgetsAccess },
   admin: {
     group: 'Budgeting',
     useAsTitle: 'name',

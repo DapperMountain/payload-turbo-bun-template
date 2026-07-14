@@ -8,6 +8,9 @@ export default {
       SYSTEM_USER: 'Usuario del sistema',
       WORKSPACE_ADMIN: 'Administrador del espacio',
       WORKSPACE_USER: 'Usuario del espacio',
+      BUDGET_ADMIN: 'Administrador del presupuesto',
+      BUDGET_MEMBER: 'Miembro del presupuesto',
+      BUDGET_READONLY: 'Solo lectura del presupuesto',
     },
     defaultWorkspace: 'Espacio predeterminado',
     frontend: {
@@ -294,6 +297,11 @@ export default {
       },
     },
     fields: {
+      users: {
+        budgets: 'Presupuestos',
+        budgetsDescription:
+          'Presupuestos a los que este usuario puede acceder, con roles de administrador / miembro / solo lectura.',
+      },
       units: {
         codeDescription:
           'Código ISO 4217 para moneda (p. ej. USD) o un identificador estable para otras unidades.',

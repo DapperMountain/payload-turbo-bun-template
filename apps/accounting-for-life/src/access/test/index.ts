@@ -7,6 +7,7 @@ export {
   systemAdminUser,
   workspaceAdminUser,
   workspaceMemberUser,
+  budgetReadonlyUser,
   userWithoutWorkspaces,
   tenantAdminUser,
   tenantMemberUser,

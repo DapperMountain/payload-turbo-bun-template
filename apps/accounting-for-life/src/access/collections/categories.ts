@@ -1,3 +1,14 @@
-import { workspaceContentAccess } from './workspaceContent'
+import { requireOne } from '@/access/helpers'
+import { isSystemAdmin } from '@/access/roles'
+import { isBudgetContent, isBudgetContentAdmin } from '@/access/budgets'
 
-export const categoriesAccess = workspaceContentAccess
+import { budgetContentAccess } from './budgetContent'
+
+/** Category catalog: members read; budget admins manage structure. */
+export const categoriesAccess = {
+  ...budgetContentAccess,
+  read: requireOne(isSystemAdmin, isBudgetContent),
+  create: requireOne(isSystemAdmin, isBudgetContentAdmin),
+  update: requireOne(isSystemAdmin, isBudgetContentAdmin),
+  delete: requireOne(isSystemAdmin, isBudgetContentAdmin),
+}
