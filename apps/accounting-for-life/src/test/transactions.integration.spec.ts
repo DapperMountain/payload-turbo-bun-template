@@ -68,7 +68,7 @@ describe('transactions integration', () => {
         date: '2026-07-12',
         memo: 'Move to savings',
         type: 'transfer',
-        postingLines: [
+        entries: [
           { account: checkingA.id, amount: -100 },
           { account: checkingB.id, amount: 100 },
         ],
@@ -90,7 +90,7 @@ describe('transactions integration', () => {
     expect(entries.docs[1]?.amount).toBe(100)
   })
 
-  it('rejects unbalanced posting lines', async () => {
+  it('rejects unbalanced entries', async () => {
     await expect(
       payload.create({
         collection: 'transactions',
@@ -101,7 +101,7 @@ describe('transactions integration', () => {
           budget: fx.budgetA.id,
           date: '2026-07-12',
           type: 'transfer',
-          postingLines: [
+          entries: [
             { account: checkingA.id, amount: -100 },
             { account: checkingB.id, amount: 50 },
           ],
@@ -110,7 +110,62 @@ describe('transactions integration', () => {
     ).rejects.toThrow(/sum to zero/)
   })
 
-  it('updates a posted transaction category via postingLines', async () => {
+  it('rejects categories from a different budget on entries', async () => {
+    const budgetA2 = await payload.create({
+      collection: 'budgets',
+      data: {
+        name: 'Budget A2',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const otherBudgetCategory = await payload.create({
+      collection: 'categories',
+      data: {
+        name: 'Other budget spending',
+        purpose: 'spending',
+        sortOrder: 0,
+        isSystemDefault: false,
+        categoryGroup: (
+          await payload.create({
+            collection: 'category-groups',
+            data: {
+              name: 'Other',
+              kind: 'expense',
+              sortOrder: 0,
+              budget: budgetA2.id,
+              workspace: fx.workspaceA.id,
+            },
+            overrideAccess: true,
+          })
+        ).id,
+        budget: budgetA2.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    await expect(
+      payload.create({
+        collection: 'transactions',
+        user: member,
+        overrideAccess: false,
+        data: {
+          workspace: fx.workspaceA.id,
+          budget: fx.budgetA.id,
+          date: '2026-07-12',
+          type: 'transaction',
+          entries: [
+            { account: checkingA.id, amount: -10, category: otherBudgetCategory.id },
+            { account: checkingB.id, amount: 10 },
+          ],
+        },
+      }),
+    ).rejects.toThrow(/transaction budget/)
+  })
+
+  it('updates a posted transaction category via entries', async () => {
     const incomeGroup = await payload.create({
       collection: 'category-groups',
       data: {
@@ -173,7 +228,7 @@ describe('transactions integration', () => {
         date: '2026-07-12',
         memo: 'Grocery run',
         type: 'transaction',
-        postingLines: [
+        entries: [
           { account: checkingA.id, amount: -40, sortOrder: 0 },
           { account: checkingA.id, amount: 40, category: expenseCategory.id, sortOrder: 1 },
         ],
@@ -187,7 +242,7 @@ describe('transactions integration', () => {
       overrideAccess: false,
       data: {
         memo: 'Updated memo',
-        postingLines: [
+        entries: [
           { account: checkingA.id, amount: -40, sortOrder: 0 },
           { account: checkingA.id, amount: 40, category: incomeCategory.id, sortOrder: 1 },
         ],
@@ -218,7 +273,7 @@ describe('transactions integration', () => {
         budget: fx.budgetA.id,
         date: '2026-07-12',
         type: 'transfer',
-        postingLines: [
+        entries: [
           { account: checkingA.id, amount: -25 },
           { account: checkingB.id, amount: 25 },
         ],
@@ -253,7 +308,7 @@ describe('transactions integration', () => {
         budget: fx.budgetA.id,
         date: '2026-07-14',
         type: 'transfer',
-        postingLines: [
+        entries: [
           { account: checkingA.id, amount: -15 },
           { account: checkingB.id, amount: 15 },
         ],

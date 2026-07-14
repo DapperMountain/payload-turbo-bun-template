@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
-  buildPostingLinesForSave,
+  buildEntriesForSave,
   collapseSplitFormState,
   defaultTransactionDialogView,
   isCollapsibleSingleCategorySplit,
@@ -13,12 +13,12 @@ import {
   singleSplitCollapseKind,
   splitAmountFromPercent,
   splitPercentOfTotal,
-  splitsToPostingLines,
+  splitsToEntries,
 } from '@/lib/frontend/transaction-splits'
 
 describe('transaction-splits', () => {
   it('posts one payment leg and multiple transfer destinations', () => {
-    const lines = splitsToPostingLines({
+    const lines = splitsToEntries({
       paymentAccount: 'checking',
       totalAmount: '-100',
       splits: [
@@ -91,10 +91,10 @@ describe('transaction-splits', () => {
     expect(prepared.state.splits).toHaveLength(0)
     expect(prepared.categoryId).toBe('groceries')
 
-    const regular = splitsToPostingLines(prepared.state, {
+    const regular = splitsToEntries(prepared.state, {
       singleCategoryId: prepared.categoryId,
     })
-    const fromSplit = splitsToPostingLines(single)
+    const fromSplit = splitsToEntries(single)
 
     expect(regular).toEqual(fromSplit)
     expect(regular).toHaveLength(2)
@@ -109,7 +109,7 @@ describe('transaction-splits', () => {
     }
 
     const prepared = collapseSplitFormState(form, '')
-    const lines = splitsToPostingLines(prepared.state, { singleCategoryId: prepared.categoryId })
+    const lines = splitsToEntries(prepared.state, { singleCategoryId: prepared.categoryId })
 
     const entries = lines.map((line, index) => ({
       id: String(index),
@@ -148,7 +148,7 @@ describe('transaction-splits', () => {
     expect(prepared.state.splits).toHaveLength(0)
     expect(prepared.transferPayee).toBe('__transfer__:savings')
 
-    const lines = splitsToPostingLines({
+    const lines = splitsToEntries({
       paymentAccount: 'checking',
       totalAmount: '-100',
       splits: [newTransferSplitDraft('savings', '100')],
@@ -177,8 +177,8 @@ describe('transaction-splits', () => {
     expect(splitPercentOfTotal('50', '-200')).toBe('25')
   })
 
-  it('buildPostingLinesForSave handles spending and transfers through one path', () => {
-    const spending = buildPostingLinesForSave({
+  it('buildEntriesForSave handles spending and transfers through one path', () => {
+    const spending = buildEntriesForSave({
       splitState: {
         paymentAccount: 'checking',
         totalAmount: '-40',
@@ -189,7 +189,7 @@ describe('transaction-splits', () => {
     })
     expect(spending).toHaveLength(2)
 
-    const transfer = buildPostingLinesForSave({
+    const transfer = buildEntriesForSave({
       splitState: {
         paymentAccount: 'checking',
         totalAmount: '-100',
@@ -202,8 +202,27 @@ describe('transaction-splits', () => {
     expect(transfer[1]).toMatchObject({ account: 'savings', amount: 100 })
   })
 
+  it('coerces income category saves to an inflow on the payment account', () => {
+    const lines = buildEntriesForSave({
+      splitState: {
+        paymentAccount: 'checking',
+        totalAmount: '-35',
+        splits: [],
+      },
+      categoryId: 'other-income',
+      categoryPurpose: 'income',
+      activeView: 'standard',
+      isTransfer: false,
+    })
+
+    expect(lines).toEqual([
+      { account: 'checking', amount: 35, sortOrder: 0 },
+      { account: 'checking', amount: -35, category: 'other-income', sortOrder: 1 },
+    ])
+  })
+
   it('flips both legs when the payment amount sign changes on standard save', () => {
-    const debit = buildPostingLinesForSave({
+    const debit = buildEntriesForSave({
       splitState: {
         paymentAccount: 'checking',
         totalAmount: '-100',
@@ -214,7 +233,7 @@ describe('transaction-splits', () => {
       isTransfer: false,
     })
 
-    const credit = buildPostingLinesForSave({
+    const credit = buildEntriesForSave({
       splitState: {
         paymentAccount: 'checking',
         totalAmount: '100',
