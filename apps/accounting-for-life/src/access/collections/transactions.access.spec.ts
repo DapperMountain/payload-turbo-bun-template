@@ -9,6 +9,8 @@ import {
 } from '@/access/test'
 
 const budgetScope = { budget: { in: ['budget-a'] } }
+const onBudgetA = { data: { budget: 'budget-a' } }
+const onBudgetB = { data: { budget: 'budget-b' } }
 
 describe('transactionsAccess', () => {
   describe('read', () => {
@@ -23,19 +25,45 @@ describe('transactionsAccess', () => {
     })
   })
 
-  describe.each(['create', 'update', 'delete'] as const)('%s', (operation) => {
-    const access = transactionsAccess[operation]!
+  describe('create', () => {
+    const create = transactionsAccess.create!
+
+    it('allows writers for body budget membership', async () => {
+      await expectAccess(create, workspaceMemberUser, true, onBudgetA)
+      await expectAccess(create, systemAdminUser, true, onBudgetA)
+    })
+
+    it('denies other budgets and readonly', async () => {
+      await expectAccess(create, workspaceMemberUser, false, onBudgetB)
+      await expectAccess(create, budgetReadonlyUser, false, onBudgetA)
+    })
+  })
+
+  describe('update', () => {
+    const update = transactionsAccess.update!
+
+    it('scopes writers and checks reassigned budget', async () => {
+      await expectAccess(update, workspaceMemberUser, budgetScope)
+      await expectAccess(update, workspaceMemberUser, budgetScope, onBudgetA)
+      await expectAccess(update, workspaceMemberUser, false, onBudgetB)
+      await expectAccess(update, budgetReadonlyUser, false)
+      await expectAccess(update, systemAdminUser, true)
+    })
+  })
+
+  describe('delete', () => {
+    const del = transactionsAccess.delete!
 
     it('allows budget writers', async () => {
-      await expectAccess(access, workspaceMemberUser, budgetScope)
+      await expectAccess(del, workspaceMemberUser, budgetScope)
     })
 
     it('denies readonly members', async () => {
-      await expectAccess(access, budgetReadonlyUser, false)
+      await expectAccess(del, budgetReadonlyUser, false)
     })
 
     it('allows system admins', async () => {
-      await expectAccess(access, systemAdminUser, true)
+      await expectAccess(del, systemAdminUser, true)
     })
   })
 })

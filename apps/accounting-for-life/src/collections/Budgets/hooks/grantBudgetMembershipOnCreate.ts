@@ -12,8 +12,9 @@ export const grantBudgetMembershipOnCreate: CollectionAfterChangeHook<Budget> = 
   doc,
   operation,
   req,
+  context,
 }) => {
-  if (operation !== 'create') return doc
+  if (operation !== 'create' || context.skipBudgetMembershipGrant) return doc
 
   const workspaceId =
     typeof doc.workspace === 'string' ? doc.workspace : doc.workspace?.id

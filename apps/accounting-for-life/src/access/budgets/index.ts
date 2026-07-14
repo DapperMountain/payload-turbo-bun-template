@@ -1,5 +1,5 @@
 /**
- * Budget membership scopes (US-1.2).
+ * Budget membership scopes (US-1.2) and body-`budget` write access (US-1.3).
  */
 export {
   budgetContentScope,
@@ -7,6 +7,7 @@ export {
   budgetDocumentScope,
   budgetFieldName,
 } from './budgetContentScope'
+export { canCreateOnBudget, canUpdateOnBudget } from './budgetFieldWriteAccess'
 export {
   isBudgetAdmin,
   isBudgetContent,

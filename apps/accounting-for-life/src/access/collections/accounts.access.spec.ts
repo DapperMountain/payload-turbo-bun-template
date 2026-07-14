@@ -10,6 +10,8 @@ import {
 } from '@/access/test'
 
 const budgetScope = { budget: { in: ['budget-a'] } }
+const onBudgetA = { data: { budget: 'budget-a' } }
+const onBudgetB = { data: { budget: 'budget-b' } }
 
 describe('accountsAccess', () => {
   describe('read', () => {
@@ -28,23 +30,31 @@ describe('accountsAccess', () => {
     })
   })
 
-  describe.each(['create', 'update'] as const)('%s', (operation) => {
-    const access = accountsAccess[operation]!
+  describe('create', () => {
+    const create = accountsAccess.create!
 
-    it('allows system admins full access', async () => {
-      await expectAccess(access, systemAdminUser, true)
+    it('allows system admins and writers for body budget membership', async () => {
+      await expectAccess(create, systemAdminUser, true, onBudgetA)
+      await expectAccess(create, workspaceMemberUser, true, onBudgetA)
     })
 
-    it('allows budget members that can write', async () => {
-      await expectAccess(access, workspaceMemberUser, budgetScope)
+    it('denies create for other budgets, readonly, or missing budget', async () => {
+      await expectAccess(create, workspaceMemberUser, false, onBudgetB)
+      await expectAccess(create, budgetReadonlyUser, false, onBudgetA)
+      await expectAccess(create, workspaceMemberUser, false)
+      await expectAccess(create, null, false, onBudgetA)
     })
+  })
 
-    it('denies readonly budget members', async () => {
-      await expectAccess(access, budgetReadonlyUser, false)
-    })
+  describe('update', () => {
+    const update = accountsAccess.update!
 
-    it('denies unauthenticated requests', async () => {
-      await expectAccess(access, null, false)
+    it('scopes writable budgets and checks reassigned body budget', async () => {
+      await expectAccess(update, systemAdminUser, true)
+      await expectAccess(update, workspaceMemberUser, budgetScope)
+      await expectAccess(update, workspaceMemberUser, budgetScope, onBudgetA)
+      await expectAccess(update, workspaceMemberUser, false, onBudgetB)
+      await expectAccess(update, budgetReadonlyUser, false)
     })
   })
 

@@ -467,6 +467,47 @@ describe('collection access integration', () => {
       expect(account.id).toBeDefined()
     })
 
+    it('member cannot create accounts on a budget they do not belong to', async () => {
+      const otherBudget = await payload.create({
+        collection: 'budgets',
+        data: {
+          name: 'Unshared Budget A',
+          isDefault: false,
+          workspace: fx.workspaceA.id,
+        },
+        overrideAccess: true,
+        context: { skipCategorySeed: true, skipBudgetMembershipGrant: true },
+      })
+
+      const unit = await payload.create({
+        collection: 'units',
+        data: {
+          code: 'USD-XBUD',
+          name: 'US Dollar',
+          kind: 'currency',
+          decimalPlaces: 2,
+          workspace: fx.workspaceA.id,
+        },
+        overrideAccess: true,
+      })
+
+      await expectAccessDenied(() =>
+        payload.create({
+          collection: 'accounts',
+          user: workspaceAMember,
+          overrideAccess: false,
+          data: {
+            name: 'Cross-budget Denied',
+            classification: 'asset',
+            subtype: 'checking',
+            unit: unit.id,
+            budget: otherBudget.id,
+            workspace: fx.workspaceA.id,
+          },
+        }),
+      )
+    })
+
     it('outsider cannot create accounts', async () => {
       const unit = await payload.create({
         collection: 'units',

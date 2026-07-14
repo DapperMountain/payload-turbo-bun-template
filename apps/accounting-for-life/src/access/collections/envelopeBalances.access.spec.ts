@@ -10,25 +10,34 @@ import {
 } from '@/access/test'
 
 const budgetScope = { budget: { in: ['budget-a'] } }
+const onBudgetA = { data: { budget: 'budget-a' } }
+const onBudgetB = { data: { budget: 'budget-b' } }
 
 describe('envelopeBalancesAccess', () => {
-  describe.each(['create', 'update'] as const)('%s', (operation) => {
-    const access = envelopeBalancesAccess[operation]!
+  describe('create', () => {
+    const create = envelopeBalancesAccess.create!
 
-    it('allows system admins full access', async () => {
-      await expectAccess(access, systemAdminUser, true)
+    it('allows writers for body budget membership', async () => {
+      await expectAccess(create, systemAdminUser, true, onBudgetA)
+      await expectAccess(create, workspaceMemberUser, true, onBudgetA)
+      await expectAccess(create, workspaceAdminUser, true, onBudgetA)
     })
 
-    it('scopes budget writers to their budgets', async () => {
-      await expectAccess(access, workspaceMemberUser, budgetScope)
+    it('denies other budgets and readonly', async () => {
+      await expectAccess(create, workspaceMemberUser, false, onBudgetB)
+      await expectAccess(create, budgetReadonlyUser, false, onBudgetA)
     })
+  })
 
-    it('scopes budget admins to their budgets', async () => {
-      await expectAccess(access, workspaceAdminUser, budgetScope)
-    })
+  describe('update', () => {
+    const update = envelopeBalancesAccess.update!
 
-    it('denies readonly members', async () => {
-      await expectAccess(access, budgetReadonlyUser, false)
+    it('scopes writers and checks reassigned budget', async () => {
+      await expectAccess(update, systemAdminUser, true)
+      await expectAccess(update, workspaceMemberUser, budgetScope)
+      await expectAccess(update, workspaceAdminUser, budgetScope)
+      await expectAccess(update, workspaceMemberUser, false, onBudgetB)
+      await expectAccess(update, budgetReadonlyUser, false)
     })
   })
 

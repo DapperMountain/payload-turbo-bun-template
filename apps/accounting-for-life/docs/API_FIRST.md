@@ -9,7 +9,7 @@ Accounting for Life is built on **Payload CMS**. The **REST and GraphQL APIs** (
 | **Collections + hooks** | Validation, defaults, side effects (posting legs, envelope rules, budget defaults) |
 | **Access control** (`src/access/`) | Who may create/read/update/delete; workspace scoping |
 | **Virtual fields** | Accept structured input on create/update that is **not** stored on the document (e.g. `entries`) |
-| **Next.js server actions** | Session auth, active workspace/budget cookies, `revalidatePath` — **not** domain rules |
+| **Next.js server actions** | Session auth, active workspace/budget cookies (UI defaults only), `revalidatePath` — **not** domain rules or write authority |
 | **Frontend components** | Form state, display, UX helpers — build payloads the API already accepts |
 
 When adding a feature, ask: *“Would a REST client sending the same JSON get the same result and errors?”* If not, move logic into Payload.
@@ -99,6 +99,10 @@ Server actions in `app/(frontend)/actions/transactions.ts` call `payload.create`
 - `revalidatePath` for RSC caches
 
 The register UI builds `entries` in the browser (splits, payee → transfer destination, amount sign) — that is **presentation**. The **rules** run in hooks regardless of client.
+
+## Budget field on writes (US-1.3)
+
+Budget-owned collections (`accounts`, `transactions`, `categories`, `category-groups`, `envelope-balances`) require a body **`budget`**. Access checks membership on that id for create/update. The `payload-budget` cookie only selects which budget the Next UI opens — it is not applied to Local/REST writes.
 
 ## Other collections
 

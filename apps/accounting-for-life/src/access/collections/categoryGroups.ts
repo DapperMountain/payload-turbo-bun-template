@@ -1,6 +1,11 @@
 import { requireOne } from '@/access/helpers'
 import { isSystemAdmin } from '@/access/roles'
-import { isBudgetContent, isBudgetContentAdmin } from '@/access/budgets'
+import {
+  canCreateOnBudget,
+  canUpdateOnBudget,
+  isBudgetContent,
+  isBudgetContentAdmin,
+} from '@/access/budgets'
 
 import { budgetContentAccess } from './budgetContent'
 
@@ -8,7 +13,7 @@ import { budgetContentAccess } from './budgetContent'
 export const categoryGroupsAccess = {
   ...budgetContentAccess,
   read: requireOne(isSystemAdmin, isBudgetContent),
-  create: requireOne(isSystemAdmin, isBudgetContentAdmin),
-  update: requireOne(isSystemAdmin, isBudgetContentAdmin),
+  create: canCreateOnBudget('BUDGET_ADMIN'),
+  update: canUpdateOnBudget('BUDGET_ADMIN'),
   delete: requireOne(isSystemAdmin, isBudgetContentAdmin),
 }

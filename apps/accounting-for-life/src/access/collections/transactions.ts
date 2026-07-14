@@ -1,6 +1,11 @@
 import { requireOne } from '@/access/helpers'
 import { isSystemAdmin } from '@/access/roles'
-import { isBudgetContent, isBudgetContentWriter } from '@/access/budgets'
+import {
+  canCreateOnBudget,
+  canUpdateOnBudget,
+  isBudgetContent,
+  isBudgetContentWriter,
+} from '@/access/budgets'
 
 import { budgetContentAccess } from './budgetContent'
 
@@ -8,7 +13,7 @@ import { budgetContentAccess } from './budgetContent'
 export const transactionsAccess = {
   ...budgetContentAccess,
   read: requireOne(isSystemAdmin, isBudgetContent),
-  create: requireOne(isSystemAdmin, isBudgetContentWriter),
-  update: requireOne(isSystemAdmin, isBudgetContentWriter),
+  create: canCreateOnBudget(),
+  update: canUpdateOnBudget(),
   delete: requireOne(isSystemAdmin, isBudgetContentWriter),
 }
