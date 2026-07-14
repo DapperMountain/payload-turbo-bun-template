@@ -73,6 +73,8 @@ See `src/access/README.md`.
 | Workspace document scope (`id`) | `src/access/workspaces/workspaceScope.ts` → `isWorkspace`, `isWorkspaceAdmin` |
 | Workspace **content** scope (`workspace` field) | `src/access/workspaces/workspaceContentScope.ts` → `isWorkspaceContent*` |
 | Budget membership scope (`budget` / budget `id`) | `src/access/budgets/` → `isBudgetContent*`, `isBudgetMember` |
+| Budgets delete (`trash: true`) | Soft-delete: `BUDGET_ADMIN`; permanent: `isSystemAdmin` (`budgetsAccess.delete`) |
+| Budget-owned create/update (US-1.3) | Body `budget` membership via `canCreateOnBudget` / `canUpdateOnBudget` — not `payload-budget` cookie |
 | Starter content collection access | `src/access/collections/workspaceContent.ts` (workspace) / `budgetContent.ts` (budget) |
 | Membership (util) | `@/utils` → `userHasWorkspaceRole`, `userBelongsToWorkspace`, `userIsWorkspaceAdmin`, `userHasBudgetRole`, `getUserBudgetIds` |
 | Admin-selected workspace (util) | `@/utils` → `userCanAccessActiveWorkspace`, `getWorkspaceFromCookie` |

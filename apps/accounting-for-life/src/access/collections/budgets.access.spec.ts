@@ -56,8 +56,19 @@ describe('budgetsAccess', () => {
 
   describe('delete', () => {
     const del = budgetsAccess.delete!
+    const trashData = { data: { deletedAt: '2026-07-14T00:00:00.000Z' } }
 
-    it('allows system admins only', async () => {
+    it('allows budget admins to soft-delete (trash)', async () => {
+      await expectAccess(del, workspaceAdminUser, budgetDocScope, trashData)
+      await expectAccess(del, systemAdminUser, true, trashData)
+    })
+
+    it('denies non-admin members soft-delete', async () => {
+      await expectAccess(del, workspaceMemberUser, false, trashData)
+      await expectAccess(del, budgetReadonlyUser, false, trashData)
+    })
+
+    it('allows only system admins to permanently delete', async () => {
       await expectAccess(del, systemAdminUser, true)
       await expectAccess(del, workspaceAdminUser, false)
       await expectAccess(del, workspaceMemberUser, false)

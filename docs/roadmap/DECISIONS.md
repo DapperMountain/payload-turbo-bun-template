@@ -12,6 +12,8 @@ Decisions captured during initial planning (July 2026).
 
 - Generic **roles with granular ACL** — read-only budget access, account-scoped edit restrictions, hide sensitive accounts from certain members.
 - **Budget membership (US-1.2):** `user.budgets[]` with `BUDGET_ADMIN` | `BUDGET_MEMBER` | `BUDGET_READONLY`. Creating a budget grants admin to the creator and seeds membership for workspace peers. Budget-scoped collections filter by membership; writers exclude readonly.
+- **Budget delete:** Budgets use Payload `trash: true`. Soft-delete (trash) is allowed for `BUDGET_ADMIN`; permanent purge (Empty trash) is system-admin only. Membership rows stay on soft-delete so restore keeps access; `beforeDelete` clears live `user.budgets[]` before permanent delete.
+- **Active budget (US-1.3):** Body `budget` is API authority for create/update on budget-owned collections (membership checked as boolean — Payload create `Where` is not enforced). `payload-budget` cookie is frontend UI default only; never stamped onto write payloads.
 - **Review workflow** — assign transactions to users; rules can auto-assign. Approval states TBD during Epic 10 implementation.
 - Hiding transactions from some members may use **account-level visibility** rather than deleting ledger rows.
 

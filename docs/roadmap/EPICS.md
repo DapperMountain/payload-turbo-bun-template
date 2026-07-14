@@ -21,8 +21,8 @@ One **workspace = household**. Multiple **budgets** per workspace with shared ac
 | ID | Story | Pts | Sprint | Status |
 |----|-------|-----|--------|--------|
 | US-1.1 | Model budgets + category groups + categories per budget; seed default catalog | 5 | 1 | **Done** |
-| US-1.2 | Budget membership with base roles (admin, member, readonly) | 5 | 1 | **Done** — `user.budgets[]` + `BUDGET_*` roles; content write excludes readonly |
-| US-1.3 | Active-budget context in API hooks and access control | 3 | 1 | Next |
+| US-1.2 | Budget membership with base roles (admin, member, readonly) | 5 | 1 | **Done** — `user.budgets[]` + `BUDGET_*` roles; trash for budget admin, permanent delete system-admin only |
+| US-1.3 | Active-budget context in API hooks and access control | 3 | 1 | **Done** — body `budget` membership on create/update; cookie UI-only |
 
 ---
 

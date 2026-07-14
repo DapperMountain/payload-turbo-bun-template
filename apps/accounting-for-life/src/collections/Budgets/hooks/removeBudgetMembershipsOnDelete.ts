@@ -4,8 +4,12 @@ import { getCollectionId } from '@/utils/getCollectionId'
 import type { Budget } from '@/types'
 
 /**
- * Clear `user.budgets[]` rows that point at this budget before delete
- * (array relationship rows are NOT NULL and block CASCADE).
+ * Clear live `user.budgets[]` rows that point at this budget before permanent
+ * delete (array FKs are NOT NULL). Soft-delete (`trash`) only sets `deletedAt`
+ * and does not run this hook — memberships stay so restore keeps access.
+ *
+ * User version history may still reference the budget; Empty trash can require
+ * system-admin handling until those FKs are cascaded in schema.
  */
 export const removeBudgetMembershipsOnDelete: CollectionBeforeDeleteHook = async ({
   id,

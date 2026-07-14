@@ -117,7 +117,7 @@ Run: `bun test ./src/access` from the app directory (see `docs/TESTING.md`).
 | `userCanAccessActiveWorkspace(req, role?)` | `payload-tenant` cookie + membership |
 | `getWorkspaceFromCookie(headers, idType)` | Read selected workspace id from cookie |
 
-## Budget membership (US-1.2)
+## Budget membership (US-1.2 / US-1.3)
 
 | Util / access | Use |
 |---------------|-----|
@@ -125,5 +125,7 @@ Run: `bun test ./src/access` from the app directory (see `docs/TESTING.md`).
 | `getUserBudgetIds` / `getUserWritableBudgetIds` | Membership lists for scopes |
 | `userHasBudgetRole` / `userBelongsToBudget` / `userIsBudgetAdmin` | Imperative checks |
 | `addUserBudgetMembership` | Idempotent grant (create hook + seeds) |
-| `budgetContentAccess` | Read = any membership; write = admin/member |
-| `budgetsAccess` | Document scope by membership; create = workspace admin |
+| `canCreateOnBudget` / `canUpdateOnBudget` | Create/update against body `budget` (US-1.3; create must be boolean, not `Where`) |
+| `budgetContentAccess` | Read = membership `Where`; create/update = body `budget` checks |
+| `budgetsAccess` | Document scope by membership; create = workspace admin; delete = trash for budget admin, permanent for system admin |
+| `payload-budget` cookie | Frontend active-budget UI only — not access or hooks |
