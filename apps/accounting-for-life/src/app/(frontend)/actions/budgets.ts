@@ -14,38 +14,6 @@ export type CreateBudgetInput = {
   isDefault?: boolean
 }
 
-async function clearOtherDefaultBudgets(
-  payload: Awaited<ReturnType<typeof getPayload>>,
-  workspaceId: string,
-  user: Parameters<typeof payload.update>[0]['user'],
-  exceptId?: string,
-) {
-  const existing = await payload.find({
-    collection: 'budgets',
-    where: {
-      and: [
-        { workspace: { equals: workspaceId } },
-        { isDefault: { equals: true } },
-        ...(exceptId ? [{ id: { not_equals: exceptId } }] : []),
-      ],
-    },
-    limit: 50,
-    depth: 0,
-    user,
-    overrideAccess: false,
-  })
-
-  for (const budget of existing.docs) {
-    await payload.update({
-      collection: 'budgets',
-      id: budget.id,
-      data: { isDefault: false },
-      user,
-      overrideAccess: false,
-    })
-  }
-}
-
 export async function createBudgetAction(
   input: CreateBudgetInput,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -58,10 +26,6 @@ export async function createBudgetAction(
     }
 
     const payload = await getPayload({ config: await config })
-
-    if (input.isDefault) {
-      await clearOtherDefaultBudgets(payload, workspace.id, user)
-    }
 
     await payload.create({
       collection: 'budgets',

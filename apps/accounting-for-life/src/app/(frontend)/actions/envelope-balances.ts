@@ -1,10 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import config from '@payload-config'
-import { getPayload } from 'payload'
 
 import { requireAppUser } from '@/lib/frontend/auth.server'
+import { getAppPayload } from '@/lib/frontend/payload.server'
 import { resolveActiveWorkspace } from '@/lib/frontend/workspace.server'
 import { getCollectionId } from '@/utils'
 
@@ -35,35 +34,18 @@ export async function updateEnvelopeAssignedAction(
       return { ok: false, error: 'No workspace selected' }
     }
 
-    const payload = await getPayload({ config: await config })
+    const payload = await getAppPayload()
 
-    const [budget, category] = await Promise.all([
-      payload.findByID({
-        collection: 'budgets',
-        id: input.budgetId,
-        depth: 0,
-        user,
-        overrideAccess: false,
-      }),
-      payload.findByID({
-        collection: 'categories',
-        id: input.categoryId,
-        depth: 0,
-        user,
-        overrideAccess: false,
-      }),
-    ])
+    const budget = await payload.findByID({
+      collection: 'budgets',
+      id: input.budgetId,
+      depth: 0,
+      user,
+      overrideAccess: false,
+    })
 
     if (getCollectionId(budget.workspace) !== workspace.id) {
       return { ok: false, error: 'Budget not in active workspace' }
-    }
-
-    if (getCollectionId(category.budget) !== input.budgetId) {
-      return { ok: false, error: 'Category does not belong to this budget' }
-    }
-
-    if (category.purpose === 'income') {
-      return { ok: false, error: 'Income categories are not assigned — they flow to Ready to assign' }
     }
 
     const existing = await payload.find({

@@ -5,9 +5,12 @@ import type { CollectionConfig } from 'payload'
 
 import { envelopeBalancesAccess } from '@/access/collections'
 
+import { hooks } from './hooks'
+
 const EnvelopeBalances: CollectionConfig = {
   slug: 'envelope-balances',
   access: envelopeBalancesAccess,
+  hooks,
   admin: {
     group: 'Budgeting',
     useAsTitle: 'id',
