@@ -104,7 +104,7 @@ The register UI builds `entries` in the browser (splits, payee → transfer dest
 
 | Collection | API-first notes |
 |------------|-----------------|
-| **accounts** | Credit-card payment category rules in `beforeChange` / `afterChange` hooks |
+| **accounts** | Credit-card payment category rules in hooks; balance computed from posted legs (not stored) |
 | **budgets** | `enforceSingleDefaultBudget` hook — only one `isDefault` per workspace |
 | **envelope-balances** | `validateEnvelopeBalance` hook — category must match budget; income categories rejected |
 | **transaction-entries** | Read-oriented for clients; writes via transaction hooks |
