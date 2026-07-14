@@ -42,12 +42,13 @@ import {
 } from '@/lib/frontend/transaction-payee'
 import {
   applyStandardViewCollapse,
-  buildPostingLinesForSave,
+  buildEntriesForSave,
   newTransferSplitDraft,
   resolvePostingCategoryId,
   seedSplitsForView,
   shouldPostFromSplitRows,
   splitIsTransfer,
+  splitStateAfterCategoryChange,
   syncSingleTransferSplitAmount,
   allSplitsAreTransfers,
   transactionTotalMagnitude,
@@ -259,13 +260,14 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
 
     setError(null)
 
-    let postingLines: ReturnType<typeof buildPostingLinesForSave> | undefined
+    let entries: ReturnType<typeof buildEntriesForSave> | undefined
 
     if (!asDraft) {
       try {
-        postingLines = buildPostingLinesForSave({
+        entries = buildEntriesForSave({
           splitState,
           categoryId,
+          categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
           payeeValue,
           activeView,
           isTransfer: resolvedType === 'transfer' || isTransfer,
@@ -282,7 +284,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
         date: normalizeTransactionDateTime(date),
         memo: resolvedMemo,
         type: resolvedType,
-        postingLines,
+        entries,
       })
 
       if (!result.ok) {
@@ -381,7 +383,10 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
                 <div className="grid gap-2">
                   <Label>{t('custom:frontend:filters:fields:category')}</Label>
                   <GroupedPicker
-                    onValueChange={setCategoryId}
+                    onValueChange={(next) => {
+                      setCategoryId(next)
+                      setSplitState((prev) => splitStateAfterCategoryChange(prev, next, categories))
+                    }}
                     options={categoryOptions}
                     placeholder={t('custom:frontend:filters:selectValue')}
                     searchPlaceholder={t('custom:frontend:filters:searchCategories')}

@@ -28,6 +28,8 @@ export type TransactionDateTimePickerProps = {
   id?: string
   value: string
   onChange: (value: string) => void
+  /** Fires when the popover closes or the user picks "now" — use for persisting. */
+  onCommit?: (value: string) => void
   disabled?: boolean
   /** Compact trigger for register rows. */
   variant?: 'default' | 'compact'
@@ -35,7 +37,7 @@ export type TransactionDateTimePickerProps = {
 }
 
 export function TransactionDateTimePicker(props: TransactionDateTimePickerProps) {
-  const { id, value, onChange, disabled, variant = 'default', className } = props
+  const { id, value, onChange, onCommit, disabled, variant = 'default', className } = props
   const { t } = useAppTranslation()
   const [open, setOpen] = useState(false)
   const [draftDate, setDraftDate] = useState(() => transactionDatePart(value))
@@ -48,14 +50,21 @@ export function TransactionDateTimePicker(props: TransactionDateTimePickerProps)
     }
   }, [open, value])
 
-  const commitDraft = (datePart: string, timePart: string) => {
+  const previewValue = (datePart: string, timePart: string) => {
     if (!datePart) return
     onChange(combineTransactionDateTime(datePart, timePart))
   }
 
+  const commitValue = (datePart: string, timePart: string) => {
+    if (!datePart) return
+    const combined = combineTransactionDateTime(datePart, timePart)
+    onChange(combined)
+    onCommit?.(combined)
+  }
+
   const handleOpenChange = (next: boolean) => {
     if (!next && open) {
-      commitDraft(draftDate, draftTime)
+      commitValue(draftDate, draftTime)
     }
     setOpen(next)
   }
@@ -109,7 +118,7 @@ export function TransactionDateTimePicker(props: TransactionDateTimePickerProps)
               onChange={(event) => {
                 const nextDate = event.target.value
                 setDraftDate(nextDate)
-                commitDraft(nextDate, draftTime)
+                previewValue(nextDate, draftTime)
               }}
               type="date"
               value={draftDate}
@@ -129,7 +138,7 @@ export function TransactionDateTimePicker(props: TransactionDateTimePickerProps)
                 onChange={(event) => {
                   const nextTime = event.target.value
                   setDraftTime(nextTime)
-                  commitDraft(draftDate, nextTime)
+                  previewValue(draftDate, nextTime)
                 }}
                 step={60}
                 type="time"
@@ -146,7 +155,7 @@ export function TransactionDateTimePicker(props: TransactionDateTimePickerProps)
               const nextTime = transactionTimePart(now)
               setDraftDate(nextDate)
               setDraftTime(nextTime)
-              onChange(now)
+              commitValue(nextDate, nextTime)
             }}
             size="sm"
             type="button"

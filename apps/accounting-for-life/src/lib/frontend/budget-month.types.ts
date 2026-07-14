@@ -58,6 +58,15 @@ export function envelopeAvailable(
   return assigned - activity
 }
 
+/** Display activity: income as positive inflows, spending as positive outflows. */
+export function displayCategoryActivity(
+  purpose: Category['purpose'],
+  rawSum: number,
+): number {
+  if (purpose === 'income') return -rawSum
+  return rawSum
+}
+
 /** YNAB-style pool: actual income received minus amounts assigned to spending envelopes. */
 export function readyToAssignAmount(incomeActivity: number, expenseAssigned: number): number {
   return incomeActivity - expenseAssigned

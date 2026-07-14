@@ -1,12 +1,11 @@
-import type { TransactionEntry } from '@/types'
+import type { Category, TransactionEntry } from '@/types'
 
 import {
   isPayeeTransferId,
   toPayeeTransferId,
   transferDestinationFromPayee,
 } from '@/lib/frontend/transaction-payee'
-import type { PostingLineInput } from '@/lib/frontend/transactions.display'
-import { postingLinesFromEntries } from '@/lib/frontend/transactions.display'
+import { entryInputsFromDocs, type TransactionEntryInput } from '@/lib/frontend/transactions.display'
 
 export type TransactionDialogView = 'standard' | 'split'
 
@@ -24,6 +23,16 @@ export type TransactionSplitFormState = {
 }
 
 const BALANCE_EPSILON = 1e-9
+
+/** When the user picks an income category, force the payment total to an inflow. */
+export function splitStateAfterCategoryChange(
+  state: TransactionSplitFormState,
+  categoryId: string,
+  categories: Category[],
+): TransactionSplitFormState {
+  const purpose = categories.find((category) => category.id === categoryId)?.purpose
+  return coerceSplitStateForCategoryPurpose(state, purpose)
+}
 
 export function splitIsTransfer(split: SplitDraft): boolean {
   return isPayeeTransferId(split.payee)
@@ -295,29 +304,48 @@ export function seedSplitsForView(
   return splitFormWithCategorySeed(state, options.categoryId ?? '')
 }
 
-export type BuildPostingLinesInput = {
+export type BuildEntriesInput = {
   splitState: TransactionSplitFormState
   categoryId?: string | null
+  /** When the header/single category is income, coerce the payment total to an inflow. */
+  categoryPurpose?: Category['purpose'] | null
   payeeValue?: string
   activeView?: TransactionDialogView
   isTransfer?: boolean
 }
 
-function resolveIsTransfer(input: BuildPostingLinesInput): boolean {
+function resolveIsTransfer(input: BuildEntriesInput): boolean {
   if (input.isTransfer) return true
   if (isPayeeTransferId(input.payeeValue ?? '')) return true
   return allSplitsAreTransfers(input.splitState.splits)
 }
 
-/** Build posting lines for create/update from split + standard header fields. */
-export function buildPostingLinesForSave(input: BuildPostingLinesInput): PostingLineInput[] {
+/** Income must land on the account as an inflow (payment leg positive on assets). */
+export function coerceSplitStateForCategoryPurpose(
+  state: TransactionSplitFormState,
+  purpose: Category['purpose'] | null | undefined,
+): TransactionSplitFormState {
+  if (purpose !== 'income') return state
+
+  const total = Number(state.totalAmount)
+  if (!Number.isFinite(total) || total >= 0) return state
+
+  return {
+    ...state,
+    totalAmount: String(Math.abs(total)),
+  }
+}
+
+/** Build entries for create/update from split + standard header fields. */
+export function buildEntriesForSave(input: BuildEntriesInput): TransactionEntryInput[] {
   const {
-    splitState,
     categoryId = null,
+    categoryPurpose = null,
     payeeValue = '',
     activeView = 'standard',
   } = input
-  const isTransfer = resolveIsTransfer(input)
+  const splitState = coerceSplitStateForCategoryPurpose(input.splitState, categoryPurpose)
+  const isTransfer = resolveIsTransfer({ ...input, splitState })
   const view = activeView
 
   if (isTransfer) {
@@ -328,7 +356,7 @@ export function buildPostingLinesForSave(input: BuildPostingLinesInput): Posting
       if (!isSplitFormBalanced(splitState)) {
         throw new Error('Splits must balance to the transaction total')
       }
-      return splitsToPostingLines(splitState)
+      return splitsToEntries(splitState)
     }
 
     const collapsed = collapseSplitFormState(splitState, categoryId)
@@ -340,7 +368,7 @@ export function buildPostingLinesForSave(input: BuildPostingLinesInput): Posting
     }
 
     const magnitude = Math.abs(amount)
-    return splitsToPostingLines({
+    return splitsToEntries({
       paymentAccount: splitState.paymentAccount,
       totalAmount: String(-magnitude),
       splits: [newTransferSplitDraft(destination, String(magnitude))],
@@ -351,7 +379,7 @@ export function buildPostingLinesForSave(input: BuildPostingLinesInput): Posting
     if (!isSplitFormBalanced(splitState)) {
       throw new Error('Splits must balance to the transaction total')
     }
-    return splitsToPostingLines(splitState)
+    return splitsToEntries(splitState)
   }
 
   const collapsed = collapseSplitFormState(splitState, categoryId)
@@ -359,20 +387,20 @@ export function buildPostingLinesForSave(input: BuildPostingLinesInput): Posting
     throw new Error('Splits must balance to the transaction total')
   }
 
-  return splitsToPostingLines(collapsed.state, { singleCategoryId: collapsed.categoryId })
+  return splitsToEntries(collapsed.state, { singleCategoryId: collapsed.categoryId })
 }
 
 /**
- * User-facing splits → balanced double-entry posting lines.
+ * User-facing splits → balanced double-entry lines.
  *
  * - Payment leg: signed total on the payment account.
  * - Payee = merchant + category: opposite sign on same account with category.
  * - Payee = transfer account: inflow on target account.
  */
-export function splitsToPostingLines(
+export function splitsToEntries(
   state: TransactionSplitFormState,
   options?: { singleCategoryId?: string | null },
-): PostingLineInput[] {
+): TransactionEntryInput[] {
   const total = Number(state.totalAmount)
   if (!state.paymentAccount || !Number.isFinite(total) || Math.abs(total) < BALANCE_EPSILON) {
     throw new Error('Transaction requires a payment account and non-zero amount')
@@ -407,7 +435,7 @@ export function splitsToPostingLines(
   const categoryLegSign = total < 0 ? 1 : -1
   const transferLegSign = total < 0 ? 1 : -1
 
-  const lines: PostingLineInput[] = [
+  const lines: TransactionEntryInput[] = [
     { account: state.paymentAccount, amount: total, sortOrder: 0 },
   ]
 
@@ -448,7 +476,7 @@ export function splitsToPostingLines(
 }
 
 export function splitFormFromEntries(entries: TransactionEntry[]): TransactionSplitFormState {
-  const lines = postingLinesFromEntries(entries)
+  const lines = entryInputsFromDocs(entries)
 
   if (lines.length === 0) {
     return { paymentAccount: '', totalAmount: '', splits: [] }
@@ -523,7 +551,7 @@ export function primaryCategoryFromSplitForm(
   const categorySplit = state.splits.find((split) => !splitIsTransfer(split) && Boolean(split.category))
   if (categorySplit) return categorySplit.category
 
-  const lines = postingLinesFromEntries(entries)
+  const lines = entryInputsFromDocs(entries)
   const categorized = lines.find((line) => line.category)
   return categorized?.category ?? ''
 }

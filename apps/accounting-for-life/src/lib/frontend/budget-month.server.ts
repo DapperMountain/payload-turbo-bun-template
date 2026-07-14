@@ -13,6 +13,7 @@ import type {
 } from '@/lib/frontend/budget-month.types'
 import {
   categoryAcceptsAssignment,
+  displayCategoryActivity,
   envelopeAvailable,
   formatBudgetMonthLabel,
   formatBudgetMonthParam,
@@ -29,18 +30,13 @@ export type {
 } from '@/lib/frontend/budget-month.types'
 export {
   categoryAcceptsAssignment,
+  displayCategoryActivity,
   envelopeAvailable,
   formatBudgetMonthLabel,
   formatBudgetMonthParam,
   parseBudgetMonth,
   readyToAssignAmount,
 } from '@/lib/frontend/budget-month.types'
-
-/** Display activity: income as positive inflows, spending as positive outflows. */
-export function displayCategoryActivity(purpose: Category['purpose'], rawSum: number): number {
-  if (purpose === 'income') return -rawSum
-  return rawSum
-}
 
 export function monthDateRange({ year, month }: BudgetMonthParams): { start: string; end: string } {
   const start = `${year}-${String(month).padStart(2, '0')}-01`

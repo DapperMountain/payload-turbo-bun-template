@@ -157,7 +157,9 @@ export async function AccountDetailViewLoader(props: {
       categoryOptionsByBudget={categoryOptionsByBudget}
       groupedCategoryOptions={groupedCategoryOptions}
       payeeOptionsByBudget={payeeOptionsByBudget}
-      registerGroups={groupTransactionsByDate(txResult.docs, displayLabels)}
+      registerGroups={groupTransactionsByDate(txResult.docs, displayLabels, {
+        accountId: props.accountId,
+      })}
       transactionCount={balanceSnapshot.transactionCount}
       transactions={txResult.docs}
     />

@@ -11,7 +11,7 @@ import {
 import { updateTransactionAction } from '@/app/(frontend)/actions/transactions'
 import { TransactionSplitsEditor } from '@/app/(frontend)/_components/transaction-splits-editor'
 import {
-  buildPostingLinesForSave,
+  buildEntriesForSave,
   hasEditableSplits,
   isSplitFormBalanced,
   normalizeSplitFormFromEntries,
@@ -70,7 +70,7 @@ export function TransactionSplitsPopover(props: TransactionSplitsPopoverProps) {
 
     startTransition(async () => {
       try {
-        const postingLines = buildPostingLinesForSave({
+        const entries = buildEntriesForSave({
           splitState,
           categoryId: normalized.displayCategoryId,
           activeView: 'split',
@@ -78,7 +78,7 @@ export function TransactionSplitsPopover(props: TransactionSplitsPopoverProps) {
         })
         const result = await updateTransactionAction({
           id: transaction.id,
-          postingLines,
+          entries,
         })
 
         if (!result.ok) {

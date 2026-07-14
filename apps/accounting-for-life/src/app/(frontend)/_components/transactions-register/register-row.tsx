@@ -37,15 +37,21 @@ import {
   newTransferSplitDraft,
   normalizeSplitFormFromEntries,
   splitFormFromEntries,
-  splitsToPostingLines,
+  splitsToEntries,
 } from '@/lib/frontend/transaction-splits'
 import { TransactionDateTimePicker, TransactionDateTimeReadonly } from '@/app/(frontend)/_components/transaction-datetime-picker'
 import {
   normalizeTransactionDateTime,
   transactionDateTimeEquals,
 } from '@/lib/frontend/transaction-datetime'
+import type { TransactionRegisterRow } from '@/lib/frontend/transactions.display'
 import {
+  entriesFromTransaction,
   transactionEntries,
+  transactionIdFromRegisterRowKey,
+  uniqueTransactionIdsFromRegisterRowKeys,
+  updatePrimaryAccountInLines,
+  updatePrimaryAmountInLines,
 } from '@/lib/frontend/transactions.display'
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
 import type { Account, Transaction } from '@/types'
@@ -122,13 +128,27 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
   useEffect(() => {
     setPayeeValue(payeeValueFromTransaction(transaction))
-    setDate(normalizeTransactionDateTime(row.date))
+    setDate((current) => {
+      const next = normalizeTransactionDateTime(row.date)
+      return transactionDateTimeEquals(current, next) ? current : next
+    })
     setCategoryId(primaryCategoryId(transaction))
     setAccountId(row.primaryAccountId)
     setAmount(String(row.amount))
     setStatus(row.status)
     setRowError(null)
-  }, [row.id, row.memo, row.date, row.primaryAccountId, row.amount, row.status, transaction])
+  }, [
+    row.id,
+    row.memo,
+    row.date,
+    row.primaryAccountId,
+    row.amount,
+    row.status,
+    transaction.id,
+    transaction.updatedAt,
+    transaction.memo,
+    transaction.type,
+  ])
 
   const saveField = (patch: {
     memo?: string | null
@@ -143,7 +163,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
     setRowError(null)
     startTransition(async () => {
-      let postingLines
+      let entriesPayload
 
       try {
         const entries = transactionEntries(transaction)
@@ -153,19 +173,11 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           // header-only fields handled below
         }
 
-        if (patch.accountId !== undefined) {
-          form = { ...form, paymentAccount: patch.accountId }
-        }
-
-        if (patch.amount !== undefined) {
-          form = { ...form, totalAmount: String(patch.amount) }
-        }
-
         if (patch.payeeValue !== undefined) {
           const destination = transferDestinationFromPayee(patch.payeeValue)
           if (destination) {
             const magnitude = Math.abs(Number(form.totalAmount) || Math.abs(row.amount))
-            postingLines = splitsToPostingLines({
+            entriesPayload = splitsToEntries({
               paymentAccount: form.paymentAccount,
               totalAmount: String(-magnitude),
               splits: [newTransferSplitDraft(destination, String(magnitude))],
@@ -174,7 +186,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             const normalized = normalizeSplitFormFromEntries(entries)
             const category =
               categoryId || defaultCategoryIdFromPickerOptions(categoryOptions)
-            postingLines = splitsToPostingLines(normalized, {
+            entriesPayload = splitsToEntries(normalized, {
               singleCategoryId: category,
             })
           }
@@ -186,20 +198,39 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             setRowError(t('custom:frontend:transactions:editSplitsInline'))
             return
           }
-          postingLines = splitsToPostingLines(normalized, {
+          entriesPayload = splitsToEntries(normalized, {
             singleCategoryId: patch.categoryId,
           })
-        } else if (
-          patch.accountId !== undefined ||
-          patch.amount !== undefined
-        ) {
-          postingLines = splitsToPostingLines(form, {
-            singleCategoryId: form.splits.length ? null : categoryId || null,
-          })
+        } else if (patch.accountId !== undefined || patch.amount !== undefined) {
+          const storedLines = entriesFromTransaction(transaction)
+          const isMultiLegTransfer = row.type === 'transfer' && storedLines.length >= 2
+
+          if (isMultiLegTransfer) {
+            let next = storedLines
+            if (patch.amount !== undefined) {
+              next = updatePrimaryAmountInLines(next, row.entryIndex, patch.amount)
+            }
+            if (patch.accountId !== undefined) {
+              next = updatePrimaryAccountInLines(next, row.entryIndex, patch.accountId)
+            }
+            entriesPayload = next
+          } else {
+            if (patch.accountId !== undefined) {
+              form = { ...form, paymentAccount: patch.accountId }
+            }
+
+            if (patch.amount !== undefined) {
+              form = { ...form, totalAmount: String(patch.amount) }
+            }
+
+            entriesPayload = splitsToEntries(form, {
+              singleCategoryId: form.splits.length ? null : categoryId || null,
+            })
+          }
         }
 
         const result = await updateTransactionAction({
-          id: row.id,
+          id: row.transactionId,
           memo:
             patch.payeeValue !== undefined
               ? isPayeeTransferId(patch.payeeValue)
@@ -215,7 +246,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             resolveTransactionTypeFromPayee(patch.payeeValue) !== row.type
               ? resolveTransactionTypeFromPayee(patch.payeeValue)
               : undefined,
-          postingLines,
+          entries: entriesPayload,
         })
 
         if (!result.ok) {
@@ -237,8 +268,10 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           <div onClick={(event) => event.stopPropagation()}>
             <TransactionDateTimePicker
               disabled={isPending}
-              onChange={(next) => {
-                setDate(next)
+              id={`tx-datetime-${row.id}`}
+              key={row.id}
+              onChange={setDate}
+              onCommit={(next) => {
                 if (next && !transactionDateTimeEquals(next, row.date)) {
                   saveField({ date: normalizeTransactionDateTime(next) })
                 }
@@ -309,7 +342,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
                   count: String(splitForm.splits.length),
                 })
               }
-              onOpenDetail={() => onOpenDetail(row.id, 'split')}
+              onOpenDetail={() => onOpenDetail(row.transactionId, 'split')}
               onSaved={() => router.refresh()}
               payeeOptions={payeeOptions}
               transaction={transaction}
@@ -465,7 +498,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         {!bulkMode ? (
           <button
             className="flex size-8 items-center justify-center rounded-md hover:bg-muted"
-            onClick={() => onOpenDetail(row.id)}
+            onClick={() => onOpenDetail(row.transactionId)}
             type="button"
           >
             <ChevronRight className="size-4 text-muted-foreground" />

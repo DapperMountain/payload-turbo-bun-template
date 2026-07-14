@@ -281,7 +281,7 @@ export default {
         singular: 'Transacción',
         plural: 'Transacciones',
         description:
-          'Movimiento de dinero. Incluya postingLines al crear para registrar partidas equilibradas.',
+          'Movimiento de dinero. Incluya entries al crear para registrar partidas equilibradas.',
       },
       transactionEntries: {
         singular: 'Partida de transacción',
@@ -318,10 +318,9 @@ export default {
         },
       },
       transactions: {
-        postingLinesDescription:
-          'Partidas equilibradas al crear (no se guardan en el documento). Omita para transacciones pendientes.',
-        postingLinesAmountDescription: 'Importe con signo (negativo = crédito, positivo = débito).',
-        entriesDescription: 'Partidas publicadas (escritas por el hook de creación desde postingLines).',
+        entriesDescription:
+          'Partidas equilibradas al crear/actualizar (no se guardan en el documento de transacción). Omita para transacciones pendientes.',
+        entryAmountDescription: 'Importe con signo (negativo = crédito, positivo = débito).',
         type: {
           transaction: 'Transacción',
           transfer: 'Transferencia',

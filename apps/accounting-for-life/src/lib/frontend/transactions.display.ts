@@ -1,4 +1,10 @@
 import type { Account, Category, Transaction, TransactionEntry } from '@/types'
+import {
+  applyCategoryToEntries,
+  storedDocsFromJoin,
+  type TransactionEntryInput,
+  type TransactionEntryView,
+} from '@/collections/Transactions/lib/entries'
 import { getCollectionId } from '@/utils/getCollectionId'
 import { sortTransactionDateTime, transactionDatePart } from '@/lib/frontend/transaction-datetime'
 
@@ -32,28 +38,46 @@ export function categoryDisplayName(
   return labels[category] ?? null
 }
 
-export type PostingLineInput = {
-  account: string
-  amount: number
-  category?: string | null
-  sortOrder?: number
+export function entriesFromTransaction(transaction: Transaction): TransactionEntryInput[] {
+  return transactionEntries(transaction).map((entry, index) => ({
+    account: getCollectionId(entry.account) ?? '',
+    amount: entry.amount,
+    category: getCollectionId(entry.category),
+    sortOrder: entry.sortOrder ?? index,
+  }))
 }
 
-export function transactionEntries(transaction: Transaction): TransactionEntry[] {
-  const entries = transaction.entries
-  if (!entries || typeof entries !== 'object' || !('docs' in entries)) return []
-  return (entries.docs ?? []).filter(
-    (doc): doc is TransactionEntry => typeof doc === 'object' && doc !== null,
-  )
-}
-
-export function postingLinesFromEntries(entries: TransactionEntry[]): PostingLineInput[] {
+export function entryInputsFromDocs(entries: TransactionEntry[]): TransactionEntryInput[] {
   return entries.map((entry, index) => ({
     account: getCollectionId(entry.account)!,
     amount: entry.amount,
     category: getCollectionId(entry.category),
     sortOrder: entry.sortOrder ?? index,
   }))
+}
+
+export type { TransactionEntryInput, TransactionEntryView } from '@/collections/Transactions/lib/entries'
+
+export function transactionEntries(transaction: Transaction): TransactionEntry[] {
+  const entries = transaction.entries
+
+  if (Array.isArray(entries)) {
+    return entries.map((line, index) => ({
+      id: line.id ?? `line-${index}`,
+      workspace: getCollectionId(transaction.workspace) ?? '',
+      transaction: transaction.id,
+      account: line.account,
+      amount: line.amount,
+      category: line.category ?? undefined,
+      sortOrder: line.sortOrder ?? index,
+      unit: '',
+      updatedAt: '',
+      createdAt: '',
+    }))
+  }
+
+  const stored = storedDocsFromJoin(transaction.entryJoin)
+  return stored
 }
 
 export function registerCategoryLabel(
@@ -83,20 +107,7 @@ export type SplitLineDraft = {
   category: string
 }
 
-export function splitDraftsFromPostingLines(lines: PostingLineInput[]): SplitLineDraft[] {
-  return lines.map((line, index) => ({
-    key: `line-${index}`,
-    account: line.account,
-    amount: String(line.amount),
-    category: line.category ?? '',
-  }))
-}
-
-export function splitDraftsFromEntries(entries: TransactionEntry[]): SplitLineDraft[] {
-  return splitDraftsFromPostingLines(postingLinesFromEntries(entries))
-}
-
-export function postingLinesFromDrafts(lines: SplitLineDraft[]): PostingLineInput[] {
+export function entryInputsFromDrafts(lines: SplitLineDraft[]): TransactionEntryInput[] {
   return lines
     .filter((line) => line.account && line.amount !== '')
     .map((line, index) => ({
@@ -131,34 +142,18 @@ export function newSplitLineDraft(accountId = ''): SplitLineDraft {
 }
 
 export function applyCategoryToLines(
-  lines: PostingLineInput[],
+  lines: TransactionEntryInput[],
   type: Transaction['type'],
   categoryId: string | null,
-): PostingLineInput[] {
-  if (type === 'transfer') {
-    return lines
-  }
-
-  const hasCategorized = lines.some((line) => line.category)
-
-  if (hasCategorized) {
-    return lines.map((line) =>
-      line.category ? { ...line, category: categoryId ?? undefined } : line,
-    )
-  }
-
-  let applied = false
-  return lines.map((line) => {
-    if (!applied && line.amount !== 0) {
-      applied = true
-      return { ...line, category: categoryId ?? undefined }
-    }
-    return line
-  })
+): TransactionEntryInput[] {
+  return applyCategoryToEntries(lines, type, categoryId)
 }
 
 export type TransactionRegisterRow = {
+  /** Unique register row key (transaction id + leg index when expanded). */
   id: string
+  transactionId: string
+  entryIndex: number
   date: string | null
   memo: string | null
   type: Transaction['type']
@@ -169,6 +164,25 @@ export type TransactionRegisterRow = {
   categoryLabel: string | null
   amount: number
   entryCount: number
+}
+
+export function registerRowKey(transactionId: string, entryIndex: number): string {
+  return `${transactionId}#${entryIndex}`
+}
+
+export function transactionIdFromRegisterRowKey(rowKey: string): string {
+  const hash = rowKey.lastIndexOf('#')
+  if (hash === -1) return rowKey
+  return rowKey.slice(0, hash)
+}
+
+export function uniqueTransactionIdsFromRegisterRowKeys(rowKeys: Iterable<string>): string[] {
+  return [...new Set([...rowKeys].map(transactionIdFromRegisterRowKey))]
+}
+
+export type RegisterRowsOptions = {
+  /** Account detail view — show the leg for this account only. */
+  accountId?: string | null
 }
 
 export function primaryEntryIndex(entries: TransactionEntry[]): number {
@@ -188,20 +202,20 @@ export function primaryEntryIndex(entries: TransactionEntry[]): number {
 }
 
 export function updatePrimaryAccountInLines(
-  lines: PostingLineInput[],
+  lines: TransactionEntryInput[],
   primaryIdx: number,
   accountId: string,
-): PostingLineInput[] {
+): TransactionEntryInput[] {
   return lines.map((line, index) =>
     index === primaryIdx ? { ...line, account: accountId } : line,
   )
 }
 
 export function updatePrimaryAmountInLines(
-  lines: PostingLineInput[],
+  lines: TransactionEntryInput[],
   primaryIdx: number,
   newAmount: number,
-): PostingLineInput[] {
+): TransactionEntryInput[] {
   if (!lines.length) return lines
 
   const next = lines.map((line) => ({ ...line }))
@@ -234,44 +248,97 @@ export function updatePrimaryAmountInLines(
   return next
 }
 
-export function registerRowFromTransaction(
+export function registerRowFromEntry(
   transaction: Transaction,
+  lines: TransactionEntry[],
+  entryIndex: number,
   labels: TransactionDisplayLabels = emptyTransactionDisplayLabels,
 ): TransactionRegisterRow {
-  const lines = transactionEntries(transaction)
-  const primaryIndex = primaryEntryIndex(lines)
-  const primary = lines[primaryIndex]
-
-  const account = accountDisplayName(primary?.account, labels.accounts)
-  const category = registerCategoryLabel(transaction, labels)
-
-  const amount = primary?.amount ?? 0
+  const entry = lines[entryIndex]
+  const category =
+    transaction.type === 'transfer'
+      ? categoryDisplayName(entry?.category, labels.categories)
+      : registerCategoryLabel(transaction, labels)
 
   return {
-    id: transaction.id,
+    id: registerRowKey(transaction.id, entryIndex),
+    transactionId: transaction.id,
+    entryIndex,
     date: transaction.date ?? null,
     memo: transaction.memo ?? null,
     type: transaction.type,
     status: transaction.status,
     budgetId: getCollectionId(transaction.budget) ?? '',
-    accountLabel: account,
-    primaryAccountId: getCollectionId(primary?.account) ?? '',
+    accountLabel: accountDisplayName(entry?.account, labels.accounts),
+    primaryAccountId: getCollectionId(entry?.account) ?? '',
     categoryLabel: category,
-    amount,
+    amount: entry?.amount ?? 0,
     entryCount: lines.length,
   }
+}
+
+export function registerRowsFromTransaction(
+  transaction: Transaction,
+  labels: TransactionDisplayLabels = emptyTransactionDisplayLabels,
+  options?: RegisterRowsOptions,
+): TransactionRegisterRow[] {
+  const lines = transactionEntries(transaction)
+
+  if (!lines.length) {
+    return [
+      {
+        id: registerRowKey(transaction.id, 0),
+        transactionId: transaction.id,
+        entryIndex: 0,
+        date: transaction.date ?? null,
+        memo: transaction.memo ?? null,
+        type: transaction.type,
+        status: transaction.status,
+        budgetId: getCollectionId(transaction.budget) ?? '',
+        accountLabel: '—',
+        primaryAccountId: '',
+        categoryLabel: null,
+        amount: 0,
+        entryCount: 0,
+      },
+    ]
+  }
+
+  if (options?.accountId) {
+    const scopedIndex = lines.findIndex(
+      (entry) => getCollectionId(entry.account) === options.accountId,
+    )
+    const entryIndex = scopedIndex >= 0 ? scopedIndex : primaryEntryIndex(lines)
+    return [registerRowFromEntry(transaction, lines, entryIndex, labels)]
+  }
+
+  if (transaction.type === 'transfer' && lines.length >= 2) {
+    return lines.map((_, index) => registerRowFromEntry(transaction, lines, index, labels))
+  }
+
+  const primaryIndex = primaryEntryIndex(lines)
+  return [registerRowFromEntry(transaction, lines, primaryIndex, labels)]
+}
+
+/** @deprecated Prefer {@link registerRowsFromTransaction} */
+export function registerRowFromTransaction(
+  transaction: Transaction,
+  labels: TransactionDisplayLabels = emptyTransactionDisplayLabels,
+): TransactionRegisterRow {
+  return registerRowsFromTransaction(transaction, labels)[0]!
 }
 
 export function groupTransactionsByDate(
   transactions: Transaction[],
   labels: TransactionDisplayLabels = emptyTransactionDisplayLabels,
+  options?: RegisterRowsOptions,
 ): { date: string; label: string; total: number; rows: TransactionRegisterRow[] }[] {
   const groups = new Map<string, TransactionRegisterRow[]>()
 
   for (const transaction of transactions) {
     const date = transactionDatePart(transaction.date) || 'unknown'
     const list = groups.get(date) ?? []
-    list.push(registerRowFromTransaction(transaction, labels))
+    list.push(...registerRowsFromTransaction(transaction, labels, options))
     groups.set(date, list)
   }
 

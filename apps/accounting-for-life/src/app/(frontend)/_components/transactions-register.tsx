@@ -32,6 +32,10 @@ import { useRegisterTableState } from '@/app/(frontend)/_components/transactions
 import { combineTransactionDateTime, normalizeTransactionDateTime } from '@/lib/frontend/transaction-datetime'
 import type { TransactionRegisterRow } from '@/lib/frontend/transactions.display'
 import {
+  transactionIdFromRegisterRowKey,
+  uniqueTransactionIdsFromRegisterRowKeys,
+} from '@/lib/frontend/transactions.display'
+import {
   accountClassificationGroupKey,
   buildGroupedAccountOptions,
   buildGroupedCategoryOptionsByGroup,
@@ -242,6 +246,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
             </span>
             <TransactionDateTimePicker
               className="w-[12rem]"
+              id="bulk-transaction-datetime"
               onChange={setBulkDate}
               value={bulkDate}
               variant="compact"
@@ -253,7 +258,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
             onClick={() =>
               runBulk(() =>
                 bulkSetTransactionCategoryAction({
-                  ids: [...selected],
+                  ids: uniqueTransactionIdsFromRegisterRowKeys(selected),
                   categoryId: bulkCategory,
                 }),
               )
@@ -268,7 +273,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
             onClick={() =>
               runBulk(() =>
                 bulkUpdateTransactionsAction({
-                  ids: [...selected],
+                  ids: uniqueTransactionIdsFromRegisterRowKeys(selected),
                   patch: { date: normalizeTransactionDateTime(bulkDate) },
                 }),
               )
@@ -281,7 +286,13 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
 
           <Button
             disabled={isPending}
-            onClick={() => runBulk(() => bulkDeleteTransactionsAction({ ids: [...selected] }))}
+            onClick={() =>
+              runBulk(() =>
+                bulkDeleteTransactionsAction({
+                  ids: uniqueTransactionIdsFromRegisterRowKeys(selected),
+                }),
+              )
+            }
             size="sm"
             variant="destructive"
           >
@@ -333,7 +344,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
                   </TableRow>
 
                   {group.rows.map((row) => {
-                    const transaction = byId.get(row.id)
+                    const transaction = byId.get(transactionIdFromRegisterRowKey(row.id))
                     if (!transaction) return null
 
                     return (
@@ -358,7 +369,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
               ))
             ) : (
               display.rows.map((row) => {
-                const transaction = byId.get(row.id)
+                const transaction = byId.get(transactionIdFromRegisterRowKey(row.id))
                 if (!transaction) return null
 
                 return (

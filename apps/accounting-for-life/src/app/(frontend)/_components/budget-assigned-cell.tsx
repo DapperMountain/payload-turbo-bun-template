@@ -96,32 +96,35 @@ export function BudgetAssignedCell(props: BudgetAssignedCellProps) {
 
   if (editing) {
     return (
-      <Input
-        aria-invalid={error ? true : undefined}
-        className={cn(cellControlClass, error && 'border-destructive')}
-        disabled={isPending}
-        inputMode="decimal"
-        onBlur={save}
-        onChange={(e) => {
-          setDraft(e.target.value)
-          if (error) setError(null)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            save()
-          }
-          if (e.key === 'Escape') {
-            e.preventDefault()
-            cancelEditing()
-          }
-        }}
-        placeholder="0.00"
-        ref={inputRef}
-        title={error ?? undefined}
-        type="text"
-        value={draft}
-      />
+      <div className="grid gap-1">
+        <Input
+          aria-invalid={error ? true : undefined}
+          className={cn(cellControlClass, error && 'border-destructive')}
+          disabled={isPending}
+          inputMode="decimal"
+          onBlur={save}
+          onChange={(e) => {
+            setDraft(e.target.value)
+            if (error) setError(null)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              save()
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault()
+              cancelEditing()
+            }
+          }}
+          placeholder="0.00"
+          ref={inputRef}
+          title={error ?? undefined}
+          type="text"
+          value={draft}
+        />
+        {error ? <p className="text-right text-xs text-destructive">{error}</p> : null}
+      </div>
     )
   }
 

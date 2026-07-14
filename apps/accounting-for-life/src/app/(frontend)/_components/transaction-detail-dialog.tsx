@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@dappermountain/ui/com
 import {
   deleteTransactionAction,
   updateTransactionAction,
-  type PostingLineInputClient,
+  type TransactionEntryInputClient,
 } from '@/app/(frontend)/actions/transactions'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
 import { PayeePicker } from '@/app/(frontend)/_components/payee-picker'
@@ -46,7 +46,7 @@ import {
 } from '@/lib/frontend/transaction-datetime'
 import {
   applyStandardViewCollapse,
-  buildPostingLinesForSave,
+  buildEntriesForSave,
   defaultTransactionDialogView,
   hasEditableSplits,
   isMultiSplitTransaction,
@@ -55,6 +55,7 @@ import {
   seedSplitsForView,
   shouldPostFromSplitRows,
   splitIsTransfer,
+  splitStateAfterCategoryChange,
   standardAmountLocked,
   syncSingleTransferSplitAmount,
   transactionTotalMagnitude,
@@ -228,8 +229,8 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     setActiveView(view)
   }
 
-  const buildPostingLines = ():
-    | { ok: true; lines: PostingLineInputClient[] }
+  const buildEntries = ():
+    | { ok: true; lines: TransactionEntryInputClient[] }
     | { ok: false } => {
     if (readOnly) {
       return { ok: false }
@@ -238,9 +239,10 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     try {
       return {
         ok: true,
-        lines: buildPostingLinesForSave({
+        lines: buildEntriesForSave({
           splitState,
           categoryId,
+          categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
           payeeValue,
           activeView,
           isTransfer,
@@ -257,7 +259,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
 
     setError(null)
     startTransition(async () => {
-      const built = buildPostingLines()
+      const built = buildEntries()
       if (!built.ok) return
 
       const resolvedMemo = isPayeeTransferId(payeeValue) ? null : payeeValue || null
@@ -271,7 +273,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
         date: dateDirty ? normalizeTransactionDateTime(date) : undefined,
         memo: payeeDirty ? resolvedMemo : undefined,
         type: typeDirty ? resolvedType : undefined,
-        postingLines: built.lines,
+        entries: built.lines,
       })
 
       if (!result.ok) {
@@ -372,7 +374,10 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
                   <Label>{t('custom:frontend:filters:fields:category')}</Label>
                   <GroupedPicker
                     disabled={isPending || readOnly}
-                    onValueChange={setCategoryId}
+                    onValueChange={(next) => {
+                      setCategoryId(next)
+                      setSplitState((prev) => splitStateAfterCategoryChange(prev, next, categories))
+                    }}
                     options={categoryOptions}
                     placeholder={t('custom:frontend:filters:selectValue')}
                     searchPlaceholder={t('custom:frontend:filters:searchCategories')}
@@ -402,7 +407,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
             <TabsContent className="pt-4" value="split">
               {readOnly ? (
                 <p className="text-sm text-muted-foreground">
-                  {t('custom:fields:transactions:postingLinesDescription')}
+                  {t('custom:fields:transactions:entriesDescription')}
                 </p>
               ) : (
                 <TransactionSplitsEditor

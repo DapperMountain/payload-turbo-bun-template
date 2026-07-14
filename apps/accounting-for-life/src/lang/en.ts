@@ -279,7 +279,7 @@ export default {
       transactions: {
         singular: 'Transaction',
         plural: 'Transactions',
-        description: 'Money movement. Include postingLines on create to post balanced legs.',
+        description: 'Money movement. Include entries on create to post balanced legs.',
       },
       transactionEntries: {
         singular: 'Transaction entry',
@@ -315,10 +315,9 @@ export default {
         },
       },
       transactions: {
-        postingLinesDescription:
-          'Balanced legs to post on create (not stored on the saved document). Omit for pending headers.',
-        postingLinesAmountDescription: 'Signed amount (negative = credit, positive = debit).',
-        entriesDescription: 'Posted legs (written by the create hook from postingLines).',
+        entriesDescription:
+          'Balanced legs to post on create/update (not stored on the transaction document). Omit for pending headers.',
+        entryAmountDescription: 'Signed amount (negative = credit, positive = debit).',
         type: {
           transaction: 'Transaction',
           transfer: 'Transfer',
