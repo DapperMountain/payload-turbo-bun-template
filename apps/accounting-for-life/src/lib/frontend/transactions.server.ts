@@ -15,4 +15,5 @@ export {
   transactionIdFromRegisterRowKey,
   uniqueTransactionIdsFromRegisterRowKeys,
   transactionEntries,
+  withNewestFirstRunningBalances,
 } from '@/lib/frontend/transactions.display'

@@ -22,7 +22,7 @@ import { getAppPayload } from '@/lib/frontend/payload.server'
 import { buildGroupedAccountOptions } from '@/lib/frontend/transaction-picker-options'
 import { findFilteredTransactions } from '@/lib/frontend/transaction-query.server'
 import { findPayeeMemosByBudget } from '@/lib/frontend/transaction-payees.server'
-import { groupTransactionsByDate } from '@/lib/frontend/transactions.server'
+import { groupTransactionsByDate, withNewestFirstRunningBalances } from '@/lib/frontend/transactions.server'
 import type { Account, Category, User } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
 import { getRequestI18n } from '@/utils/i18n.server'
@@ -157,9 +157,12 @@ export async function AccountDetailViewLoader(props: {
       categoryOptionsByBudget={categoryOptionsByBudget}
       groupedCategoryOptions={groupedCategoryOptions}
       payeeOptionsByBudget={payeeOptionsByBudget}
-      registerGroups={groupTransactionsByDate(txResult.docs, displayLabels, {
-        accountId: props.accountId,
-      })}
+      registerGroups={withNewestFirstRunningBalances(
+        groupTransactionsByDate(txResult.docs, displayLabels, {
+          accountId: props.accountId,
+        }),
+        balanceSnapshot.balance,
+      )}
       transactionCount={balanceSnapshot.transactionCount}
       transactions={txResult.docs}
     />

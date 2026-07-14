@@ -461,6 +461,13 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
         return <span className="tabular-nums">{formatMoney(row.amount)}</span>
 
+      case 'balance':
+        return row.runningBalance == null ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          <span className="tabular-nums">{formatMoney(row.runningBalance)}</span>
+        )
+
       default:
         return null
     }
@@ -481,7 +488,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         <TableCell
           className={cn(
             columnId === 'memo' && 'max-w-xs',
-            columnId === 'amount' && 'text-right',
+            (columnId === 'amount' || columnId === 'balance') && 'text-right',
           )}
           key={columnId}
           onClick={(event) => {

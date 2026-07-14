@@ -128,6 +128,7 @@ export default {
         editMultiple: 'Edit multiple',
         doneSelecting: 'Done',
         amountColumn: 'Amount',
+        balanceColumn: 'Balance',
         setCategory: 'Set category…',
         applyCategory: 'Apply category',
         applyDate: 'Apply date',

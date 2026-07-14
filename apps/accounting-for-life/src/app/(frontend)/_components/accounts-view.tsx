@@ -6,6 +6,7 @@ import { AccountFormDialog } from '@/app/(frontend)/_components/account-form-dia
 import { PayloadFilterBar } from '@/app/(frontend)/_components/payload-filter-bar'
 import { accountFilterFields } from '@/lib/filters/fields'
 import { parseFiltersParam } from '@/lib/filters/parse'
+import { sumPostedBalancesByAccount } from '@/lib/frontend/account-transactions.server'
 import { findFilteredAccounts } from '@/lib/frontend/transaction-query.server'
 import type { Account, User } from '@/types'
 import { getRequestI18n } from '@/utils/i18n.server'
@@ -19,8 +20,13 @@ import {
 } from '@dappermountain/ui/components/table'
 import { ChevronRight } from '@dappermountain/ui/icons'
 
+function formatMoney(amount: number): string {
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount)
+}
+
 export type AccountsViewProps = {
   accounts: Account[]
+  balancesByAccountId: Record<string, number>
   budgets: { id: string; name: string }[]
   units: { id: string; label: string }[]
 }
@@ -38,27 +44,34 @@ export async function AccountsViewLoader(props: {
     clauses,
   })
 
-  const budgets = await payload.find({
-    collection: 'budgets',
-    where: { workspace: { equals: props.workspaceId } },
-    limit: 50,
-    depth: 0,
-    user: props.user,
-    overrideAccess: false,
-  })
-
-  const units = await payload.find({
-    collection: 'units',
-    where: { workspace: { equals: props.workspaceId } },
-    limit: 50,
-    depth: 0,
-    user: props.user,
-    overrideAccess: false,
-  })
+  const [budgets, units, balances] = await Promise.all([
+    payload.find({
+      collection: 'budgets',
+      where: { workspace: { equals: props.workspaceId } },
+      limit: 50,
+      depth: 0,
+      user: props.user,
+      overrideAccess: false,
+    }),
+    payload.find({
+      collection: 'units',
+      where: { workspace: { equals: props.workspaceId } },
+      limit: 50,
+      depth: 0,
+      user: props.user,
+      overrideAccess: false,
+    }),
+    sumPostedBalancesByAccount(payload, {
+      user: props.user,
+      workspaceId: props.workspaceId,
+      accountIds: result.docs.map((account) => account.id),
+    }),
+  ])
 
   return (
     <AccountsView
       accounts={result.docs}
+      balancesByAccountId={Object.fromEntries(balances)}
       budgets={budgets.docs.map((b) => ({ id: b.id, name: b.name }))}
       units={units.docs.map((u) => ({ id: u.id, label: `${u.code} — ${u.name}` }))}
     />
@@ -66,7 +79,7 @@ export async function AccountsViewLoader(props: {
 }
 
 export async function AccountsView(props: AccountsViewProps) {
-  const { accounts, budgets, units } = props
+  const { accounts, balancesByAccountId, budgets, units } = props
   const { t } = await getRequestI18n()
 
   const relationshipOptions = {
@@ -95,13 +108,14 @@ export async function AccountsView(props: AccountsViewProps) {
               <TableHead>{t('custom:frontend:filters:fields:classification')}</TableHead>
               <TableHead>{t('custom:frontend:filters:fields:subtype')}</TableHead>
               <TableHead>{t('custom:frontend:filters:fields:budget')}</TableHead>
+              <TableHead className="text-right">{t('custom:frontend:accounts:balance')}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {accounts.length === 0 ? (
               <TableRow>
-                <TableCell className="text-muted-foreground" colSpan={5}>
+                <TableCell className="text-muted-foreground" colSpan={6}>
                   {t('custom:frontend:accounts:empty')}
                 </TableCell>
               </TableRow>
@@ -117,6 +131,9 @@ export async function AccountsView(props: AccountsViewProps) {
                   <TableCell>{t(`custom:fields:accounts:subtype:${account.subtype}`)}</TableCell>
                   <TableCell>
                     {typeof account.budget === 'object' && account.budget ? account.budget.name : '—'}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatMoney(balancesByAccountId[account.id] ?? 0)}
                   </TableCell>
                   <TableCell className="w-10">
                     <Link

@@ -29,7 +29,7 @@ Decisions captured during initial planning (July 2026).
 | `transactions` | Header: `date`, `memo`, `type`, `status`, `budget` | Yes (50) |
 | `transaction-entries` | Legs: `account`, signed `amount`, `unit`, optional `category` | No |
 
-- **Posting:** `POST /api/transactions` with virtual `entries` on create/update — collection hooks validate balance and write `transaction-entries`. The same `entries` array is returned on read via `afterRead`. Legs are not writable via the entries collection API.
+- **Balances:** Computed from posted `transaction-entries` (Σ signed amounts). Accounts list and account-register running balance use the same helper — not stored on the account document.
 - **Entry types:** `transaction`, `transfer`, `adjustment`, `opening_balance`. **Status:** `draft`, `posted`, `void`.
 - **Transfers:** `type: transfer`, one **transaction header** with balanced legs (Model A). Asset ↔ asset: no categories on lines (MVP). A second header per account (Model B) is out of scope until import/register UX requires it.
 - **Credit cards:** `subtype: credit_card` auto-creates a `credit_card_payments` group + `credit_card_payment` category on account create.

@@ -126,6 +126,7 @@ export default {
         editMultiple: 'Editar varias',
         doneSelecting: 'Listo',
         amountColumn: 'Importe',
+        balanceColumn: 'Saldo',
         setCategory: 'Elegir categoría…',
         applyCategory: 'Aplicar categoría',
         applyDate: 'Aplicar fecha',

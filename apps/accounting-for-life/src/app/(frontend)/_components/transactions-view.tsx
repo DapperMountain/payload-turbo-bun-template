@@ -182,6 +182,7 @@ export async function TransactionsView(props: TransactionsViewProps) {
         accountLabels={accountLabels}
         accounts={accounts}
         categories={categories}
+        hiddenColumns={['balance']}
         payeeOptionsByBudget={payeeOptionsByBudget}
         registerGroups={registerGroups}
         transactions={transactions}

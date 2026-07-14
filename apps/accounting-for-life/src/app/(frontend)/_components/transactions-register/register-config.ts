@@ -8,6 +8,7 @@ export const REGISTER_COLUMN_IDS = [
   'account',
   'status',
   'amount',
+  'balance',
 ] as const
 
 export type RegisterColumnId = (typeof REGISTER_COLUMN_IDS)[number]
@@ -40,6 +41,11 @@ export const REGISTER_COLUMN_DEFS: Record<RegisterColumnId, RegisterColumnDef> =
   account: { id: 'account', labelKey: 'custom:frontend:nav:accounts' },
   status: { id: 'status', labelKey: 'custom:frontend:transactions:statusLabel' },
   amount: { id: 'amount', labelKey: 'custom:frontend:transactions:amountColumn', align: 'right' },
+  balance: {
+    id: 'balance',
+    labelKey: 'custom:frontend:transactions:balanceColumn',
+    align: 'right',
+  },
 }
 
 export function isRegisterColumnId(value: string): value is RegisterColumnId {
@@ -95,6 +101,9 @@ export function sortRegisterRows(
         break
       case 'amount':
         result = a.amount - b.amount
+        break
+      case 'balance':
+        result = (a.runningBalance ?? 0) - (b.runningBalance ?? 0)
         break
       default:
         result = 0

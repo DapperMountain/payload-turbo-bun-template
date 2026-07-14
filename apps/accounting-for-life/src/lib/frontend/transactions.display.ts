@@ -7,6 +7,7 @@ import {
 } from '@/collections/Transactions/lib/entries'
 import { getCollectionId } from '@/utils/getCollectionId'
 import { sortTransactionDateTime, transactionDatePart } from '@/lib/frontend/transaction-datetime'
+import { attachNewestFirstRunningBalances } from '@/lib/ledger/account-balance'
 
 export type TransactionDisplayLabels = {
   accounts: Record<string, string>
@@ -164,6 +165,8 @@ export type TransactionRegisterRow = {
   categoryLabel: string | null
   amount: number
   entryCount: number
+  /** Posted running balance after this row (account register, newest-first). */
+  runningBalance?: number
 }
 
 export function registerRowKey(transactionId: string, entryIndex: number): string {
@@ -347,5 +350,27 @@ export function groupTransactionsByDate(
     label: date === 'unknown' ? '—' : new Date(`${date}T12:00:00`).toLocaleDateString(),
     total: rows.reduce((sum, row) => sum + row.amount, 0),
     rows: [...rows].sort((a, b) => sortTransactionDateTime(b.date, a.date)),
+  }))
+}
+
+export type RegisterDateGroup = {
+  date: string
+  label: string
+  total: number
+  rows: TransactionRegisterRow[]
+}
+
+/** Stamp newest-first running balances onto account register groups (display order). */
+export function withNewestFirstRunningBalances(
+  groups: RegisterDateGroup[],
+  endingBalance: number,
+): RegisterDateGroup[] {
+  const flat = groups.flatMap((group) => group.rows)
+  const stamped = attachNewestFirstRunningBalances(flat, endingBalance)
+  let index = 0
+
+  return groups.map((group) => ({
+    ...group,
+    rows: group.rows.map(() => stamped[index++]!),
   }))
 }
