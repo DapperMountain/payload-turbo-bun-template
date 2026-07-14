@@ -343,7 +343,14 @@ export interface Transaction {
   workspace?: (string | null) | Workspace;
   budget: string | Budget;
   date: string;
+  /**
+   * Payee or short title shown in the register.
+   */
   memo?: string | null;
+  /**
+   * Optional memo shown as a note icon in the register when set.
+   */
+  notes?: string | null;
   type: 'transaction' | 'transfer' | 'adjustment' | 'opening_balance';
   status: 'pending' | 'posted';
   /**
@@ -868,6 +875,7 @@ export interface TransactionsSelect<T extends boolean = true> {
   budget?: T;
   date?: T;
   memo?: T;
+  notes?: T;
   type?: T;
   status?: T;
   entries?:

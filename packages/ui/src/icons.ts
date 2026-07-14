@@ -17,6 +17,7 @@ export {
   PanelLeftClose,
   Plus,
   Receipt,
+  StickyNote,
   Trash2,
   Wallet,
   X,

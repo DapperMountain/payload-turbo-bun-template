@@ -15,6 +15,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical } from '@dappermountain/u
 import { cn } from '@dappermountain/ui/lib/utils'
 
 import {
+  REGISTER_COLUMN_CLASS,
   REGISTER_COLUMN_DEFS,
   type RegisterColumnId,
   type RegisterSortState,
@@ -78,19 +79,19 @@ function SortableHeaderCell(props: {
 
   return (
     <TableHead
-      className={cn(def.align === 'right' && 'text-right', 'whitespace-nowrap')}
+      className={cn(REGISTER_COLUMN_CLASS[columnId], 'whitespace-nowrap')}
       ref={setNodeRef}
       style={style}
     >
       <div
         className={cn(
-          'flex items-center gap-1',
+          'group/header flex min-w-0 items-center gap-1',
           def.align === 'right' && 'justify-end',
         )}
       >
         <button
           aria-label={t('custom:frontend:transactions:dragColumn')}
-          className="cursor-grab touch-none rounded p-0.5 text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          className="shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground opacity-50 hover:text-foreground hover:opacity-100 active:cursor-grabbing"
           type="button"
           {...attributes}
           {...listeners}
@@ -98,19 +99,19 @@ function SortableHeaderCell(props: {
           <GripVertical className="size-3.5" />
         </button>
         <button
-          className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-xs font-medium hover:bg-muted/60"
+          className="inline-flex min-w-0 items-center gap-1 truncate rounded px-0.5 py-0.5 text-xs font-medium hover:bg-muted/60"
           onClick={() => onSort(columnId)}
           type="button"
         >
-          {t(def.labelKey as 'custom:frontend:filters:fields:memo')}
+          <span className="truncate">{t(def.labelKey as 'custom:frontend:filters:fields:memo')}</span>
           {isActive ? (
             sort.direction === 'asc' ? (
-              <ArrowUp className="size-3.5" />
+              <ArrowUp className="size-3.5 shrink-0" />
             ) : (
-              <ArrowDown className="size-3.5" />
+              <ArrowDown className="size-3.5 shrink-0" />
             )
           ) : (
-            <ArrowUpDown className="size-3.5 opacity-40" />
+            <ArrowUpDown className="size-3.5 shrink-0 opacity-40" />
           )}
         </button>
       </div>

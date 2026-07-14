@@ -20,6 +20,8 @@ export type GroupedPickerProps = {
   emptyValue?: string
   emptyLabel?: string
   formatGroup?: (group: string) => string
+  /** Quiet trigger that looks like text until open. */
+  appearance?: 'outline' | 'plain'
   className?: string
 }
 
@@ -64,6 +66,7 @@ export function GroupedPicker(props: GroupedPickerProps) {
     emptyValue,
     emptyLabel,
     formatGroup = (group) => group,
+    appearance = 'outline',
     className,
   } = props
   const { t } = useAppTranslation()
@@ -84,6 +87,8 @@ export function GroupedPicker(props: GroupedPickerProps) {
     setQuery('')
   }
 
+  const plain = appearance === 'plain'
+
   return (
     <Popover
       onOpenChange={(next) => {
@@ -94,15 +99,31 @@ export function GroupedPicker(props: GroupedPickerProps) {
     >
       <PopoverTrigger asChild>
         <Button
-          className={cn('w-full justify-between font-normal', className)}
+          className={cn(
+            'w-auto justify-between font-normal',
+            plain &&
+              'h-7 border-transparent bg-transparent px-1.5 shadow-none hover:bg-muted/50',
+            !plain && 'w-full',
+            className,
+          )}
           disabled={disabled}
           type="button"
-          variant="outline"
+          variant={plain ? 'ghost' : 'outline'}
         >
-          <span className={cn('truncate text-left', !value && 'text-muted-foreground')}>
+          <span
+            className={cn(
+              'truncate text-left',
+              (!value || (emptyValue && value === emptyValue)) && 'text-muted-foreground',
+            )}
+          >
             {selectedLabel}
           </span>
-          <ChevronDown className="size-4 shrink-0 opacity-50" />
+          <ChevronDown
+            className={cn(
+              'size-4 shrink-0 opacity-50',
+              plain && !open && 'opacity-0 group-hover:opacity-50',
+            )}
+          />
         </Button>
       </PopoverTrigger>
       <PopoverContent

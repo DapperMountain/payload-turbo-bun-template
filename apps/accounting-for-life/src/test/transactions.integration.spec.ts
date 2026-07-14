@@ -263,6 +263,77 @@ describe('transactions integration', () => {
     expect(getCollectionId(categorized?.category)).toBe(incomeCategory.id)
   })
 
+  it('persists notes when updating a posted transaction with entries', async () => {
+    const expenseGroup = await payload.create({
+      collection: 'category-groups',
+      data: {
+        name: 'Notes Expense Group',
+        kind: 'expense',
+        sortOrder: 0,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const expenseCategory = await payload.create({
+      collection: 'categories',
+      data: {
+        name: 'Notes spending',
+        purpose: 'spending',
+        sortOrder: 0,
+        isSystemDefault: false,
+        categoryGroup: expenseGroup.id,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        memo: 'Coffee',
+        type: 'transaction',
+        entries: [
+          { account: checkingA.id, amount: -6, sortOrder: 0 },
+          { account: checkingA.id, amount: 6, category: expenseCategory.id, sortOrder: 1 },
+        ],
+      },
+    })
+
+    const updated = await payload.update({
+      collection: 'transactions',
+      id: transaction.id,
+      user: member,
+      overrideAccess: false,
+      data: {
+        notes: 'Paid with checking',
+        entries: [
+          { account: checkingA.id, amount: -6, sortOrder: 0 },
+          { account: checkingA.id, amount: 6, category: expenseCategory.id, sortOrder: 1 },
+        ],
+      },
+    })
+
+    expect(updated.notes).toBe('Paid with checking')
+
+    const refetch = await payload.findByID({
+      collection: 'transactions',
+      id: transaction.id,
+      depth: 0,
+      user: member,
+      overrideAccess: false,
+    })
+
+    expect(refetch.notes).toBe('Paid with checking')
+  })
+
   it('allows workspace members to mark transactions pending in bulk', async () => {
     const first = await payload.create({
       collection: 'transactions',

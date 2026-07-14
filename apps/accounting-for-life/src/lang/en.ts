@@ -154,6 +154,8 @@ export default {
         transferToAccountNamed: 'Transfer: {name}',
         paymentToCreditNamed: 'Payment to Credit: {name}',
         categoryNotNeeded: 'Category not needed',
+        hasNotes: 'Has notes',
+        notesPlaceholder: 'Add a note…',
         splitViewHint: 'This transaction uses splits — switch to the Split view to edit amounts.',
         transferSplitsHint:
           'Allocate the total across one or more transfer destinations. Each split picks a target account.',
@@ -319,6 +321,9 @@ export default {
         entriesDescription:
           'Balanced legs to post on create/update (not stored on the transaction document). Omit for pending headers.',
         entryAmountDescription: 'Signed amount (negative = credit, positive = debit).',
+        memoDescription: 'Payee or short title shown in the register.',
+        notesDescription: 'Optional memo shown as a note icon in the register when set.',
+        notes: 'Notes',
         type: {
           transaction: 'Transaction',
           transfer: 'Transfer',

@@ -157,6 +157,7 @@ export type TransactionRegisterRow = {
   entryIndex: number
   date: string | null
   memo: string | null
+  notes: string | null
   type: Transaction['type']
   status: Transaction['status']
   budgetId: string
@@ -207,6 +208,23 @@ export function primaryEntryIndex(entries: TransactionEntry[]): number {
   }
 
   return best
+}
+
+/** Prefer the cash (uncategorized) leg when an account appears on multiple legs. */
+export function entryIndexForAccount(
+  entries: TransactionEntry[],
+  accountId: string,
+): number {
+  const matches = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => getCollectionId(entry.account) === accountId)
+
+  if (!matches.length) return primaryEntryIndex(entries)
+
+  const cash = matches.find(({ entry }) => !entry.category)
+  if (cash) return cash.index
+
+  return matches[0]!.index
 }
 
 export function updatePrimaryAccountInLines(
@@ -274,6 +292,7 @@ export function registerRowFromEntry(
     entryIndex,
     date: transaction.date ?? null,
     memo: transaction.memo ?? null,
+    notes: transaction.notes ?? null,
     type: transaction.type,
     status: transaction.status,
     budgetId: getCollectionId(transaction.budget) ?? '',
@@ -300,6 +319,7 @@ export function registerRowsFromTransaction(
         entryIndex: 0,
         date: transaction.date ?? null,
         memo: transaction.memo ?? null,
+        notes: transaction.notes ?? null,
         type: transaction.type,
         status: transaction.status,
         budgetId: getCollectionId(transaction.budget) ?? '',
@@ -313,10 +333,7 @@ export function registerRowsFromTransaction(
   }
 
   if (options?.accountId) {
-    const scopedIndex = lines.findIndex(
-      (entry) => getCollectionId(entry.account) === options.accountId,
-    )
-    const entryIndex = scopedIndex >= 0 ? scopedIndex : primaryEntryIndex(lines)
+    const entryIndex = entryIndexForAccount(lines, options.accountId)
     return [registerRowFromEntry(transaction, lines, entryIndex, labels)]
   }
 
@@ -350,12 +367,21 @@ export function groupTransactionsByDate(
     groups.set(date, list)
   }
 
-  return [...groups.entries()].map(([date, rows]) => ({
-    date,
-    label: date === 'unknown' ? '—' : new Date(`${date}T12:00:00`).toLocaleDateString(),
-    total: rows.reduce((sum, row) => sum + row.amount, 0),
-    rows: [...rows].sort((a, b) => sortTransactionDateTime(b.date, a.date)),
-  }))
+  return [...groups.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, rows]) => ({
+      date,
+      label:
+        date === 'unknown'
+          ? '—'
+          : new Date(`${date}T12:00:00`).toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }),
+      total: rows.reduce((sum, row) => sum + row.amount, 0),
+      rows: [...rows].sort((a, b) => sortTransactionDateTime(b.date, a.date)),
+    }))
 }
 
 export type RegisterDateGroup = {

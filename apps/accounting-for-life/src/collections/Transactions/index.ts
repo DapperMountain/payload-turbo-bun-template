@@ -42,6 +42,16 @@ const Transactions: CollectionConfig = {
     {
       name: 'memo',
       type: 'textarea',
+      admin: {
+        description: custom.fields.transactions.memoDescription,
+      },
+    },
+    {
+      name: 'notes',
+      type: 'textarea',
+      admin: {
+        description: custom.fields.transactions.notesDescription,
+      },
     },
     {
       name: 'type',

@@ -75,6 +75,21 @@ export function hasExplicitTime(value: string | null | undefined): boolean {
   return transactionTimePart(value) !== LEGACY_DEFAULT_TIME
 }
 
+export function formatTransactionDateDisplay(
+  value: string | null | undefined,
+  locale?: string,
+): string {
+  const normalized = normalizeTransactionDateTime(value)
+  if (!normalized) return ''
+
+  const dt = new Date(normalized)
+  return dt.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 export function formatTransactionDateTimeDisplay(
   value: string | null | undefined,
   locale?: string,

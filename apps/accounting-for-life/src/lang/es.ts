@@ -153,6 +153,8 @@ export default {
         transferToAccountNamed: 'Transferencia: {name}',
         paymentToCreditNamed: 'Pago a tarjeta: {name}',
         categoryNotNeeded: 'Categoría no necesaria',
+        hasNotes: 'Tiene notas',
+        notesPlaceholder: 'Añadir una nota…',
         splitViewHint: 'Esta transacción usa divisiones — cambie a la vista Dividir para editar importes.',
         transferSplitsHint:
           'Distribuya el total entre uno o más destinos de transferencia. Cada partida elige una cuenta.',
@@ -322,6 +324,9 @@ export default {
         entriesDescription:
           'Partidas equilibradas al crear/actualizar (no se guardan en el documento de transacción). Omita para transacciones pendientes.',
         entryAmountDescription: 'Importe con signo (negativo = crédito, positivo = débito).',
+        memoDescription: 'Beneficiario o título corto en el registro.',
+        notesDescription: 'Nota opcional; se muestra como icono en el registro cuando está definida.',
+        notes: 'Notas',
         type: {
           transaction: 'Transacción',
           transfer: 'Transferencia',

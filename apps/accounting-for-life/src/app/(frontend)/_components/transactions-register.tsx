@@ -59,10 +59,6 @@ export type TransactionsRegisterProps = {
   hiddenColumns?: import('@/app/(frontend)/_components/transactions-register/register-config').RegisterColumnId[]
 }
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount)
-}
-
 export function TransactionsRegister(props: TransactionsRegisterProps) {
   const {
     transactions,
@@ -133,21 +129,18 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
     [registerGroups],
   )
 
-  const display = useMemo(() => {
+  const displayGroups = useMemo(() => {
+    const groupFactor = sort.column === 'date' && sort.direction === 'asc' ? 1 : -1
+    const groups = [...registerGroups].sort((a, b) => a.date.localeCompare(b.date) * groupFactor)
+
     if (sort.column === 'date') {
-      const groups = [...registerGroups].sort((a, b) => {
-        const factor = sort.direction === 'asc' ? 1 : -1
-        return a.date.localeCompare(b.date) * factor
-      })
-
-      return { mode: 'grouped' as const, groups }
+      return groups
     }
 
-    const flat = registerGroups.flatMap((group) => group.rows)
-    return {
-      mode: 'flat' as const,
-      rows: sortRegisterRows(flat, sort.column, sort.direction),
-    }
+    return groups.map((group) => ({
+      ...group,
+      rows: sortRegisterRows(group.rows, sort.column, sort.direction),
+    }))
   }, [registerGroups, sort])
 
   const detailTransaction = detailId ? (byId.get(detailId) ?? null) : null
@@ -323,75 +316,50 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
                 />
               </TableHeader>
               <TableBody>
-            {registerGroups.length === 0 ? (
-              <TableRow>
-                <TableCell className="text-muted-foreground" colSpan={columnCount}>
-                  {t('custom:frontend:transactions:empty')}
-                </TableCell>
-              </TableRow>
-            ) : display.mode === 'grouped' ? (
-              display.groups.map((group) => (
-                <Fragment key={group.date}>
-                  <TableRow className="bg-muted/30 hover:bg-muted/40">
-                    <TableCell className="font-medium" colSpan={columnCount}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span>{group.label}</span>
-                        <span className="text-sm tabular-nums text-muted-foreground">
-                          {formatMoney(group.total)}
-                        </span>
-                      </div>
+                {displayGroups.length === 0 ? (
+                  <TableRow>
+                    <TableCell className="text-muted-foreground" colSpan={columnCount}>
+                      {t('custom:frontend:transactions:empty')}
                     </TableCell>
                   </TableRow>
+                ) : (
+                  displayGroups.map((group) => (
+                    <Fragment key={group.date}>
+                      <TableRow className="border-b-0 bg-muted/40 hover:bg-muted/40">
+                        <TableCell
+                          className="py-2 text-sm font-medium text-muted-foreground"
+                          colSpan={columnCount}
+                        >
+                          {group.label}
+                        </TableCell>
+                      </TableRow>
 
-                  {group.rows.map((row) => {
-                    const transaction = byId.get(transactionIdFromRegisterRowKey(row.id))
-                    if (!transaction) return null
+                      {group.rows.map((row) => {
+                        const transaction = byId.get(transactionIdFromRegisterRowKey(row.id))
+                        if (!transaction) return null
 
-                    return (
-                      <TransactionsRegisterRowInline
-                        accountOptions={accountOptionsByBudget.get(row.budgetId) ?? []}
-                        accounts={accounts}
-                        bulkMode={bulkMode}
-                        categoryOptions={categoryOptionsByBudget.get(row.budgetId) ?? []}
-                        columnOrder={visibleColumnOrder}
-                        formatAccountGroup={formatAccountGroup}
-                        key={row.id}
-                        onOpenDetail={openDetail}
-                        onToggleSelected={toggleSelected}
-                        payeeOptions={payeeOptionsByBudget[row.budgetId] ?? []}
-                        row={row}
-                        selected={selected.has(row.id)}
-                        transaction={transaction}
-                      />
-                    )
-                  })}
-                </Fragment>
-              ))
-            ) : (
-              display.rows.map((row) => {
-                const transaction = byId.get(transactionIdFromRegisterRowKey(row.id))
-                if (!transaction) return null
-
-                return (
-                  <TransactionsRegisterRowInline
-                    accountOptions={accountOptionsByBudget.get(row.budgetId) ?? []}
-                    accounts={accounts}
-                    bulkMode={bulkMode}
-                    categoryOptions={categoryOptionsByBudget.get(row.budgetId) ?? []}
-                    columnOrder={visibleColumnOrder}
-                    formatAccountGroup={formatAccountGroup}
-                    key={row.id}
-                    onOpenDetail={openDetail}
-                    onToggleSelected={toggleSelected}
-                    payeeOptions={payeeOptionsByBudget[row.budgetId] ?? []}
-                    row={row}
-                    selected={selected.has(row.id)}
-                    transaction={transaction}
-                  />
-                )
-              })
-            )}
-          </TableBody>
+                        return (
+                          <TransactionsRegisterRowInline
+                            accountOptions={accountOptionsByBudget.get(row.budgetId) ?? []}
+                            accounts={accounts}
+                            bulkMode={bulkMode}
+                            categoryOptions={categoryOptionsByBudget.get(row.budgetId) ?? []}
+                            columnOrder={visibleColumnOrder}
+                            formatAccountGroup={formatAccountGroup}
+                            key={row.id}
+                            onOpenDetail={openDetail}
+                            onToggleSelected={toggleSelected}
+                            payeeOptions={payeeOptionsByBudget[row.budgetId] ?? []}
+                            row={row}
+                            selected={selected.has(row.id)}
+                            transaction={transaction}
+                          />
+                        )
+                      })}
+                    </Fragment>
+                  ))
+                )}
+              </TableBody>
             </Table>
           </SortableContext>
         </DndContext>

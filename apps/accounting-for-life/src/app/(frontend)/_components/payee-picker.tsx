@@ -32,6 +32,8 @@ export type PayeePickerProps = {
   className?: string
   placeholder?: string
   id?: string
+  /** Quiet field that looks like text until focused. */
+  appearance?: 'input' | 'plain'
 }
 
 export function PayeePicker(props: PayeePickerProps) {
@@ -47,6 +49,7 @@ export function PayeePicker(props: PayeePickerProps) {
     className,
     placeholder,
     id,
+    appearance = 'input',
   } = props
   const { t } = useAppTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -156,7 +159,11 @@ export function PayeePicker(props: PayeePickerProps) {
     >
       <PopoverAnchor asChild>
         <Input
-          className={cn(className)}
+          className={cn(
+            appearance === 'plain' &&
+              'h-7 border-transparent bg-transparent px-1.5 shadow-none hover:bg-muted/50 focus-visible:border-input focus-visible:bg-background',
+            className,
+          )}
           disabled={disabled}
           id={id}
           onBlur={handleBlur}

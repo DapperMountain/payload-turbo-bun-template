@@ -15,9 +15,7 @@ import { Calendar, Clock } from 'lucide-react'
 
 import {
   combineTransactionDateTime,
-  formatTransactionDateTimeDisplay,
-  formatTransactionTimeDisplay,
-  hasExplicitTime,
+  formatTransactionDateDisplay,
   nowTransactionDateTime,
   transactionDatePart,
   transactionTimePart,
@@ -33,11 +31,22 @@ export type TransactionDateTimePickerProps = {
   disabled?: boolean
   /** Compact trigger for register rows. */
   variant?: 'default' | 'compact'
+  /** Quiet trigger that looks like text until focused/open. */
+  appearance?: 'outline' | 'plain'
   className?: string
 }
 
 export function TransactionDateTimePicker(props: TransactionDateTimePickerProps) {
-  const { id, value, onChange, onCommit, disabled, variant = 'default', className } = props
+  const {
+    id,
+    value,
+    onChange,
+    onCommit,
+    disabled,
+    variant = 'default',
+    appearance = 'outline',
+    className,
+  } = props
   const { t } = useAppTranslation()
   const [open, setOpen] = useState(false)
   const [draftDate, setDraftDate] = useState(() => transactionDatePart(value))
@@ -69,13 +78,10 @@ export function TransactionDateTimePicker(props: TransactionDateTimePickerProps)
     setOpen(next)
   }
 
-  const display =
-    value && transactionDatePart(value)
-      ? formatTransactionDateTimeDisplay(value)
-      : t('custom:frontend:transactions:pickDateTime')
-
-  const compactDate = transactionDatePart(value) || '—'
-  const compactTime = value ? formatTransactionTimeDisplay(value) : ''
+  const hasDate = Boolean(value && transactionDatePart(value))
+  const display = hasDate
+    ? formatTransactionDateDisplay(value)
+    : t('custom:frontend:transactions:pickDateTime')
 
   return (
     <Popover onOpenChange={handleOpenChange} open={open}>
@@ -84,26 +90,19 @@ export function TransactionDateTimePicker(props: TransactionDateTimePickerProps)
           className={cn(
             'justify-start gap-2 font-normal',
             variant === 'default' && 'w-full',
-            variant === 'compact' && 'h-8 min-w-[9.5rem] px-2 text-left',
-            !value && 'text-muted-foreground',
+            variant === 'compact' && 'h-7 min-w-0 px-1.5 text-left',
+            appearance === 'plain' &&
+              'border-transparent bg-transparent px-1 shadow-none hover:bg-muted/50',
+            !hasDate && 'text-muted-foreground',
             className,
           )}
           disabled={disabled}
           id={id}
           type="button"
-          variant="outline"
+          variant={appearance === 'plain' ? 'ghost' : 'outline'}
         >
           <Calendar className="size-4 shrink-0 opacity-70" aria-hidden />
-          {variant === 'compact' ? (
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="truncate text-sm">{compactDate}</span>
-              {compactTime ? (
-                <span className="truncate text-xs text-muted-foreground">{compactTime}</span>
-              ) : null}
-            </span>
-          ) : (
-            <span className="truncate">{display}</span>
-          )}
+          <span className="truncate">{display}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
@@ -174,19 +173,10 @@ export function TransactionDateTimeReadonly(props: {
   className?: string
 }) {
   const { value, className } = props
-  const datePart = transactionDatePart(value)
-  if (!datePart) {
+  const dateLabel = formatTransactionDateDisplay(value)
+  if (!dateLabel) {
     return <span className={cn('text-muted-foreground', className)}>—</span>
   }
 
-  return (
-    <span className={cn('text-muted-foreground', className)}>
-      <span>{datePart}</span>
-      {hasExplicitTime(value) ? (
-        <span className="ml-1.5 text-xs text-muted-foreground/80">
-          {formatTransactionTimeDisplay(value)}
-        </span>
-      ) : null}
-    </span>
-  )
+  return <span className={cn('text-muted-foreground', className)}>{dateLabel}</span>
 }

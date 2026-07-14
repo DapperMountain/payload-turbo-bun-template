@@ -6,6 +6,7 @@ import {
   DEFAULT_REGISTER_COLUMN_ORDER,
   DEFAULT_REGISTER_SORT,
   normalizeColumnOrder,
+  normalizeRegisterSort,
   REGISTER_COLUMNS_STORAGE_KEY,
   REGISTER_SORT_STORAGE_KEY,
   type RegisterColumnId,
@@ -29,10 +30,7 @@ export function useRegisterTableState() {
 
       const storedSort = localStorage.getItem(REGISTER_SORT_STORAGE_KEY)
       if (storedSort) {
-        const parsed = JSON.parse(storedSort) as RegisterSortState
-        if (parsed?.column && parsed?.direction) {
-          setSort(parsed)
-        }
+        setSort(normalizeRegisterSort(JSON.parse(storedSort)))
       }
     } catch {
       // ignore invalid storage
@@ -50,7 +48,7 @@ export function useRegisterTableState() {
       const next: RegisterSortState =
         prev.column === column
           ? { column, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-          : { column, direction: column === 'amount' || column === 'date' ? 'desc' : 'asc' }
+          : { column, direction: column === 'amount' || column === 'balance' ? 'desc' : 'asc' }
 
       localStorage.setItem(REGISTER_SORT_STORAGE_KEY, JSON.stringify(next))
       return next

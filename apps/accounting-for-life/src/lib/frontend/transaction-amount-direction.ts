@@ -49,6 +49,11 @@ export function magnitudeFromSignedAmount(amount: number): number {
   return Math.abs(Number(amount) || 0)
 }
 
+/** Absolute amount string for inline edit inputs — keeps trailing cents zeros. */
+export function formatAmountMagnitudeForEdit(amount: number): string {
+  return magnitudeFromSignedAmount(amount).toFixed(2)
+}
+
 export function parseSignedAmountString(
   signed: string,
   paymentAccount: Account | undefined,
@@ -60,7 +65,7 @@ export function parseSignedAmountString(
 
   return {
     direction: directionFromSignedAmount(num, paymentAccount),
-    magnitude: String(Math.abs(num)),
+    magnitude: Math.abs(num).toFixed(2),
   }
 }
 
@@ -82,4 +87,31 @@ export function paymentAccountFromList(
   accountId: string,
 ): Account | undefined {
   return findAccount(accounts, accountId)
+}
+
+/** Monarch-style register amount: absolute currency; inflows get a non-editable `+`. */
+export type RegisterAmountDisplay = {
+  absoluteText: string
+  isCredit: boolean
+  prefix: '+' | ''
+}
+
+export function registerAmountDisplay(
+  amount: number,
+  paymentAccount: Account | undefined,
+  locale?: string,
+): RegisterAmountDisplay {
+  const absolute = Math.abs(Number(amount) || 0)
+  const absoluteText = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'USD',
+  }).format(absolute)
+  const isCredit =
+    absolute > 0 && directionFromSignedAmount(amount, paymentAccount) === 'inflow'
+
+  return {
+    absoluteText,
+    isCredit,
+    prefix: isCredit ? '+' : '',
+  }
 }

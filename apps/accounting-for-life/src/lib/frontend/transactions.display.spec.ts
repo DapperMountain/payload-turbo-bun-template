@@ -106,6 +106,37 @@ describe('register rows from transactions', () => {
     expect(rows[0]?.categoryLabel).toContain('Other Income')
   })
 
+  it('prefers the cash leg when the same account appears twice under account scope', () => {
+    const income: Transaction = {
+      id: 'tx-income-scoped',
+      budget: 'budget-a',
+      date: '2026-07-12T20:00:00.000Z',
+      memo: 'Arlo Jack',
+      notes: 'Gift',
+      type: 'transaction',
+      status: 'posted',
+      entries: [
+        { id: 'e1', account: 'checking', amount: -25, category: 'other-income', sortOrder: 0 },
+        { id: 'e2', account: 'checking', amount: 25, sortOrder: 1 },
+      ],
+      updatedAt: '',
+      createdAt: '',
+    }
+
+    const rows = registerRowsFromTransaction(
+      income,
+      {
+        accounts: { checking: 'Checking' },
+        categories: { 'other-income': '💰 Other Income' },
+      },
+      { accountId: 'checking' },
+    )
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.amount).toBe(25)
+    expect(rows[0]?.notes).toBe('Gift')
+  })
+
   it('balances the other leg when editing one transfer leg amount', () => {
     const lines = [
       { account: 'checking', amount: -200, sortOrder: 0 },

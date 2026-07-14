@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { Checkbox } from '@dappermountain/ui/components/checkbox'
-import { Input } from '@dappermountain/ui/components/input'
 import {
   Select,
   SelectContent,
@@ -12,7 +11,7 @@ import {
   SelectValue,
 } from '@dappermountain/ui/components/select'
 import { TableCell, TableRow } from '@dappermountain/ui/components/table'
-import { ChevronRight } from '@dappermountain/ui/icons'
+import { ChevronRight, StickyNote } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
 import { updateTransactionAction } from '@/app/(frontend)/actions/transactions'
@@ -22,6 +21,7 @@ import { TransactionSplitsPopover } from '@/app/(frontend)/_components/transacti
 import {
   createPayeeLabelHelpers,
   defaultCategoryIdFromPickerOptions,
+  findAccount,
   interpolateTemplate,
   isPayeeTransferId,
   isTransferFromPayee,
@@ -32,6 +32,7 @@ import {
   transferSkipsCategory,
 } from '@/lib/frontend/transaction-payee'
 import type { RegisterColumnId } from '@/app/(frontend)/_components/transactions-register/register-config'
+import { REGISTER_COLUMN_CLASS } from '@/app/(frontend)/_components/transactions-register/register-config'
 import {
   hasEditableSplits,
   newTransferSplitDraft,
@@ -39,17 +40,18 @@ import {
   splitFormFromEntries,
   splitsToEntries,
 } from '@/lib/frontend/transaction-splits'
-import { TransactionDateTimePicker, TransactionDateTimeReadonly } from '@/app/(frontend)/_components/transaction-datetime-picker'
 import {
-  normalizeTransactionDateTime,
-  transactionDateTimeEquals,
-} from '@/lib/frontend/transaction-datetime'
+  formatAmountMagnitudeForEdit,
+  registerAmountDisplay,
+  signedAmountFromDirection,
+  directionFromSignedAmount,
+} from '@/lib/frontend/transaction-amount-direction'
 import type { TransactionRegisterRow } from '@/lib/frontend/transactions.display'
 import {
   entriesFromTransaction,
   transactionEntries,
-  transactionIdFromRegisterRowKey,
-  uniqueTransactionIdsFromRegisterRowKeys,
+} from '@/lib/frontend/transactions.display'
+import {
   updatePrimaryAccountInLines,
   updatePrimaryAmountInLines,
 } from '@/lib/frontend/transactions.display'
@@ -65,6 +67,26 @@ function primaryCategoryId(transaction: Transaction): string {
   const cat = transactionEntries(transaction).find((entry) => entry.category)?.category
   if (!cat) return ''
   return typeof cat === 'string' ? cat : cat.id
+}
+
+function RegisterAmountText(props: {
+  amount: number
+  account: Account | undefined
+  className?: string
+}) {
+  const display = registerAmountDisplay(props.amount, props.account)
+  return (
+    <span
+      className={cn(
+        'tabular-nums',
+        display.isCredit && 'font-semibold text-emerald-700 dark:text-emerald-400',
+        props.className,
+      )}
+    >
+      {display.prefix}
+      {display.absoluteText}
+    </span>
+  )
 }
 
 export type TransactionsRegisterRowProps = {
@@ -101,6 +123,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [rowError, setRowError] = useState<string | null>(null)
+  const [editingAmount, setEditingAmount] = useState(false)
 
   const payeeLabels = useMemo(
     () =>
@@ -111,11 +134,22 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   )
 
   const [payeeValue, setPayeeValue] = useState(() => payeeValueFromTransaction(transaction))
-  const [date, setDate] = useState(() => normalizeTransactionDateTime(row.date))
   const [categoryId, setCategoryId] = useState(primaryCategoryId(transaction))
   const [accountId, setAccountId] = useState(row.primaryAccountId)
-  const [amount, setAmount] = useState(String(row.amount))
+  const [amountDraft, setAmountDraft] = useState(() => formatAmountMagnitudeForEdit(row.amount))
   const [status, setStatus] = useState(row.status)
+
+  const resolvedPaymentAccount = useMemo(
+    () => findAccount(accounts, accountId),
+    [accountId, accounts],
+  )
+
+  const amountDisplay = useMemo(
+    () => registerAmountDisplay(row.amount, resolvedPaymentAccount),
+    [resolvedPaymentAccount, row.amount],
+  )
+
+  const hasNotes = Boolean(row.notes?.trim())
 
   const readOnly = false
   const canInlineEdit = !bulkMode
@@ -128,32 +162,29 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
   useEffect(() => {
     setPayeeValue(payeeValueFromTransaction(transaction))
-    setDate((current) => {
-      const next = normalizeTransactionDateTime(row.date)
-      return transactionDateTimeEquals(current, next) ? current : next
-    })
     setCategoryId(primaryCategoryId(transaction))
     setAccountId(row.primaryAccountId)
-    setAmount(String(row.amount))
+    setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
     setStatus(row.status)
+    setEditingAmount(false)
     setRowError(null)
   }, [
     row.id,
     row.memo,
-    row.date,
+    row.notes,
     row.primaryAccountId,
     row.amount,
     row.status,
     transaction.id,
     transaction.updatedAt,
     transaction.memo,
+    transaction.notes,
     transaction.type,
   ])
 
   const saveField = (patch: {
     memo?: string | null
     payeeValue?: string
-    date?: string
     categoryId?: string | null
     accountId?: string
     amount?: number
@@ -168,10 +199,6 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
       try {
         const entries = transactionEntries(transaction)
         let form = splitFormFromEntries(entries)
-
-        if (patch.date !== undefined || patch.memo !== undefined || patch.status !== undefined) {
-          // header-only fields handled below
-        }
 
         if (patch.payeeValue !== undefined) {
           const destination = transferDestinationFromPayee(patch.payeeValue)
@@ -239,7 +266,6 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               : patch.memo !== undefined
                 ? patch.memo
                 : undefined,
-          date: patch.date,
           status: patch.status,
           type:
             patch.payeeValue !== undefined &&
@@ -261,36 +287,31 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
     })
   }
 
+  const commitAmountDraft = () => {
+    const magnitude = Math.abs(Number(amountDraft))
+    if (!Number.isFinite(magnitude)) {
+      setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
+      setEditingAmount(false)
+      return
+    }
+
+    const direction = directionFromSignedAmount(row.amount, resolvedPaymentAccount)
+    const next = signedAmountFromDirection(direction, magnitude, resolvedPaymentAccount)
+    setEditingAmount(false)
+    if (next === row.amount) return
+    saveField({ amount: next })
+  }
+
   const renderCell = (columnId: RegisterColumnId) => {
     switch (columnId) {
-      case 'date':
-        return canInlineEdit ? (
-          <div onClick={(event) => event.stopPropagation()}>
-            <TransactionDateTimePicker
-              disabled={isPending}
-              id={`tx-datetime-${row.id}`}
-              key={row.id}
-              onChange={setDate}
-              onCommit={(next) => {
-                if (next && !transactionDateTimeEquals(next, row.date)) {
-                  saveField({ date: normalizeTransactionDateTime(next) })
-                }
-              }}
-              value={date}
-              variant="compact"
-            />
-          </div>
-        ) : (
-          <TransactionDateTimeReadonly value={row.date} />
-        )
-
       case 'memo':
         if (canInlineEdit) {
           return (
             <PayeePicker
               accounts={accounts}
+              appearance="plain"
               budgetId={row.budgetId}
-              className="h-8"
+              className="h-7 min-w-[8rem]"
               disabled={isPending}
               onCommit={(value) => {
                 setPayeeValue(value)
@@ -325,9 +346,17 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
       case 'category':
         if (categoryDisabled) {
           return (
-            <span className="text-muted-foreground">
-              {t('custom:frontend:transactions:categoryNotNeeded')}
-            </span>
+            <GroupedPicker
+              appearance="plain"
+              className="h-7 w-auto min-w-[6rem] max-w-[14rem]"
+              disabled
+              emptyLabel={t('custom:frontend:transactions:categoryNotNeeded')}
+              emptyValue="__none__"
+              onValueChange={() => {}}
+              options={[]}
+              placeholder={t('custom:frontend:transactions:categoryNotNeeded')}
+              value="__none__"
+            />
           )
         }
 
@@ -353,7 +382,8 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         if (canInlineEditLines && !isTransfer) {
           return (
             <GroupedPicker
-              className="h-8 min-w-[10rem] border-0 bg-transparent shadow-none"
+              appearance="plain"
+              className="h-7 w-auto min-w-[6rem] max-w-[14rem]"
               disabled={isPending}
               emptyLabel="—"
               emptyValue="__none__"
@@ -380,7 +410,8 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         if (canInlineEditLines && accountOptions.length) {
           return (
             <GroupedPicker
-              className="h-8 min-w-[10rem] border-0 bg-transparent shadow-none"
+              appearance="plain"
+              className="h-7 w-auto min-w-[6rem] max-w-[12rem]"
               disabled={isPending}
               formatGroup={formatAccountGroup}
               onValueChange={(value) => {
@@ -414,7 +445,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               value={status}
             >
               <SelectTrigger
-                className="h-8 w-[7.5rem] border-0 bg-transparent shadow-none"
+                className="h-7 w-auto min-w-[5.5rem] border-transparent bg-transparent px-1 shadow-none hover:bg-muted/50"
                 onClick={(event) => event.stopPropagation()}
               >
                 <SelectValue />
@@ -436,30 +467,81 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           </span>
         )
 
-      case 'amount':
-        if (canInlineEditLines) {
-          return (
-            <Input
-              className="h-8 w-[7rem] text-right tabular-nums"
-              disabled={isPending}
-              onBlur={() => {
-                const next = Number(amount)
-                if (!Number.isFinite(next) || next === row.amount) return
-                saveField({ amount: next })
-              }}
-              onChange={(event) => setAmount(event.target.value)}
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') event.currentTarget.blur()
-              }}
-              step="0.01"
-              type="number"
-              value={amount}
-            />
-          )
-        }
+      case 'amount': {
+        const amountControl = (
+          <div
+            className={cn(
+              'inline-flex h-7 w-[6.75rem] shrink-0 items-center justify-end overflow-hidden rounded-sm',
+              editingAmount && 'bg-background ring-1 ring-inset ring-input',
+            )}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {canInlineEditLines && editingAmount ? (
+              <>
+                {amountDisplay.isCredit ? (
+                  <span
+                    aria-hidden
+                    className="pl-1 font-semibold text-emerald-700 dark:text-emerald-400"
+                  >
+                    +
+                  </span>
+                ) : null}
+                <input
+                  autoFocus
+                  className={cn(
+                    'h-full min-w-0 flex-1 bg-transparent px-1 text-right text-sm tabular-nums outline-none',
+                    amountDisplay.isCredit &&
+                      'font-semibold text-emerald-700 dark:text-emerald-400',
+                  )}
+                  disabled={isPending}
+                  inputMode="decimal"
+                  onBlur={commitAmountDraft}
+                  onChange={(event) => setAmountDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') event.currentTarget.blur()
+                    if (event.key === 'Escape') {
+                      setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
+                      setEditingAmount(false)
+                    }
+                  }}
+                  type="text"
+                  value={amountDraft}
+                />
+              </>
+            ) : canInlineEditLines ? (
+              <button
+                className="h-full w-full px-1 text-right hover:bg-muted/50"
+                disabled={isPending}
+                onClick={() => {
+                  setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
+                  setEditingAmount(true)
+                }}
+                type="button"
+              >
+                <RegisterAmountText amount={row.amount} account={resolvedPaymentAccount} />
+              </button>
+            ) : (
+              <div className="px-1">
+                <RegisterAmountText amount={row.amount} account={resolvedPaymentAccount} />
+              </div>
+            )}
+          </div>
+        )
 
-        return <span className="tabular-nums">{formatMoney(row.amount)}</span>
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
+              {hasNotes ? (
+                <StickyNote
+                  aria-label={t('custom:frontend:transactions:hasNotes')}
+                  className="size-3.5 text-muted-foreground"
+                />
+              ) : null}
+            </span>
+            {amountControl}
+          </div>
+        )
+      }
 
       case 'balance':
         return row.runningBalance == null ? (
@@ -486,10 +568,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
       {columnOrder.map((columnId) => (
         <TableCell
-          className={cn(
-            columnId === 'memo' && 'max-w-xs',
-            (columnId === 'amount' || columnId === 'balance') && 'text-right',
-          )}
+          className={REGISTER_COLUMN_CLASS[columnId]}
           key={columnId}
           onClick={(event) => {
             if (canInlineEdit) {

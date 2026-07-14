@@ -24,6 +24,7 @@ export type UpdateTransactionInput = {
   id: string
   date?: string
   memo?: string | null
+  notes?: string | null
   status?: Transaction['status']
   type?: Transaction['type']
   entries?: TransactionEntryInput[]
@@ -128,12 +129,16 @@ export async function updateTransactionAction(
 
     if (input.date !== undefined) data.date = input.date
     if (input.memo !== undefined) data.memo = input.memo
+    if (input.notes !== undefined) data.notes = input.notes
     if (input.status !== undefined) data.status = input.status
     if (input.type !== undefined) data.type = input.type
 
     if (input.entries) {
       data.entries = input.entries
-    } else if (existing.status === 'posted' && (input.date !== undefined || input.memo !== undefined)) {
+    } else if (
+      existing.status === 'posted' &&
+      (input.date !== undefined || input.memo !== undefined || input.notes !== undefined)
+    ) {
       // header-only edit on posted tx — no entry rewrite
     }
 
@@ -145,6 +150,24 @@ export async function updateTransactionAction(
       overrideAccess: false,
       depth: 0,
     })
+
+    if (input.notes !== undefined) {
+      const verified = await payload.findByID({
+        collection: 'transactions',
+        id: input.id,
+        depth: 0,
+        user,
+        overrideAccess: false,
+      })
+
+      if ((verified.notes ?? null) !== (input.notes ?? null)) {
+        return {
+          ok: false,
+          error:
+            'Notes were not saved. Restart the app container so Payload reloads the notes field, then try again.',
+        }
+      }
+    }
 
     revalidatePaths([...affectedAccountIds])
     return { ok: true }

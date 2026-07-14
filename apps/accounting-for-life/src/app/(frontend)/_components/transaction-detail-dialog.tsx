@@ -13,6 +13,7 @@ import {
 } from '@dappermountain/ui/components/dialog'
 import { Input } from '@dappermountain/ui/components/input'
 import { Label } from '@dappermountain/ui/components/label'
+import { Textarea } from '@dappermountain/ui/components/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@dappermountain/ui/components/tabs'
 
 import {
@@ -104,6 +105,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
   const [date, setDate] = useState('')
   const [payeeValue, setPayeeValue] = useState('')
   const [initialPayeeValue, setInitialPayeeValue] = useState('')
+  const [notes, setNotes] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [splitState, setSplitState] = useState<TransactionSplitFormState>({
     paymentAccount: '',
@@ -145,16 +147,21 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     const lines = transactionEntries(transaction)
     const normalized = normalizeSplitFormFromEntries(lines)
 
-    setActiveView(defaultTransactionDialogView(normalized))
+    setActiveView(
+      initialView === 'split' ? 'split' : defaultTransactionDialogView(normalized),
+    )
     setDate(normalizeTransactionDateTime(transaction.date))
     const nextPayee = payeeValueFromTransaction(transaction)
     setPayeeValue(nextPayee)
     setInitialPayeeValue(nextPayee)
+    const nextNotes = transaction.notes ?? ''
+    setNotes(nextNotes)
     setCategoryId(normalized.displayCategoryId)
     setSplitState(normalized)
     setError(null)
     setConfirmDelete(false)
-  }, [open, transaction, initialView])
+    // Re-seed when the dialog opens or switches transaction — not on every prop identity change.
+  }, [open, transaction?.id, initialView])
 
   if (!transaction) {
     return null
@@ -272,6 +279,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
         id: transaction.id,
         date: dateDirty ? normalizeTransactionDateTime(date) : undefined,
         memo: payeeDirty ? resolvedMemo : undefined,
+        notes: notes.trim() || null,
         type: typeDirty ? resolvedType : undefined,
         entries: built.lines,
       })
@@ -427,6 +435,18 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
               )}
             </TabsContent>
           </Tabs>
+
+          <div className="grid gap-2 pt-4">
+            <Label htmlFor="tx-edit-notes">{t('custom:fields:transactions:notes')}</Label>
+            <Textarea
+              disabled={readOnly || isPending}
+              id="tx-edit-notes"
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder={t('custom:frontend:transactions:notesPlaceholder')}
+              rows={2}
+              value={notes}
+            />
+          </div>
 
           {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
 
