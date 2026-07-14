@@ -49,8 +49,8 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 | Transaction | Category required? | Budget effect |
 |-------------|-------------------|---------------|
 | **Asset ↔ asset transfer** (checking → savings) | **No** — “category not needed” | None |
-| **Credit card spending** (purchase on card) | **Yes** — expense category | Moves funded amount from spending category → that card’s **Credit Card Payment** category |
-| **Credit card payment** (checking → card) | **No** — transfer only | Reduces card balance; payment category already holds reserved cash |
+| **Credit card spending** (purchase on card) | **Yes** — expense category | Increases that card’s **Credit Card Payment** `envelope-balances.assigned` by the spend amount (budget coverage moves with the charge); spending category activity still reduces Available |
+| **Credit card payment** (checking → card) | **No** — transfer only | Reduces card balance; payment category already holds reserved cash (Ready to Assign ignores payment-envelope assigned) |
 | **External payment** (off-budget account) | Credit Card Payment category on inflow | Manual assign to payment category |
 
 - **Linked transfer editing** (Epic 4, US-4.3): single amount edit updates offsetting legs on the **same** transaction; validation skips category when both legs are non–credit-card asset accounts.

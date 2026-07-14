@@ -251,7 +251,10 @@ export async function getBudgetMonthSnapshot(
         incomeActivity += activity
       } else {
         expenseActivity += activity
-        expenseAssigned += assigned
+        // Payment envelopes are funded from spending categories (US-4.4), not from Ready to Assign.
+        if (category.purpose !== 'credit_card_payment') {
+          expenseAssigned += assigned
+        }
       }
 
       return {

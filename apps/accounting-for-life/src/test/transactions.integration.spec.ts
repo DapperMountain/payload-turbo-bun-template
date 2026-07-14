@@ -296,9 +296,10 @@ describe('transactions integration', () => {
       overrideAccess: false,
       data: {
         memo: 'Updated memo',
+        // Flip payment/category signs — income category legs must be credits.
         entries: [
-          { account: checkingA.id, amount: -40, sortOrder: 0 },
-          { account: checkingA.id, amount: 40, category: incomeCategory.id, sortOrder: 1 },
+          { account: checkingA.id, amount: 40, sortOrder: 0 },
+          { account: checkingA.id, amount: -40, category: incomeCategory.id, sortOrder: 1 },
         ],
       },
     })
@@ -499,5 +500,192 @@ describe('transactions integration', () => {
     })
 
     expect(category.purpose).toBe('credit_card_payment')
+  })
+
+  it('funds the credit card payment envelope when spending on a credit card', async () => {
+    const card = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Rewards Visa',
+        classification: 'liability',
+        subtype: 'credit_card',
+        unit: usd.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+      depth: 1,
+    })
+
+    const paymentCategoryId =
+      typeof card.category === 'string' ? card.category : card.category?.id
+    expect(paymentCategoryId).toBeDefined()
+
+    const expenseGroup = await payload.create({
+      collection: 'category-groups',
+      data: {
+        name: 'CC Spend Group',
+        kind: 'expense',
+        sortOrder: 0,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const groceries = await payload.create({
+      collection: 'categories',
+      data: {
+        name: 'CC Groceries',
+        purpose: 'spending',
+        sortOrder: 0,
+        isSystemDefault: false,
+        categoryGroup: expenseGroup.id,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const year = 2026
+    const month = 7
+
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: `${year}-07-15`,
+        type: 'transaction',
+        entries: [
+          { account: card.id, amount: 50, sortOrder: 0 },
+          { account: card.id, amount: -50, category: groceries.id, sortOrder: 1 },
+        ],
+      },
+    })
+
+    const funded = await payload.find({
+      collection: 'envelope-balances',
+      where: {
+        and: [
+          { budget: { equals: fx.budgetA.id } },
+          { category: { equals: paymentCategoryId! } },
+          { year: { equals: year } },
+          { month: { equals: month } },
+        ],
+      },
+      limit: 1,
+      overrideAccess: true,
+    })
+
+    expect(funded.totalDocs).toBe(1)
+    expect(Number(funded.docs[0]?.assigned)).toBe(50)
+
+    await payload.update({
+      collection: 'transactions',
+      id: transaction.id,
+      user: member,
+      overrideAccess: false,
+      data: {
+        entries: [
+          { account: card.id, amount: 30, sortOrder: 0 },
+          { account: card.id, amount: -30, category: groceries.id, sortOrder: 1 },
+        ],
+      },
+    })
+
+    const afterUpdate = await payload.find({
+      collection: 'envelope-balances',
+      where: {
+        and: [
+          { budget: { equals: fx.budgetA.id } },
+          { category: { equals: paymentCategoryId! } },
+          { year: { equals: year } },
+          { month: { equals: month } },
+        ],
+      },
+      limit: 1,
+      overrideAccess: true,
+    })
+
+    expect(Number(afterUpdate.docs[0]?.assigned)).toBe(30)
+
+    await payload.delete({
+      collection: 'transactions',
+      id: transaction.id,
+      user: member,
+      overrideAccess: false,
+      depth: 0,
+    })
+
+    const afterDelete = await payload.find({
+      collection: 'envelope-balances',
+      where: {
+        and: [
+          { budget: { equals: fx.budgetA.id } },
+          { category: { equals: paymentCategoryId! } },
+          { year: { equals: year } },
+          { month: { equals: month } },
+        ],
+      },
+      limit: 1,
+      overrideAccess: true,
+    })
+
+    expect(Number(afterDelete.docs[0]?.assigned ?? 0)).toBe(0)
+  })
+
+  it('does not fund payment envelopes for checking-to-credit-card transfers', async () => {
+    const card = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Paydown Visa',
+        classification: 'liability',
+        subtype: 'credit_card',
+        unit: usd.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+      depth: 1,
+    })
+
+    const paymentCategoryId =
+      typeof card.category === 'string' ? card.category : card.category?.id
+    expect(paymentCategoryId).toBeDefined()
+
+    await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-16',
+        type: 'transfer',
+        entries: [
+          { account: checkingA.id, amount: -100 },
+          { account: card.id, amount: 100 },
+        ],
+      },
+    })
+
+    const envelopes = await payload.find({
+      collection: 'envelope-balances',
+      where: {
+        and: [
+          { budget: { equals: fx.budgetA.id } },
+          { category: { equals: paymentCategoryId! } },
+        ],
+      },
+      limit: 5,
+      overrideAccess: true,
+    })
+
+    expect(envelopes.totalDocs).toBe(0)
   })
 })

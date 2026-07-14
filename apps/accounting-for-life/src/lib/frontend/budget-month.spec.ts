@@ -15,6 +15,12 @@ describe('budget ready-to-assign signing', () => {
     expect(displayCategoryActivity('income', 25)).toBe(-25)
     expect(readyToAssignAmount(-25, 0)).toBe(-25)
   })
+
+  it('treats liability category credits as positive spending activity', () => {
+    // Credit-card purchase offset leg is negative; Available must still decrease.
+    expect(displayCategoryActivity('spending', -40)).toBe(40)
+    expect(displayCategoryActivity('spending', 40)).toBe(40)
+  })
 })
 
 describe('applyCategoryToEntries', () => {

@@ -56,7 +56,7 @@ Foundation for all money movement.
 | US-4.1 | Journal entry schema: balanced debit/credit lines | 5 | 3 | **Done** |
 | US-4.2 | Posting engine with validation (must balance, min 2 lines) | 8 | 4 | **Done** — `transactions` hooks + virtual `entries` |
 | US-4.3 | Transfer leg sync: single amount edit on one leg updates the other (same header); YNAB “category not needed” for asset↔asset | 5 | 4 | **Done** — register/`updatePrimaryAmountInLines` + detail total sync; integration coverage |
-| US-4.4 | Credit card spending moves funds to payment category; payment transfers skip category | 5 | 4 | |
+| US-4.4 | Credit card spending moves funds to payment category; payment transfers skip category | 5 | 4 | **Done** — fund payment envelope on CC spend; transfers still skip category |
 
 ---
 
@@ -220,7 +220,7 @@ Custom frontend (not Payload admin) for daily use.
 | 1 | US-0.1–0.3, US-1.1–1.3 | 20 |
 | 2 | US-2.1–2.3, US-3.1 | 16 |
 | 3 | US-3.2–3.3, US-4.1 | 15 |
-| 4 | US-4.2–4.3 | 13 |
+| 4 | US-4.2–4.4 | 18 |
 | 5 | US-5.1–5.3 | 16 |
 | 6 | US-6.1–6.2 | 13 |
 | 7 | US-7.1–7.4 | 16 |

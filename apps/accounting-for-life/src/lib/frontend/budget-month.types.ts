@@ -64,7 +64,9 @@ export function displayCategoryActivity(
   rawSum: number,
 ): number {
   if (purpose === 'income') return -rawSum
-  return rawSum
+  // Liability / credit-card purchases store the category offset as a credit (negative).
+  // Available uses assigned − activity, so spend must always count as a positive outflow.
+  return Math.abs(rawSum)
 }
 
 /** YNAB-style pool: actual income received minus amounts assigned to spending envelopes. */
