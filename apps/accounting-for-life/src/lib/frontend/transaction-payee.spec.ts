@@ -4,9 +4,11 @@ import {
   defaultCategoryIdForPayee,
   isTransferFromPayee,
   resolveTransactionTypeFromPayee,
+  resolveTransferPair,
   toPayeeTransferId,
+  transferPayeePresentation,
 } from '@/lib/frontend/transaction-payee'
-import type { Category } from '@/types'
+import type { Account, Category } from '@/types'
 
 const categories: Category[] = [
   {
@@ -31,6 +33,39 @@ const categories: Category[] = [
   },
 ]
 
+const checking: Account = {
+  id: 'checking',
+  name: 'Checking',
+  classification: 'asset',
+  subtype: 'checking',
+  unit: 'usd',
+  budget: 'budget-a',
+  updatedAt: '',
+  createdAt: '',
+}
+
+const savings: Account = {
+  id: 'savings',
+  name: 'Savings',
+  classification: 'asset',
+  subtype: 'savings',
+  unit: 'usd',
+  budget: 'budget-a',
+  updatedAt: '',
+  createdAt: '',
+}
+
+const visa: Account = {
+  id: 'visa',
+  name: 'Visa',
+  classification: 'liability',
+  subtype: 'credit_card',
+  unit: 'usd',
+  budget: 'budget-a',
+  updatedAt: '',
+  createdAt: '',
+}
+
 describe('transaction payee helpers', () => {
   it('detects transfers from payee id or transfer splits only', () => {
     expect(isTransferFromPayee(toPayeeTransferId('savings'), [])).toBe(true)
@@ -48,5 +83,26 @@ describe('transaction payee helpers', () => {
   it('defaults to the first spending category in the budget', () => {
     expect(defaultCategoryIdForPayee(categories, 'budget-a')).toBe('groceries')
     expect(defaultCategoryIdForPayee(categories, 'other-budget')).toBe('')
+  })
+
+  it('presents outbound/inbound/pair transfer labels from the viewing account', () => {
+    const pair = resolveTransferPair([checking, savings], {
+      payeeValue: toPayeeTransferId('savings'),
+      paymentAccountId: 'checking',
+    })
+
+    expect(pair).toEqual({ source: checking, destination: savings })
+    expect(transferPayeePresentation(pair!, 'checking').mode).toBe('outbound')
+    expect(transferPayeePresentation(pair!, 'savings').mode).toBe('inbound')
+    expect(transferPayeePresentation(pair!).mode).toBe('pair')
+  })
+
+  it('marks credit-card destinations as payments', () => {
+    const pair = resolveTransferPair([checking, visa], {
+      payeeValue: toPayeeTransferId('visa'),
+      paymentAccountId: 'checking',
+    })
+
+    expect(transferPayeePresentation(pair!, 'checking').isPayment).toBe(true)
   })
 })

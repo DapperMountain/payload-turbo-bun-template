@@ -1,8 +1,9 @@
 import { ensureCreditCardPaymentCategory } from './ensureCreditCardPaymentCategory'
 import { validateAccountCategory } from './validateAccountCategory'
+import { validateAccountSubtype } from './validateAccountSubtype'
 
-// beforeChange runs first (validate/strip category), then afterChange (auto-link on credit cards).
+// beforeChange runs first (subtype + category), then afterChange (auto-link on credit cards).
 export const hooks = {
-  beforeChange: [validateAccountCategory],
+  beforeChange: [validateAccountSubtype, validateAccountCategory],
   afterChange: [ensureCreditCardPaymentCategory],
 }

@@ -2,12 +2,12 @@
 
 import { Label } from '@dappermountain/ui/components/label'
 
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import { TransactionDateTimePicker } from '@/app/(frontend)/_components/transaction-datetime-picker'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
 import { findAccount } from '@/lib/frontend/transaction-payee'
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
 import type { Account } from '@/types'
-import { Input } from '@dappermountain/ui/components/input'
 import { useAppTranslation } from '@/utils/i18n.client'
 
 export type TransactionDialogDateFieldProps = {
@@ -63,12 +63,13 @@ export function TransactionDialogAccountField(props: TransactionDialogAccountFie
     return (
       <div className="grid gap-2">
         <Label>{t('custom:collections:accounts:singular')}</Label>
-        <Input
-          className="bg-muted/40 text-muted-foreground"
-          disabled
-          readOnly
-          value={displayAccount?.name ?? '—'}
-        />
+        <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+          {displayAccount ? (
+            <AccountLabel account={displayAccount} name={displayAccount.name} />
+          ) : (
+            '—'
+          )}
+        </div>
       </div>
     )
   }

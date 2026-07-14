@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import { PayloadFilterBar } from '@/app/(frontend)/_components/payload-filter-bar'
 import { TransactionFormDialog } from '@/app/(frontend)/_components/transaction-form-dialog'
 import { TransactionsRegister } from '@/app/(frontend)/_components/transactions-register'
@@ -217,7 +218,14 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{account.name}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              <AccountLabel
+                account={account}
+                iconClassName="size-6"
+                name={account.name}
+                nameClassName="truncate"
+              />
+            </h1>
             <p className="text-sm text-muted-foreground">
               {t(`custom:fields:accounts:classification:${account.classification}`)}
               {' · '}
@@ -268,7 +276,10 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground">{t('custom:frontend:accounts:accountType')}</span>
-              <span>{t(`custom:fields:accounts:subtype:${account.subtype}`)}</span>
+              <AccountLabel
+                account={account}
+                name={t(`custom:fields:accounts:subtype:${account.subtype}`)}
+              />
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground">{t('custom:frontend:accounts:transactionCount')}</span>

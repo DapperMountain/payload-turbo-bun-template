@@ -23,6 +23,13 @@ import {
 import { Plus } from '@dappermountain/ui/icons'
 
 import { createAccountAction } from '@/app/(frontend)/actions/accounts'
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
+import { accountIconFor } from '@/lib/frontend/account-icon'
+import {
+  defaultSubtypeForClassification,
+  subtypeAfterClassificationChange,
+  subtypesForClassification,
+} from '@/lib/frontend/account-subtype'
 import type { Account } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
 
@@ -30,6 +37,14 @@ export type AccountFormDialogProps = {
   budgets: { id: string; name: string }[]
   units: { id: string; label: string }[]
 }
+
+const CLASSIFICATIONS = [
+  'asset',
+  'liability',
+  'equity',
+  'income',
+  'expense',
+] as const satisfies readonly Account['classification'][]
 
 export function AccountFormDialog(props: AccountFormDialogProps) {
   const { budgets, units } = props
@@ -40,17 +55,26 @@ export function AccountFormDialog(props: AccountFormDialogProps) {
 
   const [name, setName] = useState('')
   const [classification, setClassification] = useState<Account['classification']>('asset')
-  const [subtype, setSubtype] = useState<Account['subtype']>('checking')
+  const [subtype, setSubtype] = useState<Account['subtype']>(
+    defaultSubtypeForClassification('asset'),
+  )
   const [unit, setUnit] = useState(units[0]?.id ?? '')
   const [budget, setBudget] = useState(budgets[0]?.id ?? '')
+
+  const subtypeOptions = subtypesForClassification(classification)
 
   const reset = () => {
     setName('')
     setClassification('asset')
-    setSubtype('checking')
+    setSubtype(defaultSubtypeForClassification('asset'))
     setUnit(units[0]?.id ?? '')
     setBudget(budgets[0]?.id ?? '')
     setError(null)
+  }
+
+  const onClassificationChange = (next: Account['classification']) => {
+    setClassification(next)
+    setSubtype((current) => subtypeAfterClassificationChange(next, current))
   }
 
   const submit = () => {
@@ -100,16 +124,25 @@ export function AccountFormDialog(props: AccountFormDialogProps) {
 
           <div className="grid gap-2">
             <Label>{t('custom:frontend:filters:fields:classification')}</Label>
-            <Select onValueChange={(v) => setClassification(v as Account['classification'])} value={classification}>
+            <Select onValueChange={(v) => onClassificationChange(v as Account['classification'])} value={classification}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(['asset', 'liability', 'equity', 'income', 'expense'] as const).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`custom:fields:accounts:classification:${value}`)}
-                  </SelectItem>
-                ))}
+                {CLASSIFICATIONS.map((value) => {
+                  const Icon = accountIconFor({
+                    classification: value,
+                    subtype: defaultSubtypeForClassification(value),
+                  })
+                  return (
+                    <SelectItem key={value} value={value}>
+                      <span className="inline-flex items-center gap-2">
+                        <Icon aria-hidden className="size-4 text-muted-foreground" />
+                        {t(`custom:fields:accounts:classification:${value}`)}
+                      </span>
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -121,13 +154,14 @@ export function AccountFormDialog(props: AccountFormDialogProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(['checking', 'savings', 'cash', 'credit_card', 'loan', 'holding', 'other'] as const).map(
-                  (value) => (
-                    <SelectItem key={value} value={value}>
-                      {t(`custom:fields:accounts:subtype:${value}`)}
-                    </SelectItem>
-                  ),
-                )}
+                {subtypeOptions.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    <AccountLabel
+                      account={{ classification, subtype: value }}
+                      name={t(`custom:fields:accounts:subtype:${value}`)}
+                    />
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

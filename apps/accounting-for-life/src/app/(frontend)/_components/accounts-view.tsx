@@ -3,6 +3,7 @@ import { getAppPayload } from '@/lib/frontend/payload.server'
 import { Suspense } from 'react'
 
 import { AccountFormDialog } from '@/app/(frontend)/_components/account-form-dialog'
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import { PayloadFilterBar } from '@/app/(frontend)/_components/payload-filter-bar'
 import { accountFilterFields } from '@/lib/filters/fields'
 import { parseFiltersParam } from '@/lib/filters/parse'
@@ -124,7 +125,7 @@ export async function AccountsView(props: AccountsViewProps) {
                 <TableRow className="hover:bg-muted/40" key={account.id}>
                   <TableCell className="font-medium">
                     <Link className="hover:underline" href={`/accounts/${account.id}`}>
-                      {account.name}
+                      <AccountLabel account={account} name={account.name} />
                     </Link>
                   </TableCell>
                   <TableCell>{t(`custom:fields:accounts:classification:${account.classification}`)}</TableCell>

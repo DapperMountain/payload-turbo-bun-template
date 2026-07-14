@@ -48,6 +48,10 @@ export function buildGroupedAccountOptions(
         id: account.id,
         label: account.name,
         group: classification,
+        accountIcon: {
+          subtype: account.subtype,
+          classification: account.classification,
+        },
       })
     }
   }

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import config from '@payload-config'
 import { getPayload } from 'payload'
 
+import { isSubtypeAllowedForClassification } from '@/lib/frontend/account-subtype'
 import { requireAppUser } from '@/lib/frontend/auth.server'
 import { resolveActiveWorkspace } from '@/lib/frontend/workspace.server'
 import type { Account } from '@/types'
@@ -24,6 +25,10 @@ export async function createAccountAction(input: CreateAccountInput): Promise<{ 
 
     if (!workspace) {
       return { ok: false, error: 'No workspace selected' }
+    }
+
+    if (!isSubtypeAllowedForClassification(input.classification, input.subtype)) {
+      return { ok: false, error: 'Subtype is not valid for the selected account type' }
     }
 
     const payload = await getPayload({ config: await config })

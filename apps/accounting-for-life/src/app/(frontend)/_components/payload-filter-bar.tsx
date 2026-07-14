@@ -20,6 +20,7 @@ import {
 import { Filter, Plus, X } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import {
   clauseToOperatorKey,
   getOperatorOption,
@@ -700,19 +701,29 @@ function GroupedSearchPicker(props: GroupedSearchPickerProps) {
                         checked={values.includes(option.id)}
                         onCheckedChange={() => toggle(option.id)}
                       />
-                      <span className="truncate">{option.label}</span>
+                      <span className="truncate">
+                        {option.accountIcon ? (
+                          <AccountLabel account={option.accountIcon} name={option.label} />
+                        ) : (
+                          option.label
+                        )}
+                      </span>
                     </label>
                   ) : (
                     <button
                       className={cn(
-                        'flex w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
+                        'flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
                         values[0] === option.id && 'bg-accent',
                       )}
                       key={option.id}
                       onClick={() => toggle(option.id)}
                       type="button"
                     >
-                      {option.label}
+                      {option.accountIcon ? (
+                        <AccountLabel account={option.accountIcon} name={option.label} />
+                      ) : (
+                        option.label
+                      )}
                     </button>
                   )
                 ))}

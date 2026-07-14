@@ -15,20 +15,22 @@ import { ChevronRight, StickyNote } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
 import { updateTransactionAction } from '@/app/(frontend)/actions/transactions'
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
 import { PayeePicker } from '@/app/(frontend)/_components/payee-picker'
 import { TransactionSplitsPopover } from '@/app/(frontend)/_components/transaction-splits-popover'
+import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
 import {
-  createPayeeLabelHelpers,
   defaultCategoryIdFromPickerOptions,
   findAccount,
   interpolateTemplate,
   isPayeeTransferId,
   isTransferFromPayee,
-  payeeDisplayLabel,
   payeeValueFromTransaction,
   resolveTransactionTypeFromPayee,
+  resolveTransferPair,
   transferDestinationFromPayee,
+  transferPayeePresentation,
   transferSkipsCategory,
 } from '@/lib/frontend/transaction-payee'
 import type { RegisterColumnId } from '@/app/(frontend)/_components/transactions-register/register-config'
@@ -125,14 +127,6 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   const [rowError, setRowError] = useState<string | null>(null)
   const [editingAmount, setEditingAmount] = useState(false)
 
-  const payeeLabels = useMemo(
-    () =>
-      createPayeeLabelHelpers((key) =>
-        t(key as 'custom:frontend:transactions:transferToAccountNamed'),
-      ),
-    [t],
-  )
-
   const [payeeValue, setPayeeValue] = useState(() => payeeValueFromTransaction(transaction))
   const [categoryId, setCategoryId] = useState(primaryCategoryId(transaction))
   const [accountId, setAccountId] = useState(row.primaryAccountId)
@@ -159,6 +153,17 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   const isTransfer = isTransferFromPayee(payeeValue, splitForm.splits)
   const categoryDisabled = isTransfer && transferSkipsCategory()
   const showSplitEditor = canInlineEditLines && !isTransfer && hasEditableSplits(splitForm)
+
+  const transferPresentation = useMemo(() => {
+    if (!isTransfer) return null
+    const pair = resolveTransferPair(accounts, {
+      transaction,
+      payeeValue,
+      paymentAccountId: accountId,
+    })
+    if (!pair) return null
+    return transferPayeePresentation(pair, row.primaryAccountId || accountId)
+  }, [accountId, accounts, isTransfer, payeeValue, row.primaryAccountId, transaction])
 
   useEffect(() => {
     setPayeeValue(payeeValueFromTransaction(transaction))
@@ -330,19 +335,22 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               }}
               payeeOptions={payeeOptions}
               sourceAccountId={accountId}
+              transaction={transaction}
               value={payeeValue}
             />
           )
         }
 
-        return (
-          <span className="font-medium">
-            {isPayeeTransferId(payeeValue)
-              ? payeeDisplayLabel(payeeValue, accounts, payeeLabels)
-              : row.memo || t('custom:frontend:transactions:untitled')}
+        return transferPresentation ? (
+          <TransferPayeeLabel className="font-medium" presentation={transferPresentation} />
+        ) : (
+          <span
+            className="truncate font-medium"
+            title={row.memo || t('custom:frontend:transactions:untitled')}
+          >
+            {row.memo || t('custom:frontend:transactions:untitled')}
           </span>
         )
-
       case 'category':
         if (categoryDisabled) {
           return (
@@ -428,7 +436,20 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           )
         }
 
-        return <span className="text-muted-foreground">{row.accountLabel}</span>
+        {
+          const account = findAccount(accounts, row.primaryAccountId)
+          if (account) {
+            return (
+              <AccountLabel
+                account={account}
+                className="text-muted-foreground"
+                name={row.accountLabel}
+              />
+            )
+          }
+
+          return <span className="text-muted-foreground">{row.accountLabel}</span>
+        }
 
       case 'status':
         if (canInlineEdit) {

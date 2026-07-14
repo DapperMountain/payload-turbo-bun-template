@@ -95,6 +95,10 @@ export function buildPayeeTransferOptions(
         id: toPayeeTransferId(account.id),
         label: payeeLabelForTransferAccount(account, labels),
         group: PAYEE_TRANSFER_GROUP,
+        accountIcon: {
+          subtype: account.subtype,
+          classification: account.classification,
+        },
       })
     }
   }
@@ -107,6 +111,10 @@ export function buildPayeeTransferOptions(
         id: toPayeeTransferId(account.id),
         label: payeeLabelForTransferAccount(account, labels),
         group: PAYEE_TRANSFER_GROUP,
+        accountIcon: {
+          subtype: account.subtype,
+          classification: account.classification,
+        },
       })
     }
   }
@@ -148,6 +156,86 @@ export function payeeDisplayLabel(
   }
 
   return value
+}
+
+export type TransferAccountPair = {
+  source: Account
+  destination: Account
+}
+
+export type TransferPayeePresentation = TransferAccountPair & {
+  /** Relative to the viewing/payment account when known. */
+  mode: 'outbound' | 'inbound' | 'pair'
+  isPayment: boolean
+}
+
+/**
+ * Resolve who money left and who received it for a transfer (or card payment).
+ *
+ * Prefers the transfer payee destination + the other posted leg / payment account.
+ */
+export function resolveTransferPair(
+  accounts: Account[],
+  options: {
+    transaction?: Pick<Transaction, 'entries' | 'entryJoin' | 'type' | 'memo'> | null
+    payeeValue?: string
+    paymentAccountId?: string | null
+  },
+): TransferAccountPair | null {
+  const payeeValue =
+    options.payeeValue ??
+    (options.transaction ? payeeValueFromTransaction(options.transaction as Transaction) : '')
+
+  const destinationId = transferDestinationFromPayee(payeeValue)
+  const lineAccountIds = options.transaction
+    ? transactionEntries(options.transaction as Transaction)
+        .map((entry) => getCollectionId(entry.account))
+        .filter((id): id is string => Boolean(id))
+    : []
+
+  let sourceId: string | null = null
+  let resolvedDestinationId = destinationId
+
+  if (resolvedDestinationId) {
+    sourceId =
+      options.paymentAccountId && options.paymentAccountId !== resolvedDestinationId
+        ? options.paymentAccountId
+        : (lineAccountIds.find((id) => id !== resolvedDestinationId) ?? null)
+  } else if (lineAccountIds.length >= 2) {
+    const lines = transactionEntries(options.transaction as Transaction)
+    const outflow = lines.find((entry) => entry.amount < 0)
+    const inflow = lines.find((entry) => entry.amount > 0)
+    sourceId = getCollectionId(outflow?.account) ?? lineAccountIds[0] ?? null
+    resolvedDestinationId = getCollectionId(inflow?.account) ?? lineAccountIds[1] ?? null
+  }
+
+  if (!sourceId || !resolvedDestinationId || sourceId === resolvedDestinationId) {
+    return null
+  }
+
+  const source = findAccount(accounts, sourceId)
+  const destination = findAccount(accounts, resolvedDestinationId)
+  if (!source || !destination) return null
+
+  return { source, destination }
+}
+
+/** How to render a transfer relative to the account being viewed (or payment account). */
+export function transferPayeePresentation(
+  pair: TransferAccountPair,
+  viewingAccountId?: string | null,
+): TransferPayeePresentation {
+  const isPayment = isCreditCardAccount(pair.destination)
+
+  if (viewingAccountId && viewingAccountId === pair.source.id) {
+    return { ...pair, mode: 'outbound', isPayment }
+  }
+
+  if (viewingAccountId && viewingAccountId === pair.destination.id) {
+    return { ...pair, mode: 'inbound', isPayment }
+  }
+
+  return { ...pair, mode: 'pair', isPayment }
 }
 
 export function payeeValueFromTransaction(transaction: Transaction): string {

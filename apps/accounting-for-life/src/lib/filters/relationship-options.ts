@@ -1,3 +1,5 @@
+import type { Account } from '@/types'
+
 import type { FilterOperator } from './types'
 
 export type RelationshipFilterOption = {
@@ -7,6 +9,8 @@ export type RelationshipFilterOption = {
   group?: string
   /** Same display name across budgets — filter with `in` / `not_in` over these IDs. */
   matchIds?: string[]
+  /** When set, pickers show the matching account subtype icon beside the label. */
+  accountIcon?: Pick<Account, 'subtype' | 'classification'>
 }
 
 export function formatRelationshipOptionLabel(option: RelationshipFilterOption): string {

@@ -5,23 +5,29 @@ import { Input } from '@dappermountain/ui/components/input'
 import { Popover, PopoverContent, PopoverAnchor } from '@dappermountain/ui/components/popover'
 import { cn } from '@dappermountain/ui/lib/utils'
 
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
+import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
 import {
   buildPayeeMerchantOptions,
   buildPayeeTransferOptions,
   createPayeeLabelHelpers,
+  findAccount,
   interpolateNamedTemplate,
   isPayeeTransferId,
-  payeeDisplayLabel,
   payeeTransferAccountId,
+  resolveTransferPair,
   toPayeeTransferId,
+  transferPayeePresentation,
 } from '@/lib/frontend/transaction-payee'
-import type { Account } from '@/types'
+import type { Account, Transaction } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
 
 export type PayeePickerProps = {
   accounts: Account[]
   budgetId?: string
   sourceAccountId?: string
+  /** When set, inbound/outbound uses posted legs for the viewing account. */
+  transaction?: Transaction | null
   payeeOptions?: string[]
   value: string
   /** Live draft while typing (optional — use for form state). */
@@ -41,6 +47,7 @@ export function PayeePicker(props: PayeePickerProps) {
     accounts,
     budgetId,
     sourceAccountId,
+    transaction,
     payeeOptions = [],
     value,
     onValueChange,
@@ -54,8 +61,8 @@ export function PayeePicker(props: PayeePickerProps) {
   const { t } = useAppTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState('')
   const [focused, setFocused] = useState(false)
+  const [draft, setDraft] = useState('')
 
   const labels = useMemo(
     () =>
@@ -71,15 +78,9 @@ export function PayeePicker(props: PayeePickerProps) {
   )
 
   const merchantOptions = useMemo(
-    () => buildPayeeMerchantOptions(payeeOptions, draft),
-    [draft, payeeOptions],
+    () => buildPayeeMerchantOptions(payeeOptions, focused ? draft : ''),
+    [draft, focused, payeeOptions],
   )
-
-  const filteredTransfers = useMemo(() => {
-    const q = draft.trim().toLowerCase()
-    if (!q) return transferOptions
-    return transferOptions.filter((option) => option.label.toLowerCase().includes(q))
-  }, [draft, transferOptions])
 
   const trimmedDraft = draft.trim()
   const showAddNew =
@@ -88,14 +89,33 @@ export function PayeePicker(props: PayeePickerProps) {
     !merchantOptions.some(
       (option) => option.label.toLowerCase() === trimmedDraft.toLowerCase(),
     ) &&
-    !filteredTransfers.some(
+    !transferOptions.some(
       (option) => option.label.toLowerCase() === trimmedDraft.toLowerCase(),
     )
 
+  const filteredTransfers = useMemo(() => {
+    const q = trimmedDraft.toLowerCase()
+    if (!q || !focused) return transferOptions
+    return transferOptions.filter((option) => option.label.toLowerCase().includes(q))
+  }, [focused, transferOptions, trimmedDraft])
+
+  const transferPresentation = useMemo(() => {
+    if (!isPayeeTransferId(value)) return null
+    const pair = resolveTransferPair(accounts, {
+      transaction,
+      payeeValue: value,
+      paymentAccountId: sourceAccountId,
+    })
+    if (!pair) return null
+    return transferPayeePresentation(pair, sourceAccountId ?? pair.source.id)
+  }, [accounts, sourceAccountId, transaction, value])
+
+  const showTransferChrome = Boolean(transferPresentation) && !focused
+
   const displayValue = focused
     ? draft
-    : isPayeeTransferId(value)
-      ? payeeDisplayLabel(value, accounts, labels)
+    : showTransferChrome
+      ? ''
       : value
 
   const commitValue = (next: string) => {
@@ -124,6 +144,13 @@ export function PayeePicker(props: PayeePickerProps) {
 
   const selectMerchant = (memo: string) => {
     commitValue(memo)
+  }
+
+  const focusInput = () => {
+    setFocused(true)
+    setDraft(isPayeeTransferId(value) ? '' : value)
+    setOpen(true)
+    window.requestAnimationFrame(() => inputRef.current?.focus())
   }
 
   const handleBlur = () => {
@@ -158,38 +185,67 @@ export function PayeePicker(props: PayeePickerProps) {
       open={open && !disabled}
     >
       <PopoverAnchor asChild>
-        <Input
-          className={cn(
-            appearance === 'plain' &&
-              'h-7 border-transparent bg-transparent px-1.5 shadow-none hover:bg-muted/50 focus-visible:border-input focus-visible:bg-background',
-            className,
-          )}
-          disabled={disabled}
-          id={id}
-          onBlur={handleBlur}
-          onChange={(event) => updateDraft(event.target.value)}
-          onClick={(event) => event.stopPropagation()}
-          onFocus={() => {
-            setFocused(true)
-            setDraft(isPayeeTransferId(value) ? '' : value)
-            setOpen(true)
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              commitValue(trimmedDraft)
-            }
-            if (event.key === 'Escape') {
-              setFocused(false)
+        <div className={cn('relative min-w-0', className)}>
+          {showTransferChrome && transferPresentation ? (
+            <button
+              className={cn(
+                'absolute inset-0 z-[1] flex min-w-0 items-center px-1.5 text-left',
+                appearance === 'plain' && 'rounded-md hover:bg-muted/50',
+                appearance === 'input' && 'rounded-md border border-transparent px-3',
+              )}
+              disabled={disabled}
+              onClick={(event) => {
+                event.stopPropagation()
+                focusInput()
+              }}
+              type="button"
+            >
+              <TransferPayeeLabel className="min-w-0" presentation={transferPresentation} />
+            </button>
+          ) : null}
+          <Input
+            aria-hidden={showTransferChrome || undefined}
+            className={cn(
+              'w-full',
+              appearance === 'plain' &&
+                'h-7 border-transparent bg-transparent px-1.5 shadow-none hover:bg-muted/50 focus-visible:border-input focus-visible:bg-background',
+              // Hide the field entirely while the transfer chrome is painted over it —
+              // text-transparent still leaves the placeholder visible underneath.
+              showTransferChrome && 'pointer-events-none opacity-0',
+            )}
+            disabled={disabled}
+            id={id}
+            onBlur={handleBlur}
+            onChange={(event) => updateDraft(event.target.value)}
+            onClick={(event) => event.stopPropagation()}
+            onFocus={() => {
+              setFocused(true)
               setDraft(isPayeeTransferId(value) ? '' : value)
-              setOpen(false)
-              inputRef.current?.blur()
+              setOpen(true)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                commitValue(trimmedDraft)
+              }
+              if (event.key === 'Escape') {
+                setFocused(false)
+                setDraft(isPayeeTransferId(value) ? '' : value)
+                setOpen(false)
+                inputRef.current?.blur()
+              }
+            }}
+            placeholder={
+              showTransferChrome
+                ? undefined
+                : (placeholder ?? t('custom:frontend:transactions:payeePlaceholder'))
             }
-          }}
-          placeholder={placeholder ?? t('custom:frontend:transactions:payeePlaceholder')}
-          ref={inputRef}
-          value={displayValue}
-        />
+            ref={inputRef}
+            tabIndex={showTransferChrome ? -1 : undefined}
+            title={!focused && !showTransferChrome && value ? value : undefined}
+            value={displayValue}
+          />
+        </div>
       </PopoverAnchor>
       <PopoverContent
         align="start"
@@ -238,12 +294,13 @@ export function PayeePicker(props: PayeePickerProps) {
                   {merchantOptions.map((option) => (
                     <button
                       className={cn(
-                        'flex w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
+                        'flex w-full truncate rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
                         !isPayeeTransferId(value) && value === option.id && 'bg-accent',
                       )}
                       key={option.id}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => selectMerchant(option.label)}
+                      title={option.label}
                       type="button"
                     >
                       {option.label}
@@ -257,20 +314,29 @@ export function PayeePicker(props: PayeePickerProps) {
                   <p className="sticky top-0 z-10 bg-popover px-2 py-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
                     {t('custom:frontend:transactions:paymentsAndTransfers')}
                   </p>
-                  {filteredTransfers.map((option) => (
-                    <button
-                      className={cn(
-                        'flex w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
-                        value === option.id && 'bg-accent',
-                      )}
-                      key={option.id}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => selectTransfer(payeeTransferAccountId(option.id))}
-                      type="button"
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+                  {filteredTransfers.map((option) => {
+                    const destination = findAccount(accounts, payeeTransferAccountId(option.id))
+
+                    return (
+                      <button
+                        className={cn(
+                          'flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
+                          value === option.id && 'bg-accent',
+                        )}
+                        key={option.id}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => selectTransfer(payeeTransferAccountId(option.id))}
+                        title={option.label}
+                        type="button"
+                      >
+                        {destination ? (
+                          <AccountLabel account={destination} name={option.label} />
+                        ) : (
+                          option.label
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               ) : null}
             </>

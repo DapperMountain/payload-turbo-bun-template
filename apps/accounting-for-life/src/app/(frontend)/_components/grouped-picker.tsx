@@ -7,8 +7,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@dappermountain/ui/comp
 import { ChevronDown } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
+import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
 import { useAppTranslation } from '@/utils/i18n.client'
+
+function OptionLabel(props: { option: RelationshipFilterOption }) {
+  const { option } = props
+  if (!option.accountIcon) return option.label
+
+  return <AccountLabel account={option.accountIcon} name={option.label} />
+}
 
 export type GroupedPickerProps = {
   options: RelationshipFilterOption[]
@@ -75,11 +83,16 @@ export function GroupedPicker(props: GroupedPickerProps) {
 
   const groups = useMemo(() => groupOptions(options, query), [options, query])
 
+  const selectedOption = useMemo(() => {
+    if (!value || (emptyValue && value === emptyValue)) return null
+    return options.find((option) => option.id === value) ?? null
+  }, [emptyValue, options, value])
+
   const selectedLabel = useMemo(() => {
     if (emptyValue && value === emptyValue) return emptyLabel ?? placeholder
     if (!value) return placeholder
-    return options.find((option) => option.id === value)?.label ?? value
-  }, [emptyLabel, emptyValue, options, placeholder, value])
+    return selectedOption?.label ?? value
+  }, [emptyLabel, emptyValue, placeholder, selectedOption, value])
 
   const selectValue = (next: string) => {
     onValueChange(next)
@@ -112,11 +125,16 @@ export function GroupedPicker(props: GroupedPickerProps) {
         >
           <span
             className={cn(
-              'truncate text-left',
+              'min-w-0 truncate text-left',
               (!value || (emptyValue && value === emptyValue)) && 'text-muted-foreground',
             )}
+            title={selectedLabel}
           >
-            {selectedLabel}
+            {selectedOption?.accountIcon ? (
+              <AccountLabel account={selectedOption.accountIcon} name={selectedLabel} />
+            ) : (
+              selectedLabel
+            )}
           </span>
           <ChevronDown
             className={cn(
@@ -173,14 +191,15 @@ export function GroupedPicker(props: GroupedPickerProps) {
                 {groupOptions.map((option) => (
                   <button
                     className={cn(
-                      'flex w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
+                      'flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
                       value === option.id && 'bg-accent',
                     )}
                     key={option.id}
                     onClick={() => selectValue(option.id)}
+                    title={option.label}
                     type="button"
                   >
-                    {option.label}
+                    <OptionLabel option={option} />
                   </button>
                 ))}
               </div>

@@ -16,7 +16,11 @@ import { ChevronDown, ChevronRight } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
 import { BudgetAssignedCell } from '@/app/(frontend)/_components/budget-assigned-cell'
-import type { BudgetMonthSnapshot } from '@/lib/frontend/budget-month.types'
+import type {
+  BudgetMonthCategoryRow,
+  BudgetMonthGroupRow,
+  BudgetMonthSnapshot,
+} from '@/lib/frontend/budget-month.types'
 import { useAppTranslation } from '@/utils/i18n.client'
 
 export type BudgetMonthTableProps = {
@@ -27,10 +31,30 @@ function formatMoney(amount: number): string {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount)
 }
 
-function activityClassName(amount: number): string {
-  if (amount > 0) return 'text-emerald-600 dark:text-emerald-400'
-  if (amount < 0) return 'text-destructive'
-  return 'text-muted-foreground'
+function activityClassName(
+  amount: number,
+  kind: 'income' | 'expense' | 'net' | 'spending' = 'spending',
+): string {
+  if (amount === 0) return 'text-muted-foreground'
+
+  // Income / net: green is "good" inflow or surplus.
+  if (kind === 'income' || kind === 'net') {
+    if (amount > 0) return 'text-emerald-600 dark:text-emerald-400'
+    return 'text-destructive'
+  }
+
+  // Spending / payment-envelope activity is outflow from the budget — never celebrate it green.
+  return 'text-foreground'
+}
+
+function categoryActivityKind(
+  purpose: BudgetMonthCategoryRow['purpose'],
+): 'income' | 'spending' {
+  return purpose === 'income' ? 'income' : 'spending'
+}
+
+function groupActivityKind(kind: BudgetMonthGroupRow['kind']): 'income' | 'spending' {
+  return kind === 'income' ? 'income' : 'spending'
 }
 
 function availableClassName(amount: number): string {
@@ -152,7 +176,10 @@ export function BudgetMonthTable(props: BudgetMonthTableProps) {
                           <TableCell className={cn(moneyColClass, numericCellClass)}>
                             <NumericAmount
                               amount={group.activityTotal}
-                              className={activityClassName(group.activityTotal)}
+                              className={activityClassName(
+                                group.activityTotal,
+                                groupActivityKind(group.kind),
+                              )}
                               emphasis
                             />
                           </TableCell>
@@ -184,7 +211,10 @@ export function BudgetMonthTable(props: BudgetMonthTableProps) {
                                 <TableCell className={cn(moneyColClass, numericCellClass)}>
                                   <NumericAmount
                                     amount={category.activity}
-                                    className={activityClassName(category.activity)}
+                                    className={activityClassName(
+                                      category.activity,
+                                      categoryActivityKind(category.purpose),
+                                    )}
                                   />
                                 </TableCell>
                                 <TableCell className={cn(moneyColClass, numericCellClass)}>
@@ -213,19 +243,19 @@ export function BudgetMonthTable(props: BudgetMonthTableProps) {
             <CardContent className="space-y-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">{t('custom:frontend:budgets:incomeActivity')}</span>
-                <span className={cn('font-medium tabular-nums', activityClassName(snapshot.summary.incomeActivity))}>
+                <span className={cn('font-medium tabular-nums', activityClassName(snapshot.summary.incomeActivity, 'income'))}>
                   {formatMoney(snapshot.summary.incomeActivity)}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">{t('custom:frontend:budgets:expenseActivity')}</span>
-                <span className={cn('font-medium tabular-nums', activityClassName(snapshot.summary.expenseActivity))}>
+                <span className={cn('font-medium tabular-nums', activityClassName(snapshot.summary.expenseActivity, 'expense'))}>
                   {formatMoney(snapshot.summary.expenseActivity)}
                 </span>
               </div>
               <div className="border-t pt-3 flex items-center justify-between gap-2">
                 <span className="font-medium">{t('custom:frontend:budgets:netActivity')}</span>
-                <span className={cn('font-semibold tabular-nums', activityClassName(snapshot.summary.net))}>
+                <span className={cn('font-semibold tabular-nums', activityClassName(snapshot.summary.net, 'net'))}>
                   {formatMoney(snapshot.summary.net)}
                 </span>
               </div>

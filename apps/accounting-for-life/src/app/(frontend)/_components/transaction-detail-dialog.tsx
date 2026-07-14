@@ -29,6 +29,7 @@ import {
   TransactionDialogDateField,
 } from '@/app/(frontend)/_components/transaction-dialog-fields'
 import { TransactionSplitsEditor } from '@/app/(frontend)/_components/transaction-splits-editor'
+import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
 import {
   createPayeeLabelHelpers,
   defaultCategoryIdForPayee,
@@ -38,7 +39,9 @@ import {
   payeeDisplayLabel,
   payeeValueFromTransaction,
   resolveTransactionTypeFromPayee,
+  resolveTransferPair,
   transferDestinationFromPayee,
+  transferPayeePresentation,
   transferSkipsCategory,
 } from '@/lib/frontend/transaction-payee'
 import {
@@ -180,6 +183,20 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
       return interpolateTemplate(t('custom:frontend:transactions:splitTransferCount'), {
         count: String(transfers),
       })
+    }
+    if (isTransfer) {
+      const pair = resolveTransferPair(accounts, {
+        transaction: transaction ?? undefined,
+        payeeValue,
+        paymentAccountId: splitState.paymentAccount,
+      })
+      if (pair) {
+        return (
+          <TransferPayeeLabel
+            presentation={transferPayeePresentation(pair, splitState.paymentAccount)}
+          />
+        )
+      }
     }
     if (isPayeeTransferId(payeeValue)) {
       return payeeDisplayLabel(payeeValue, accounts, payeeLabels)
@@ -361,6 +378,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
                   onValueChange={setPayeeValue}
                   payeeOptions={payeeOptions}
                   sourceAccountId={splitState.paymentAccount}
+                  transaction={transaction}
                   value={payeeValue}
                 />
               </div>
