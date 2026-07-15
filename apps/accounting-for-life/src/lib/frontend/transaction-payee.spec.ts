@@ -97,6 +97,18 @@ describe('transaction payee helpers', () => {
     expect(transferPayeePresentation(pair!).mode).toBe('pair')
   })
 
+  it('flips arrow direction when the payment amount is an inflow', () => {
+    const pair = resolveTransferPair([checking, savings], {
+      payeeValue: toPayeeTransferId('savings'),
+      paymentAccountId: 'checking',
+    })
+
+    const inflow = transferPayeePresentation(pair!, 'checking', 'inflow')
+    expect(inflow.mode).toBe('inbound')
+    expect(inflow.source.id).toBe('savings')
+    expect(inflow.destination.id).toBe('checking')
+  })
+
   it('marks credit-card destinations as payments', () => {
     const pair = resolveTransferPair([checking, visa], {
       payeeValue: toPayeeTransferId('visa'),

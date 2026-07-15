@@ -1,6 +1,7 @@
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
 import { transactionEntries } from '@/lib/frontend/transactions.display'
 import { splitFormFromEntries } from '@/lib/frontend/transaction-splits'
+import type { AmountDirection } from '@/lib/frontend/transaction-amount-direction'
 import type { Account, Category, Transaction } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
 
@@ -224,18 +225,27 @@ export function resolveTransferPair(
 export function transferPayeePresentation(
   pair: TransferAccountPair,
   viewingAccountId?: string | null,
+  /** When set, inflow reverses the arrow vs the structural source→destination pair. */
+  amountDirection?: AmountDirection | null,
 ): TransferPayeePresentation {
   const isPayment = isCreditCardAccount(pair.destination)
 
+  let source = pair.source
+  let destination = pair.destination
+  let mode: TransferPayeePresentation['mode'] = 'pair'
+
   if (viewingAccountId && viewingAccountId === pair.source.id) {
-    return { ...pair, mode: 'outbound', isPayment }
+    mode = 'outbound'
+  } else if (viewingAccountId && viewingAccountId === pair.destination.id) {
+    mode = 'inbound'
   }
 
-  if (viewingAccountId && viewingAccountId === pair.destination.id) {
-    return { ...pair, mode: 'inbound', isPayment }
+  if (amountDirection === 'inflow' && mode !== 'pair') {
+    ;[source, destination] = [destination, source]
+    mode = mode === 'outbound' ? 'inbound' : 'outbound'
   }
 
-  return { ...pair, mode: 'pair', isPayment }
+  return { source, destination, mode, isPayment }
 }
 
 export function payeeValueFromTransaction(transaction: Transaction): string {

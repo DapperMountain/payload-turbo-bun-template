@@ -45,6 +45,10 @@ import {
   transferSkipsCategory,
 } from '@/lib/frontend/transaction-payee'
 import {
+  parseSignedAmountString,
+  paymentAccountFromList,
+} from '@/lib/frontend/transaction-amount-direction'
+import {
   normalizeTransactionDateTime,
   transactionDateTimeEquals,
 } from '@/lib/frontend/transaction-datetime'
@@ -176,6 +180,17 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
   const showMultiSplit = isMultiSplitTransaction(splitState.splits)
   const categoryDisabled = isTransfer && transferSkipsCategory()
   const postFromSplits = shouldPostFromSplitRows(splitState, { view: activeView, isTransfer })
+  const amountDirection = parseSignedAmountString(
+    splitState.totalAmount,
+    paymentAccountFromList(accounts, splitState.paymentAccount),
+  ).direction
+  const resolvedType = resolveTransactionTypeFromPayee(payeeValue, splitState.splits)
+  const displayType: Transaction['type'] =
+    resolvedType === 'transfer'
+      ? 'transfer'
+      : transaction.type === 'transfer'
+        ? 'transaction'
+        : transaction.type
 
   const payeeTitle = (() => {
     const transfers = transferSplitCount(splitState.splits)
@@ -193,7 +208,11 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
       if (pair) {
         return (
           <TransferPayeeLabel
-            presentation={transferPayeePresentation(pair, splitState.paymentAccount)}
+            presentation={transferPayeePresentation(
+              pair,
+              splitState.paymentAccount,
+              amountDirection,
+            )}
           />
         )
       }
@@ -336,7 +355,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
           <DialogDescription asChild>
             <div className="flex items-center justify-between gap-3">
               <span>
-                {t(`custom:fields:transactions:type:${transaction.type}`)}
+                {t(`custom:fields:transactions:type:${displayType}`)}
                 {showMultiSplit ? ` · ${t('custom:frontend:transactions:splits')}` : ''}
               </span>
               <TransactionStatusChip
@@ -375,6 +394,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
                 <Label htmlFor="tx-edit-payee">{t('custom:frontend:filters:fields:payee')}</Label>
                 <PayeePicker
                   accounts={accounts}
+                  amountDirection={amountDirection}
                   budgetId={budgetId || undefined}
                   disabled={readOnly || isPending}
                   id="tx-edit-payee"

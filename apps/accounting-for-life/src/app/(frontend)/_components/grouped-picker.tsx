@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Button } from '@dappermountain/ui/components/button'
 import { Input } from '@dappermountain/ui/components/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@dappermountain/ui/components/popover'
@@ -78,6 +78,7 @@ export function GroupedPicker(props: GroupedPickerProps) {
     className,
   } = props
   const { t } = useAppTranslation()
+  const searchRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
 
@@ -149,13 +150,17 @@ export function GroupedPicker(props: GroupedPickerProps) {
       <PopoverContent
         align="start"
         className="z-[60] w-[var(--radix-popover-trigger-width)] min-w-56 p-0"
-        onOpenAutoFocus={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          window.requestAnimationFrame(() => searchRef.current?.focus())
+        }}
       >
         <div className="border-b p-2">
           <Input
             className="h-8"
             onChange={(event) => setQuery(event.target.value)}
             placeholder={searchPlaceholder ?? t('custom:frontend:filters:searchPlaceholder')}
+            ref={searchRef}
             value={query}
           />
         </div>

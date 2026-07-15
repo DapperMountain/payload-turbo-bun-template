@@ -156,8 +156,22 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
       paymentAccountId: accountId,
     })
     if (!pair) return null
-    return transferPayeePresentation(pair, row.primaryAccountId || accountId)
-  }, [accountId, accounts, isTransfer, payeeValue, row.primaryAccountId, transaction])
+    const viewingId = row.primaryAccountId || accountId
+    const paymentAccount = findAccount(accounts, viewingId)
+    return transferPayeePresentation(
+      pair,
+      viewingId,
+      directionFromSignedAmount(row.amount, paymentAccount),
+    )
+  }, [
+    accountId,
+    accounts,
+    isTransfer,
+    payeeValue,
+    row.amount,
+    row.primaryAccountId,
+    transaction,
+  ])
 
   useEffect(() => {
     setPayeeValue(payeeValueFromTransaction(transaction))
@@ -307,6 +321,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           return (
             <PayeePicker
               accounts={accounts}
+              amountDirection={directionFromSignedAmount(row.amount, resolvedPaymentAccount)}
               appearance="plain"
               budgetId={row.budgetId}
               className="h-7 min-w-[8rem]"

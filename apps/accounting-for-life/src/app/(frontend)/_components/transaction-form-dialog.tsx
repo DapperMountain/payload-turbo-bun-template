@@ -40,6 +40,10 @@ import {
   transferSkipsCategory,
 } from '@/lib/frontend/transaction-payee'
 import {
+  parseSignedAmountString,
+  paymentAccountFromList,
+} from '@/lib/frontend/transaction-amount-direction'
+import {
   applyStandardViewCollapse,
   buildEntriesForSave,
   newTransferSplitDraft,
@@ -137,6 +141,10 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
   const isTransfer = isTransferFromPayee(payeeValue, splitState.splits)
   const hasCategorySplits = splitState.splits.some((split) => !splitIsTransfer(split))
   const categoryDisabled = isTransfer && transferSkipsCategory()
+  const amountDirection = parseSignedAmountString(
+    splitState.totalAmount,
+    paymentAccountFromList(accounts, splitState.paymentAccount),
+  ).direction
 
   const applyPayeeCommit = (next: string) => {
     setPayeeValue(next)
@@ -336,6 +344,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
                 <Label htmlFor="tx-payee">{t('custom:frontend:filters:fields:payee')}</Label>
                 <PayeePicker
                   accounts={accounts}
+                  amountDirection={amountDirection}
                   budgetId={budgetId ?? undefined}
                   id="tx-payee"
                   onCommit={applyPayeeCommit}
