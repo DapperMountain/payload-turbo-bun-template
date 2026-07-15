@@ -34,6 +34,7 @@ export type TransactionsViewProps = {
   groupedCategoryOptions: RelationshipFilterOption[]
   payeeOptionsByBudget: Record<string, string[]>
   registerGroups: ReturnType<typeof groupTransactionsByDate>
+  reportingCurrencyId: string | null
   transactions: import('@/types').Transaction[]
 }
 
@@ -47,7 +48,8 @@ export async function TransactionsViewLoader(props: {
   const clauses = parseFiltersParam(props.filtersRaw)
   const activeBudgetId = activeBudgetIdFromClauses(clauses)
 
-  const [txResult, accounts, budgets, categories, payeeOptionsByBudget] = await Promise.all([
+  const [txResult, accounts, budgets, categories, payeeOptionsByBudget, workspace] =
+    await Promise.all([
     findFilteredTransactions(payload, {
       user: props.user,
       workspaceId: props.workspaceId,
@@ -83,6 +85,13 @@ export async function TransactionsViewLoader(props: {
       user: props.user,
       workspaceId: props.workspaceId,
     }),
+    payload.findByID({
+      collection: 'workspaces',
+      id: props.workspaceId,
+      depth: 0,
+      user: props.user,
+      overrideAccess: false,
+    }),
   ])
 
   const budgetList = budgets.docs.map((b) => ({ id: b.id, name: b.name }))
@@ -116,6 +125,11 @@ export async function TransactionsViewLoader(props: {
       groupedCategoryOptions={groupedCategoryOptions}
       payeeOptionsByBudget={payeeOptionsByBudget}
       registerGroups={groupTransactionsByDate(txResult.docs, displayLabels)}
+      reportingCurrencyId={
+        workspace.reportingCurrency != null
+          ? (getCollectionId(workspace.reportingCurrency) ?? null)
+          : null
+      }
       transactions={txResult.docs}
     />
   )
@@ -134,6 +148,7 @@ export async function TransactionsView(props: TransactionsViewProps) {
     categoryOptionsByBudget,
     groupedCategoryOptions,
     payeeOptionsByBudget,
+    reportingCurrencyId,
   } = props
   const { t } = await getRequestI18n()
 
@@ -167,6 +182,7 @@ export async function TransactionsView(props: TransactionsViewProps) {
           budgetId={activeBudgetId}
           categories={categories}
           payeeOptions={activeBudgetId ? (payeeOptionsByBudget[activeBudgetId] ?? []) : []}
+          reportingCurrencyId={reportingCurrencyId}
         />
       </div>
 
@@ -185,6 +201,7 @@ export async function TransactionsView(props: TransactionsViewProps) {
         hiddenColumns={['balance']}
         payeeOptionsByBudget={payeeOptionsByBudget}
         registerGroups={registerGroups}
+        reportingCurrencyId={reportingCurrencyId}
         transactions={transactions}
       />
     </div>

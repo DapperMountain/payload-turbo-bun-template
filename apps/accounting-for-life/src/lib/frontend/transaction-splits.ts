@@ -7,7 +7,7 @@ import {
 } from '@/lib/frontend/transaction-payee'
 import { entryInputsFromDocs, type TransactionEntryInput } from '@/lib/frontend/transactions.display'
 
-export type TransactionDialogView = 'standard' | 'split'
+export type TransactionDialogView = 'standard' | 'split' | 'swap'
 
 export type SplitDraft = {
   key: string
@@ -612,6 +612,7 @@ export function shouldPostFromSplitRows(
   state: TransactionSplitFormState,
   options: { view: TransactionDialogView; isTransfer: boolean },
 ): boolean {
+  if (options.view === 'swap') return false
   if (isCollapsibleSingleSplit(state)) return false
   if (options.view === 'split' && state.splits.length > 0) return true
   if (state.splits.length > 1) return true

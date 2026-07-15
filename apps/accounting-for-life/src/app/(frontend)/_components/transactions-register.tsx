@@ -49,6 +49,7 @@ export type TransactionsRegisterProps = {
   accounts: Account[]
   accountLabels: Record<string, string>
   payeeOptionsByBudget: Record<string, string[]>
+  reportingCurrencyId: string | null
   registerGroups: {
     date: string
     label: string
@@ -67,6 +68,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
     accounts,
     accountLabels,
     payeeOptionsByBudget,
+    reportingCurrencyId,
     hiddenColumns,
   } = props
   const { t } = useAppTranslation()
@@ -88,7 +90,9 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
 
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
-  const [detailInitialView, setDetailInitialView] = useState<'standard' | 'split'>('standard')
+  const [detailInitialView, setDetailInitialView] = useState<
+    'standard' | 'split' | 'swap'
+  >('standard')
 
   const allCategoryOptions = useMemo(
     () => buildGroupedCategoryOptionsByGroup(categories),
@@ -172,7 +176,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
     setError(null)
   }
 
-  const openDetail = (id: string, view: 'standard' | 'split' = 'standard') => {
+  const openDetail = (id: string, view: 'standard' | 'split' | 'swap' = 'standard') => {
     if (bulkMode) return
     setDetailId(id)
     setDetailInitialView(view)
@@ -402,6 +406,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
         }}
         open={detailOpen}
         payeeOptionsByBudget={payeeOptionsByBudget}
+        reportingCurrencyId={reportingCurrencyId}
         transaction={detailTransaction}
       />
     </div>

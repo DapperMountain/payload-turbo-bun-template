@@ -67,7 +67,7 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 
 - **Swap engine** in transaction core — crypto XRP→XLM, barter, fees as legs of one journal entry.
 - Not limited to cryptocurrency; custom currencies (hours, marbles) are first-class.
-- **Posting (partial US-5.1):** N legs via virtual `entries`; mixed-unit balance enforced in reporting currency. Dedicated swap UI still TBD.
+- **Posting (US-5.1):** N legs via virtual `entries`; mixed-unit balance enforced in reporting currency. Consumer **Swap** tab builds free-form legs (signed amount + optional `fxRate` / category); persists as `type: transaction` or `transfer` (no separate swap enum).
 
 ## Business & tax
 

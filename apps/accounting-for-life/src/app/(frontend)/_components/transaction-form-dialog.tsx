@@ -22,6 +22,7 @@ import {
 } from '@dappermountain/ui/components/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@dappermountain/ui/components/tabs'
 import { Plus } from '@dappermountain/ui/icons'
+import { cn } from '@dappermountain/ui/lib/utils'
 
 import { createTransactionAction } from '@/app/(frontend)/actions/transactions'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
@@ -32,6 +33,7 @@ import {
   TransactionDialogDateField,
 } from '@/app/(frontend)/_components/transaction-dialog-fields'
 import { TransactionSplitsEditor } from '@/app/(frontend)/_components/transaction-splits-editor'
+import { TransactionSwapEditor } from '@/app/(frontend)/_components/transaction-swap-editor'
 import {
   TransactionStatusChip,
   type TransactionStatus,
@@ -62,6 +64,12 @@ import {
   type TransactionDialogView,
   type TransactionSplitFormState,
 } from '@/lib/frontend/transaction-splits'
+import {
+  defaultSwapLegsForBudget,
+  resolveTypeFromSwapLegs,
+  swapLegsToEntries,
+  type SwapLegDraft,
+} from '@/lib/frontend/transaction-swap'
 import { nowTransactionDateTime, normalizeTransactionDateTime } from '@/lib/frontend/transaction-datetime'
 import {
   accountClassificationGroupKey,
@@ -77,6 +85,11 @@ export type TransactionFormDialogProps = {
   categories: Category[]
   payeeOptions?: string[]
   defaultPaymentAccountId?: string | null
+  reportingCurrencyId: string | null
+}
+
+function swapLegsNeedDefaultSeed(legs: SwapLegDraft[]): boolean {
+  return legs.length < 2 || legs.every((leg) => !leg.amount)
 }
 
 function defaultSplitState(
@@ -111,7 +124,14 @@ function defaultTransferState(accounts: Account[], budgetId: string): Transactio
 }
 
 export function TransactionFormDialog(props: TransactionFormDialogProps) {
-  const { accounts, budgetId, categories, payeeOptions = [], defaultPaymentAccountId } = props
+  const {
+    accounts,
+    budgetId,
+    categories,
+    payeeOptions = [],
+    defaultPaymentAccountId,
+    reportingCurrencyId,
+  } = props
   const { t } = useAppTranslation()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -128,6 +148,9 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     budgetId
       ? defaultSplitState(accounts, budgetId, defaultPaymentAccountId)
       : { paymentAccount: '', totalAmount: '', splits: [] },
+  )
+  const [swapLegs, setSwapLegs] = useState<SwapLegDraft[]>(() =>
+    budgetId ? defaultSwapLegsForBudget(accounts, budgetId) : [],
   )
 
   const accountOptions = useMemo(
@@ -200,6 +223,10 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       setSplitState((prev) =>
         seedSplitsForView(prev, { categoryId, payeeValue, isTransfer }),
       )
+    } else if (view === 'swap') {
+      if (budgetId && swapLegsNeedDefaultSeed(swapLegs)) {
+        setSwapLegs(defaultSwapLegsForBudget(accounts, budgetId))
+      }
     } else {
       const patch = applyStandardViewCollapse(splitState, categoryId)
       if (patch.categoryId) {
@@ -226,6 +253,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
         ? defaultSplitState(accounts, budgetId, defaultPaymentAccountId)
         : { paymentAccount: '', totalAmount: '', splits: [] },
     )
+    setSwapLegs(budgetId ? defaultSwapLegsForBudget(accounts, budgetId) : [])
     setError(null)
   }
 
@@ -255,9 +283,11 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     }
 
     const asPending = status === 'pending'
+    const isSwap = activeView === 'swap'
 
     if (
       !asPending &&
+      !isSwap &&
       !isTransfer &&
       !shouldPostFromSplitRows(splitState, { view: activeView, isTransfer }) &&
       !resolvePostingCategoryId(splitState, categoryId)
@@ -266,12 +296,15 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       return
     }
 
-    const resolvedType =
-      isPayeeTransferId(payeeValue) || allSplitsAreTransfers(splitState.splits)
+    const resolvedType = isSwap
+      ? resolveTypeFromSwapLegs(swapLegs, accounts)
+      : isPayeeTransferId(payeeValue) || allSplitsAreTransfers(splitState.splits)
         ? 'transfer'
         : type
     const resolvedPayee =
-      resolvedType === 'transfer' || isPayeeTransferId(payeeValue) ? undefined : payeeValue || undefined
+      isPayeeTransferId(payeeValue) || (!isSwap && resolvedType === 'transfer')
+        ? undefined
+        : payeeValue || undefined
 
     setError(null)
 
@@ -279,14 +312,16 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
 
     if (!asPending) {
       try {
-        entries = buildEntriesForSave({
-          splitState,
-          categoryId,
-          categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
-          payeeValue,
-          activeView,
-          isTransfer: resolvedType === 'transfer' || isTransfer,
-        })
+        entries = isSwap
+          ? swapLegsToEntries(swapLegs, accounts, reportingCurrencyId)
+          : buildEntriesForSave({
+              splitState,
+              categoryId,
+              categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
+              payeeValue,
+              activeView,
+              isTransfer: resolvedType === 'transfer' || isTransfer,
+            })
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Failed to post transaction')
         return
@@ -321,7 +356,12 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
           {t('custom:frontend:transactions:create')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-4 overflow-hidden sm:max-w-lg">
+      <DialogContent
+        className={cn(
+          'flex max-h-[90vh] flex-col gap-4 overflow-hidden',
+          activeView === 'swap' ? 'sm:max-w-2xl' : 'sm:max-w-lg',
+        )}
+      >
         <DialogHeader>
           <DialogTitle>{t('custom:frontend:transactions:createTitle')}</DialogTitle>
           <DialogDescription asChild>
@@ -338,9 +378,10 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <Tabs onValueChange={(value) => handleViewChange(value as TransactionDialogView)} value={activeView}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="standard">{t('custom:frontend:transactions:tabStandard')}</TabsTrigger>
               <TabsTrigger value="split">{t('custom:frontend:transactions:tabSplit')}</TabsTrigger>
+              <TabsTrigger value="swap">{t('custom:frontend:transactions:tabSwap')}</TabsTrigger>
             </TabsList>
 
             <TabsContent className="grid gap-4 pt-4" value="standard">
@@ -454,6 +495,37 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
                 payeeOptions={payeeOptions}
                 preferredCategoryId={categoryId}
                 state={splitState}
+              />
+            </TabsContent>
+
+            <TabsContent className="grid gap-4 pt-4" value="swap">
+              <TransactionDialogDateField
+                id="tx-date-swap"
+                onChange={setDate}
+                value={date}
+              />
+              <div className="grid gap-2">
+                <Label htmlFor="tx-payee-swap">{t('custom:frontend:filters:fields:payee')}</Label>
+                <PayeePicker
+                  accounts={accounts}
+                  amountDirection={amountDirection}
+                  budgetId={budgetId ?? undefined}
+                  id="tx-payee-swap"
+                  onCommit={setPayeeValue}
+                  onValueChange={setPayeeValue}
+                  payeeOptions={payeeOptions}
+                  sourceAccountId=""
+                  value={payeeValue}
+                />
+              </div>
+              <TransactionSwapEditor
+                accountOptions={accountOptions}
+                accounts={accounts}
+                categoryOptions={categoryOptions}
+                formatAccountGroup={formatAccountGroup}
+                legs={swapLegs}
+                onChange={setSwapLegs}
+                reportingCurrencyId={reportingCurrencyId}
               />
             </TabsContent>
           </Tabs>

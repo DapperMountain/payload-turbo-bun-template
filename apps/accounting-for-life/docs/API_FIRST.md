@@ -142,7 +142,9 @@ Server actions in `app/(frontend)/actions/transactions.ts` call `payload.create`
 - `requireAppUser` + active workspace check
 - `revalidatePath` for RSC caches
 
-The register UI builds `entries` in the browser (splits, payee → transfer destination, amount sign) — that is **presentation**. The **rules** run in hooks regardless of client.
+The register UI builds `entries` in the browser (splits, payee → transfer destination, amount sign, or **Swap** multi-leg journals with optional `fxRate`) — that is **presentation**. The **rules** run in hooks regardless of client.
+
+**Swap tab (US-5.1):** free-form N-leg editor; balances in reporting currency; posts the same `entries` shape as the REST examples above (sell+fee / mixed-currency transfer).
 
 ## Budget field on writes (US-1.3)
 

@@ -49,6 +49,7 @@ export type AccountDetailViewProps = {
   groupedCategoryOptions: RelationshipFilterOption[]
   payeeOptionsByBudget: Record<string, string[]>
   registerGroups: ReturnType<typeof groupTransactionsByDate>
+  reportingCurrencyId: string | null
   transactionCount: number
   transactions: import('@/types').Transaction[]
 }
@@ -83,7 +84,7 @@ export async function AccountDetailViewLoader(props: {
 
   const budgetId = accountBudgetId(account)
 
-  const [txResult, accounts, budgets, categories, balanceSnapshot, payeeOptionsByBudget] =
+  const [txResult, accounts, budgets, categories, balanceSnapshot, payeeOptionsByBudget, workspace] =
     await Promise.all([
     findFilteredTransactions(payload, {
       user: props.user,
@@ -125,6 +126,13 @@ export async function AccountDetailViewLoader(props: {
       user: props.user,
       workspaceId: props.workspaceId,
     }),
+    payload.findByID({
+      collection: 'workspaces',
+      id: props.workspaceId,
+      depth: 0,
+      user: props.user,
+      overrideAccess: false,
+    }),
   ])
 
   const budgetList = budgets.docs.map((b) => ({ id: b.id, name: b.name }))
@@ -164,6 +172,11 @@ export async function AccountDetailViewLoader(props: {
         }),
         balanceSnapshot.balance,
       )}
+      reportingCurrencyId={
+        workspace.reportingCurrency != null
+          ? (getCollectionId(workspace.reportingCurrency) ?? null)
+          : null
+      }
       transactionCount={balanceSnapshot.transactionCount}
       transactions={txResult.docs}
     />
@@ -185,6 +198,7 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
     categoryOptionsByBudget,
     groupedCategoryOptions,
     payeeOptionsByBudget,
+    reportingCurrencyId,
   } = props
   const { t } = await getRequestI18n()
 
@@ -240,6 +254,7 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
           categories={categories}
           defaultPaymentAccountId={account.id}
           payeeOptions={budgetId ? (payeeOptionsByBudget[budgetId] ?? []) : []}
+          reportingCurrencyId={reportingCurrencyId}
         />
       </div>
 
@@ -260,6 +275,7 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
             hiddenColumns={['account']}
             payeeOptionsByBudget={payeeOptionsByBudget}
             registerGroups={registerGroups}
+            reportingCurrencyId={reportingCurrencyId}
             transactions={transactions}
           />
         </div>

@@ -14,6 +14,7 @@ import {
 import { Label } from '@dappermountain/ui/components/label'
 import { Textarea } from '@dappermountain/ui/components/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@dappermountain/ui/components/tabs'
+import { cn } from '@dappermountain/ui/lib/utils'
 
 import {
   deleteTransactionAction,
@@ -28,6 +29,7 @@ import {
   TransactionDialogDateField,
 } from '@/app/(frontend)/_components/transaction-dialog-fields'
 import { TransactionSplitsEditor } from '@/app/(frontend)/_components/transaction-splits-editor'
+import { TransactionSwapEditor } from '@/app/(frontend)/_components/transaction-swap-editor'
 import { TransactionStatusChip } from '@/app/(frontend)/_components/transaction-status-badge'
 import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
 import {
@@ -55,7 +57,6 @@ import {
 import {
   applyStandardViewCollapse,
   buildEntriesForSave,
-  defaultTransactionDialogView,
   hasEditableSplits,
   isMultiSplitTransaction,
   newTransferSplitDraft,
@@ -71,6 +72,14 @@ import {
   type TransactionDialogView,
   type TransactionSplitFormState,
 } from '@/lib/frontend/transaction-splits'
+import {
+  defaultSwapLegsForBudget,
+  entriesToSwapLegs,
+  resolveTransactionDialogView,
+  resolveTypeFromSwapLegs,
+  swapLegsToEntries,
+  type SwapLegDraft,
+} from '@/lib/frontend/transaction-swap'
 import { transactionEntries } from '@/lib/frontend/transactions.display'
 import {
   accountClassificationGroupKey,
@@ -88,7 +97,12 @@ export type TransactionDetailDialogProps = {
   accountLabels: Record<string, string>
   categories: Category[]
   payeeOptionsByBudget: Record<string, string[]>
+  reportingCurrencyId: string | null
   initialView?: TransactionDialogView
+}
+
+function swapLegsNeedDefaultSeed(legs: SwapLegDraft[]): boolean {
+  return legs.length < 2 || legs.every((leg) => !leg.amount)
 }
 
 export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
@@ -99,6 +113,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     accounts,
     categories,
     payeeOptionsByBudget,
+    reportingCurrencyId,
     initialView = 'standard',
   } = props
   const { t } = useAppTranslation()
@@ -118,6 +133,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     totalAmount: '',
     splits: [],
   })
+  const [swapLegs, setSwapLegs] = useState<SwapLegDraft[]>([])
 
   const budgetId =
     transaction && typeof transaction.budget === 'object' && transaction.budget
@@ -154,7 +170,12 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     const normalized = normalizeSplitFormFromEntries(lines)
 
     setActiveView(
-      initialView === 'split' ? 'split' : defaultTransactionDialogView(normalized),
+      resolveTransactionDialogView({
+        entries: lines,
+        accounts,
+        reportingCurrencyId,
+        preferred: initialView,
+      }),
     )
     setDate(normalizeTransactionDateTime(transaction.date))
     const nextPayee = payeeValueFromTransaction(transaction)
@@ -165,6 +186,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     setStatus(transaction.status)
     setCategoryId(normalized.displayCategoryId)
     setSplitState(normalized)
+    setSwapLegs(entriesToSwapLegs(lines))
     setError(null)
     setConfirmDelete(false)
     // Re-seed when the dialog opens or switches transaction — not on every prop identity change.
@@ -184,7 +206,10 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     splitState.totalAmount,
     paymentAccountFromList(accounts, splitState.paymentAccount),
   ).direction
-  const resolvedType = resolveTransactionTypeFromPayee(payeeValue, splitState.splits)
+  const resolvedType =
+    activeView === 'swap'
+      ? resolveTypeFromSwapLegs(swapLegs, accounts)
+      : resolveTransactionTypeFromPayee(payeeValue, splitState.splits)
   const displayType: Transaction['type'] =
     resolvedType === 'transfer'
       ? 'transfer'
@@ -259,6 +284,10 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
       setSplitState((prev) =>
         seedSplitsForView(prev, { categoryId, payeeValue, isTransfer }),
       )
+    } else if (view === 'swap') {
+      if (budgetId && swapLegsNeedDefaultSeed(swapLegs)) {
+        setSwapLegs(defaultSwapLegsForBudget(accounts, budgetId))
+      }
     } else {
       const patch = applyStandardViewCollapse(splitState, categoryId)
       if (patch.categoryId && patch.categoryId !== categoryId) {
@@ -273,10 +302,26 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
   }
 
   const buildEntries = ():
-    | { ok: true; lines: TransactionEntryInputClient[] }
+    | { ok: true; lines: TransactionEntryInputClient[] | undefined }
     | { ok: false } => {
     if (readOnly) {
       return { ok: false }
+    }
+
+    if (activeView === 'swap') {
+      if (status === 'pending') {
+        return { ok: true, lines: undefined }
+      }
+
+      try {
+        return {
+          ok: true,
+          lines: swapLegsToEntries(swapLegs, accounts, reportingCurrencyId),
+        }
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Invalid transaction')
+        return { ok: false }
+      }
     }
 
     try {
@@ -307,7 +352,10 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
 
       const resolvedPayee = isPayeeTransferId(payeeValue) ? null : payeeValue || null
 
-      const resolvedType = resolveTransactionTypeFromPayee(payeeValue, splitState.splits)
+      const resolvedType =
+        activeView === 'swap'
+          ? resolveTypeFromSwapLegs(swapLegs, accounts)
+          : resolveTransactionTypeFromPayee(payeeValue, splitState.splits)
       const typeDirty = resolvedType !== transaction.type
       const dateDirty = !transactionDateTimeEquals(date, transaction.date)
       const statusDirty = status !== transaction.status
@@ -349,7 +397,12 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-4 overflow-hidden sm:max-w-lg">
+      <DialogContent
+        className={cn(
+          'flex max-h-[90vh] flex-col gap-4 overflow-hidden',
+          activeView === 'swap' ? 'sm:max-w-2xl' : 'sm:max-w-lg',
+        )}
+      >
         <DialogHeader>
           <DialogTitle>{payeeTitle}</DialogTitle>
           <DialogDescription asChild>
@@ -369,9 +422,10 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <Tabs onValueChange={(value) => handleViewChange(value as TransactionDialogView)} value={activeView}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="standard">{t('custom:frontend:transactions:tabStandard')}</TabsTrigger>
               <TabsTrigger value="split">{t('custom:frontend:transactions:tabSplit')}</TabsTrigger>
+              <TabsTrigger value="swap">{t('custom:frontend:transactions:tabSwap')}</TabsTrigger>
             </TabsList>
 
             <TabsContent className="grid gap-4 pt-4" value="standard">
@@ -491,6 +545,41 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
                   state={splitState}
                 />
               )}
+            </TabsContent>
+
+            <TabsContent className="grid gap-4 pt-4" value="swap">
+              <TransactionDialogDateField
+                disabled={readOnly || isPending}
+                id="tx-edit-date-swap"
+                onChange={setDate}
+                value={date}
+              />
+              <div className="grid gap-2">
+                <Label htmlFor="tx-edit-payee-swap">{t('custom:frontend:filters:fields:payee')}</Label>
+                <PayeePicker
+                  accounts={accounts}
+                  amountDirection={amountDirection}
+                  budgetId={budgetId || undefined}
+                  disabled={readOnly || isPending}
+                  id="tx-edit-payee-swap"
+                  onCommit={setPayeeValue}
+                  onValueChange={setPayeeValue}
+                  payeeOptions={payeeOptions}
+                  sourceAccountId=""
+                  transaction={transaction}
+                  value={payeeValue}
+                />
+              </div>
+              <TransactionSwapEditor
+                accountOptions={accountOptions}
+                accounts={accounts}
+                categoryOptions={categoryOptions}
+                disabled={isPending || readOnly}
+                formatAccountGroup={formatAccountGroup}
+                legs={swapLegs}
+                onChange={setSwapLegs}
+                reportingCurrencyId={reportingCurrencyId}
+              />
             </TabsContent>
           </Tabs>
 
