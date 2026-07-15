@@ -787,7 +787,7 @@ describe('transactions integration', () => {
         type: 'transfer',
         entries: [
           { account: eurChecking.id, amount: -10, fxRate: 1.1 },
-          { account: checkingA.id, amount: 10 },
+          { account: checkingA.id, amount: 11 },
         ],
       },
     })
@@ -805,6 +805,105 @@ describe('transactions integration', () => {
     expect(eurLeg?.fxRate).toBe(1.1)
     expect(eurLeg?.reportingAmount).toBe(-11)
     expect(usdLeg?.fxRate).toBe(1)
-    expect(usdLeg?.reportingAmount).toBe(10)
+    expect(usdLeg?.reportingAmount).toBe(11)
+
+    const reportingTotal = legs.docs.reduce((sum, leg) => sum + (leg.reportingAmount ?? 0), 0)
+    expect(Math.abs(reportingTotal)).toBeLessThan(1e-9)
+  })
+
+  it('posts a mixed-currency multi-leg journal with a fee balancing in reporting currency', async () => {
+    const btc = await payload.create({
+      collection: 'units',
+      data: {
+        code: 'BTC',
+        name: 'Bitcoin',
+        kind: 'crypto',
+        decimalPlaces: 8,
+        symbol: '₿',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const btcWallet = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'BTC Wallet',
+        classification: 'asset',
+        subtype: 'holding',
+        unit: btc.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const feeExpense = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Exchange Fees',
+        classification: 'expense',
+        subtype: 'other',
+        unit: usd.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    await expect(
+      payload.create({
+        collection: 'transactions',
+        user: member,
+        overrideAccess: false,
+        data: {
+          workspace: fx.workspaceA.id,
+          budget: fx.budgetA.id,
+          date: '2026-07-12',
+          memo: 'Unbalanced swap',
+          type: 'transaction',
+          entries: [
+            { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
+            { account: checkingA.id, amount: 500 },
+            { account: feeExpense.id, amount: 5 },
+          ],
+        },
+      }),
+    ).rejects.toThrow(/reporting amounts must sum to zero/)
+
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        memo: 'Sell BTC with fee',
+        type: 'transaction',
+        entries: [
+          { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
+          { account: checkingA.id, amount: 495 },
+          { account: feeExpense.id, amount: 5 },
+        ],
+      },
+    })
+
+    const legs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: transaction.id } },
+      sort: 'sortOrder',
+      overrideAccess: true,
+    })
+
+    expect(legs.docs).toHaveLength(3)
+    const reportingTotal = legs.docs.reduce((sum, leg) => sum + (leg.reportingAmount ?? 0), 0)
+    expect(Math.abs(reportingTotal)).toBeLessThan(1e-9)
+
+    const btcLeg = legs.docs.find((leg) => getCollectionId(leg.account) === btcWallet.id)
+    expect(btcLeg?.fxRate).toBe(50_000)
+    expect(btcLeg?.reportingAmount).toBe(-500)
   })
 })

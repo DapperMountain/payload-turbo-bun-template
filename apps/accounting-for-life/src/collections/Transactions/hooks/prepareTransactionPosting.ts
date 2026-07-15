@@ -53,13 +53,20 @@ async function validateEntryCategories(
   }
 }
 
-async function validateEntryAccounts(
+/**
+ * Ensures accounts belong to the txn workspace/budget and returns each account’s unit id.
+ */
+async function loadValidatedAccountUnits(
   req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
   lines: TransactionEntryInput[],
   workspaceId: string,
   budgetId: string,
-): Promise<void> {
+): Promise<Record<string, string>> {
+  const unitByAccountId: Record<string, string> = {}
+
   for (const line of lines) {
+    if (unitByAccountId[line.account]) continue
+
     const account = await req.payload.findByID({
       collection: 'accounts',
       id: line.account,
@@ -79,7 +86,31 @@ async function validateEntryAccounts(
     if (accountBudget !== budgetId) {
       throw new Error('All accounts must belong to the transaction budget')
     }
+
+    const unitId = getCollectionId(account.unit)
+    if (!unitId) {
+      throw new Error(`Account ${account.id} is missing a unit`)
+    }
+
+    unitByAccountId[line.account] = unitId
   }
+
+  return unitByAccountId
+}
+
+async function resolveReportingUnitId(
+  req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
+  workspaceId: string,
+): Promise<string | null> {
+  const workspace = await req.payload.findByID({
+    collection: 'workspaces',
+    id: workspaceId,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  })
+
+  return getCollectionId(workspace.reportingCurrency)
 }
 
 function stashEntries(
@@ -90,6 +121,21 @@ function stashEntries(
 ): void {
   req.context[key] = lines
   context[key] = lines
+}
+
+async function preparePostedEntries(
+  req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
+  lines: TransactionEntryInput[],
+  type: string,
+  workspaceId: string,
+  budgetId: string,
+): Promise<void> {
+  const unitByAccountId = await loadValidatedAccountUnits(req, lines, workspaceId, budgetId)
+  const reportingUnitId = await resolveReportingUnitId(req, workspaceId)
+
+  validateTransactionLinesBalance(lines, { reportingUnitId, unitByAccountId })
+  validateTransferEntries(type, lines)
+  await validateEntryCategories(req, lines, budgetId, workspaceId)
 }
 
 /**
@@ -134,10 +180,7 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
       throw new Error('Posted transactions require workspace and budget')
     }
 
-    validateTransactionLinesBalance(lines)
-    validateTransferEntries(type, lines)
-    await validateEntryAccounts(req, lines, workspaceId as string, budgetId as string)
-    await validateEntryCategories(req, lines, budgetId as string, workspaceId as string)
+    await preparePostedEntries(req, lines, type, workspaceId as string, budgetId as string)
 
     stashEntries(req, context, 'replaceEntries', lines)
 
@@ -152,9 +195,6 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
   const lines = normalizeEntryInputs(rawLines as TransactionEntryInput[])
   const type = data.type ?? 'transaction'
 
-  validateTransactionLinesBalance(lines)
-  validateTransferEntries(type, lines)
-
   const workspaceId = typeof data.workspace === 'string' ? data.workspace : data.workspace?.id
   const budgetId = typeof data.budget === 'string' ? data.budget : data.budget?.id
 
@@ -162,8 +202,7 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
     throw new Error('Posted transactions require workspace and budget')
   }
 
-  await validateEntryAccounts(req, lines, workspaceId, budgetId)
-  await validateEntryCategories(req, lines, budgetId, workspaceId)
+  await preparePostedEntries(req, lines, type, workspaceId, budgetId)
 
   stashEntries(req, context, 'entries', lines)
 

@@ -23,6 +23,7 @@ Decisions captured during initial planning (July 2026).
 - **Double-entry ledger** is the foundation; budgeting is a **separate module** that reads ledger state (supports both YNAB-style envelopes and Monarch-style cash-flow views later).
 - **Default currency per account** (`accounts.unit`); workspace **`reportingCurrency`** for FX snapshots.
 - **FX at execution time** on journal lines: `fxRate` = reporting units per 1 account unit; `reportingAmount = amount * fxRate`. Identity rate `1` when units match. Cross-currency posts must pass `fxRate` on the virtual `entries` leg.
+- **Balance (US-5.1):** Same-unit journals require `Σ amount ≈ 0`. Mixed-unit journals require `Σ reportingAmount ≈ 0` (natives need not cancel). Fees are extra legs in the same `entries` array.
 - UI may still show live converted amounts without changing the stored snapshot.
 
 ### Implemented schema (July 2026)
@@ -66,6 +67,7 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 
 - **Swap engine** in transaction core — crypto XRP→XLM, barter, fees as legs of one journal entry.
 - Not limited to cryptocurrency; custom currencies (hours, marbles) are first-class.
+- **Posting (partial US-5.1):** N legs via virtual `entries`; mixed-unit balance enforced in reporting currency. Dedicated swap UI still TBD.
 
 ## Business & tax
 

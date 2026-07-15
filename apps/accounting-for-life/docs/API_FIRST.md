@@ -74,10 +74,52 @@ Hooks replace all legs when `entries` is supplied on update.
 
 Validation includes:
 
-- Lines sum to zero (double-entry)
+- Double-entry balance: same-unit journals require `Σ amount ≈ 0`; mixed-unit journals require `Σ reportingAmount ≈ 0` (via `fxRate` on each cross-reporting leg)
 - Transfers cannot include categories
 - Accounts belong to transaction workspace and budget
 - Categories on lines belong to transaction workspace and budget
+
+#### Example: mixed-currency transfer (balanced in reporting USD)
+
+```http
+POST /api/transactions
+Content-Type: application/json
+
+{
+  "workspace": "<workspace-uuid>",
+  "budget": "<budget-uuid>",
+  "date": "2026-07-12T20:00:00.000Z",
+  "type": "transfer",
+  "entries": [
+    { "account": "<eur-checking>", "amount": -10, "fxRate": 1.1 },
+    { "account": "<usd-checking>", "amount": 11 }
+  ]
+}
+```
+
+`-10 EUR × 1.1 + 11 USD = 0` reporting. Unequal native amounts with balanced reporting is required when units differ.
+
+#### Example: crypto sell with fee (three legs)
+
+```http
+POST /api/transactions
+Content-Type: application/json
+
+{
+  "workspace": "<workspace-uuid>",
+  "budget": "<budget-uuid>",
+  "date": "2026-07-12T20:00:00.000Z",
+  "type": "transaction",
+  "memo": "Sell BTC with fee",
+  "entries": [
+    { "account": "<btc-wallet>", "amount": -0.01, "fxRate": 50000 },
+    { "account": "<usd-checking>", "amount": 495 },
+    { "account": "<fee-expense>", "amount": 5 }
+  ]
+}
+```
+
+`-0.01 × 50000 + 495 + 5 = 0` reporting. Fee legs are ordinary expense (or asset) lines — no separate fee type.
 
 Shared helpers live under `collections/Transactions/lib/` (e.g. `applyCategoryToEntries` for rebuilding lines when changing category).
 
@@ -109,6 +151,7 @@ Budget-owned collections (`accounts`, `transactions`, `categories`, `category-gr
 - **`units.kind`:** `fiat` | `crypto` | `custom`. Codes are unique per workspace (normalized to uppercase).
 - **`workspaces.reportingCurrency`:** relationship to a unit in that workspace (seed sets USD).
 - **Posting:** `writeTransactionEntries` snapshots `fxRate` / `reportingAmount`. Same unit → rate `1`. Different unit → require `fxRate` on the virtual entry (`reportingAmount = amount * fxRate`).
+- **Balance:** Same-unit → `Σ amount ≈ 0`. Mixed-unit → `Σ reportingAmount ≈ 0` (see mixed-currency examples above).
 
 ## Other collections
 
