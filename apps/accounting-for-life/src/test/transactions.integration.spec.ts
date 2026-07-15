@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'bun:test'
 
+import { matchAndMergeTransactions } from '@/collections/Transactions/lib/matchAndMergeTransactions'
 import type { Account, Unit, User } from '@/types'
 import { getCollectionId } from '@/utils'
 import { loginAs, payload, seedAccessFixtures, type AccessFixtures } from '@/test'
@@ -952,5 +953,83 @@ describe('transactions integration', () => {
         },
       }),
     ).rejects.toThrow(/externalId/)
+  })
+
+  it('matches manual and imported transactions then deletes the import (US-6.1)', async () => {
+    const manual = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-10',
+        payee: 'Starbucks',
+        notes: 'Team coffee',
+        type: 'transaction',
+        source: 'manual',
+        status: 'pending',
+      },
+    })
+
+    const imported = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-11T15:00:00.000Z',
+        payee: 'STARBUCKS STORE 123',
+        type: 'transaction',
+        source: 'import',
+        externalId: 'plaid:match-200',
+        importBatch: 'batch-match',
+        entries: [
+          { account: checkingA.id, amount: -12.5 },
+          { account: checkingB.id, amount: 12.5 },
+        ],
+      },
+    })
+
+    const result = await matchAndMergeTransactions({
+      payload,
+      user: member,
+      ids: [imported.id, manual.id],
+      overrideAccess: false,
+    })
+
+    expect(result.keptId).toBe(manual.id)
+    expect(result.deletedId).toBe(imported.id)
+
+    const kept = await payload.findByID({
+      collection: 'transactions',
+      id: manual.id,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    expect(kept.source).toBe('import')
+    expect(kept.externalId).toBe('plaid:match-200')
+    expect(kept.importBatch).toBe('batch-match')
+    expect(kept.payee).toBe('Starbucks')
+    expect(kept.notes).toBe('Team coffee')
+    expect(kept.status).toBe('posted')
+    expect(kept.date).toContain('2026-07-11')
+
+    await expect(
+      payload.findByID({
+        collection: 'transactions',
+        id: imported.id,
+        overrideAccess: true,
+      }),
+    ).rejects.toThrow()
+
+    const legs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: manual.id } },
+      overrideAccess: true,
+    })
+    expect(legs.totalDocs).toBe(2)
   })
 })

@@ -3,6 +3,10 @@
 import { revalidatePath } from 'next/cache'
 
 import { applyCategoryToEntries, type TransactionEntryInput } from '@/collections/Transactions/lib/entries'
+import {
+  matchAndMergeTransactions,
+  pairMatchIds,
+} from '@/collections/Transactions/lib/matchAndMergeTransactions'
 import { requireAppUser } from '@/lib/frontend/auth.server'
 import { getAppPayload } from '@/lib/frontend/payload.server'
 import { entriesFromTransaction, transactionEntries } from '@/lib/frontend/transactions.server'
@@ -380,6 +384,53 @@ export async function bulkDeleteDraftTransactionsAction(input: {
   ids: string[]
 }): Promise<BulkTransactionResult | { ok: false; error: string }> {
   return bulkDeleteTransactionsAction(input)
+}
+
+/**
+ * Match one manual + one imported transaction (US-6.1).
+ * Keeps the manual row (absorbing import identity), deletes the import row.
+ */
+export async function matchTransactionsAction(input: {
+  ids: string[]
+}): Promise<
+  { ok: true; keptId: string; deletedId: string } | { ok: false; error: string }
+> {
+  try {
+    const { user, headers } = await requireAppUser('/transactions')
+    const workspace = await resolveActiveWorkspace(user, headers)
+
+    if (!workspace) {
+      return { ok: false, error: 'No workspace selected' }
+    }
+
+    const ids = pairMatchIds(input.ids)
+    const payload = await getAppPayload()
+
+    for (const id of ids) {
+      const doc = await payload.findByID({
+        collection: 'transactions',
+        id,
+        depth: 0,
+        user,
+        overrideAccess: false,
+      })
+      if (getCollectionId(doc.workspace) !== workspace.id) {
+        return { ok: false, error: 'Transaction not in active workspace' }
+      }
+    }
+
+    const result = await matchAndMergeTransactions({
+      payload,
+      user,
+      ids,
+      overrideAccess: false,
+    })
+
+    revalidatePaths()
+    return { ok: true, ...result }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Match failed' }
+  }
 }
 
 function revalidatePaths(accountIds?: string[]) {

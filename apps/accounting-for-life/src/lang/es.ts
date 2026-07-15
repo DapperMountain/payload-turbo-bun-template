@@ -135,6 +135,9 @@ export default {
         applyCategory: 'Aplicar categoría',
         applyDate: 'Aplicar fecha',
         deleteSelected: 'Eliminar seleccionadas',
+        matchSelected: 'Emparejar',
+        matchHint: 'Seleccione una manual y una importada',
+        matchFailed: 'No se pudieron emparejar las transacciones',
         delete: 'Eliminar',
         deleteConfirm:
           'Esto elimina permanentemente la transacción y sus asientos. No se puede deshacer.',

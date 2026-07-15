@@ -65,12 +65,14 @@ Hooks replace all legs when `entries` is supplied on update.
 
 ### Hook pipeline (`collections/Transactions/hooks/`)
 
-| Hook | Role |
+| Hook / endpoint | Role |
 |------|------|
+| `validateUniqueExternalId` (`beforeValidate`) | Trim `externalId`; reject duplicates within a workspace |
 | `prepareTransactionPosting` (`beforeChange`) | Normalize `date`; validate `entries`; strip virtual field from persisted doc; stash lines on `context` |
 | `shapeTransactionEntriesOnRead` (`afterRead`) | Populate virtual `entries` from `entryJoin`; remove `entryJoin` from response |
 | `syncTransactionEntries` (`afterChange`) | Create or replace `transaction-entries` from stashed lines |
 | `removeTransactionEntriesOnDelete` (`beforeDelete`) | Cascade-delete legs |
+| `POST …/transactions/match` | Match/merge manual ↔ import (US-6.1); see below |
 
 Validation includes:
 
@@ -163,7 +165,21 @@ On `transactions`:
 | `externalId` | Optional institution/import id; **unique per workspace** when set (`validateUniqueExternalId`) |
 | `importBatch` | Optional batch/run/file id for grouping imports |
 
-Match/merge between manual and imported rows is **US-6.1** (not yet implemented).
+### Match / merge (US-6.1)
+
+**Canonical:** `POST /api/transactions/match` with body `{ "ids": ["<a>", "<b>"] }` (also Local API via `matchAndMergeTransactions`).
+
+Rules:
+
+- Exactly one **import** row (`source: import`) and one **manual** row
+- Same workspace and budget
+- **Keep** the manual row; **delete** the import row after transferring identity
+- Survivor gets `source: import`, `externalId` / `importBatch` from the import (when keep lacks them)
+- Bank `date` from the import; keep existing `payee` / `notes` when set
+- If keep is still `pending` and absorb is `posted`, adopt absorb's `entries` (posts the survivor)
+- Conflicting `externalId` values are rejected
+
+Frontend bulk **Match** calls the same merge helper through a thin server action.
 
 ## Other collections
 
@@ -178,7 +194,7 @@ Match/merge between manual and imported rows is **US-6.1** (not yet implemented)
 
 | Action file | Payload calls | Next-only concerns |
 |-------------|---------------|------------------|
-| `transactions.ts` | `create` / `update` / `delete` on `transactions` | Auth, workspace, revalidation |
+| `transactions.ts` | `create` / `update` / `delete` / match-merge helper on `transactions` | Auth, workspace, revalidation |
 | `accounts.ts` | `create` on `accounts` | Auth, workspace, revalidation |
 | `budgets.ts` | `create` on `budgets`; cookie for active budget | Auth, revalidation |
 | `envelope-balances.ts` | `create` / `update` on `envelope-balances` (upsert pattern) | Auth, workspace, revalidation |

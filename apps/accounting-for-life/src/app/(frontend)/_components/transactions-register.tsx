@@ -17,6 +17,7 @@ import {
   bulkDeleteTransactionsAction,
   bulkSetTransactionCategoryAction,
   bulkUpdateTransactionsAction,
+  matchTransactionsAction,
   type BulkTransactionResult,
 } from '@/app/(frontend)/actions/transactions'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
@@ -142,6 +143,11 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
   }, [registerGroups, sort])
 
   const detailTransaction = detailId ? (byId.get(detailId) ?? null) : null
+  const selectedTransactionIds = useMemo(
+    () => uniqueTransactionIdsFromRegisterRowKeys(selected),
+    [selected],
+  )
+  const canMatch = selectedTransactionIds.length === 2
   // Data columns + fixed status gutter + detail chevron (+ bulk checkbox when active).
   const columnCount = visibleColumnOrder.length + (bulkMode ? 3 : 2)
 
@@ -250,7 +256,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
             onClick={() =>
               runBulk(() =>
                 bulkSetTransactionCategoryAction({
-                  ids: uniqueTransactionIdsFromRegisterRowKeys(selected),
+                  ids: selectedTransactionIds,
                   categoryId: bulkCategory,
                 }),
               )
@@ -265,7 +271,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
             onClick={() =>
               runBulk(() =>
                 bulkUpdateTransactionsAction({
-                  ids: uniqueTransactionIdsFromRegisterRowKeys(selected),
+                  ids: selectedTransactionIds,
                   patch: { date: normalizeTransactionDateTime(bulkDate) },
                 }),
               )
@@ -277,11 +283,32 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
           </Button>
 
           <Button
+            disabled={!canMatch || isPending}
+            onClick={() => {
+              setError(null)
+              startTransition(async () => {
+                const result = await matchTransactionsAction({ ids: selectedTransactionIds })
+                if (!result.ok) {
+                  setError(result.error || t('custom:frontend:transactions:matchFailed'))
+                  return
+                }
+                setSelected(new Set())
+                router.refresh()
+              })
+            }}
+            size="sm"
+            title={t('custom:frontend:transactions:matchHint')}
+            variant="outline"
+          >
+            {t('custom:frontend:transactions:matchSelected')}
+          </Button>
+
+          <Button
             disabled={isPending}
             onClick={() =>
               runBulk(() =>
                 bulkDeleteTransactionsAction({
-                  ids: uniqueTransactionIdsFromRegisterRowKeys(selected),
+                  ids: selectedTransactionIds,
                 }),
               )
             }

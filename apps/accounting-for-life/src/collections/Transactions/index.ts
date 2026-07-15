@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { transactionsAccess } from '@/access/collections'
 import { custom } from '@/lang'
 
+import { matchTransactionsEndpoint } from './endpoints/match'
 import { hooks } from './hooks'
 
 const Transactions: CollectionConfig = {
@@ -21,6 +22,7 @@ const Transactions: CollectionConfig = {
     defaultColumns: ['date', 'type', 'status', 'budget', 'workspace'],
     description: custom.collections.transactions.description,
   },
+  endpoints: [matchTransactionsEndpoint],
   hooks,
   fields: [
     {

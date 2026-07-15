@@ -80,7 +80,8 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 - **Plugin architecture** — `@payloadcms/plugin-*` or local plugin package; hooks register only when plugin enabled.
 - **SimpleFIN** first (existing subscription).
 - Geography not artificially limited at schema level.
-- **Import foothold (US-6.2):** `transactions.source` (`manual` \| `import`), optional `externalId` (unique per workspace when set), optional `importBatch`. Match/merge UI is US-6.1.
+- **Import foothold (US-6.2):** `transactions.source` (`manual` \| `import`), optional `externalId` (unique per workspace when set), optional `importBatch`.
+- **Match/merge (US-6.1):** Pair one `source: manual` + one `source: import` row; keep manual (categorization / payee / notes), take import identity + bank date, delete the import row. Exposed as `POST /api/transactions/match`.
 
 ## Asset valuation
 
