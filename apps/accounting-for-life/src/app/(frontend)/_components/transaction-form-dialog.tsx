@@ -33,6 +33,10 @@ import {
 } from '@/app/(frontend)/_components/transaction-dialog-fields'
 import { TransactionSplitsEditor } from '@/app/(frontend)/_components/transaction-splits-editor'
 import {
+  TransactionStatusChip,
+  type TransactionStatus,
+} from '@/app/(frontend)/_components/transaction-status-badge'
+import {
   defaultCategoryIdForPayee,
   isPayeeTransferId,
   isTransferFromPayee,
@@ -118,6 +122,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
   const [date, setDate] = useState(() => nowTransactionDateTime())
   const [payeeValue, setPayeeValue] = useState('')
   const [type, setType] = useState<Transaction['type']>('transaction')
+  const [status, setStatus] = useState<TransactionStatus>('posted')
   const [categoryId, setCategoryId] = useState('')
   const [splitState, setSplitState] = useState<TransactionSplitFormState>(() =>
     budgetId
@@ -213,6 +218,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     setDate(nowTransactionDateTime())
     setPayeeValue('')
     setType('transaction')
+    setStatus('posted')
     setCategoryId('')
     setActiveView('standard')
     setSplitState(
@@ -242,14 +248,16 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     setSplitState(defaultSplitState(accounts, budgetId, defaultPaymentAccountId))
   }
 
-  const submit = (asDraft: boolean) => {
+  const submit = () => {
     if (!budgetId) {
       setError(t('custom:frontend:budgets:selectorLabel'))
       return
     }
 
+    const asPending = status === 'pending'
+
     if (
-      !asDraft &&
+      !asPending &&
       !isTransfer &&
       !shouldPostFromSplitRows(splitState, { view: activeView, isTransfer }) &&
       !resolvePostingCategoryId(splitState, categoryId)
@@ -269,7 +277,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
 
     let entries: ReturnType<typeof buildEntriesForSave> | undefined
 
-    if (!asDraft) {
+    if (!asPending) {
       try {
         entries = buildEntriesForSave({
           splitState,
@@ -316,7 +324,16 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       <DialogContent className="flex max-h-[90vh] flex-col gap-4 overflow-hidden sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('custom:frontend:transactions:createTitle')}</DialogTitle>
-          <DialogDescription>{t('custom:collections:transactions:description')}</DialogDescription>
+          <DialogDescription asChild>
+            <div className="flex items-center justify-between gap-3">
+              <span>{t('custom:collections:transactions:description')}</span>
+              <TransactionStatusChip
+                disabled={isPending}
+                onStatusChange={setStatus}
+                status={status}
+              />
+            </div>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -444,17 +461,9 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
           {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            disabled={isPending || !budgetId}
-            onClick={() => submit(true)}
-            type="button"
-            variant="outline"
-          >
-            {t('custom:frontend:transactions:savePending')}
-          </Button>
-          <Button disabled={isPending || !budgetId} onClick={() => submit(false)} type="button">
-            {t('custom:frontend:transactions:post')}
+        <DialogFooter>
+          <Button disabled={isPending || !budgetId} onClick={submit} type="button">
+            {t('custom:frontend:forms:save')}
           </Button>
         </DialogFooter>
       </DialogContent>
