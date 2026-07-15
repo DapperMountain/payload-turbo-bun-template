@@ -76,10 +76,10 @@ Multi-leg transactions for swaps, barter, fees — not crypto-specific.
 
 YNAB-style link manual entries to imported transactions.
 
-| ID | Story | Pts | Sprint |
-|----|-------|-----|--------|
-| US-6.1 | Match manual ↔ imported transactions; merge on confirm | 8 | 6 |
-| US-6.2 | Schema hooks for future sync (external ID, import batch) | 5 | 6 |
+| ID | Story | Pts | Sprint | Status |
+|----|-------|-----|--------|--------|
+| US-6.1 | Match manual ↔ imported transactions; merge on confirm | 8 | 6 | |
+| US-6.2 | Schema hooks for future sync (external ID, import batch) | 5 | 6 | **Done** — `source`, `externalId` (unique/workspace), `importBatch` |
 
 ---
 

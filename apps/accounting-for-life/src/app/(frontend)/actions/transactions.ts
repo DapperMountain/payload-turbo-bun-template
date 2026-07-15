@@ -15,7 +15,7 @@ export type TransactionEntryInputClient = TransactionEntryInput
 export type CreateTransactionInput = {
   budget: string
   date: string
-  memo?: string
+  payee?: string
   type: Transaction['type']
   entries?: TransactionEntryInput[]
 }
@@ -23,7 +23,7 @@ export type CreateTransactionInput = {
 export type UpdateTransactionInput = {
   id: string
   date?: string
-  memo?: string | null
+  payee?: string | null
   notes?: string | null
   status?: Transaction['status']
   type?: Transaction['type']
@@ -32,7 +32,7 @@ export type UpdateTransactionInput = {
 
 export type BulkTransactionHeaderPatch = {
   date?: string
-  memo?: string | null
+  payee?: string | null
   status?: Transaction['status']
 }
 
@@ -76,7 +76,7 @@ export async function createTransactionAction(
         workspace: workspace.id,
         budget: input.budget,
         date: input.date,
-        memo: input.memo,
+        payee: input.payee,
         type: input.type,
         entries: input.entries,
       },
@@ -128,7 +128,7 @@ export async function updateTransactionAction(
     const data: Record<string, unknown> = {}
 
     if (input.date !== undefined) data.date = input.date
-    if (input.memo !== undefined) data.memo = input.memo
+    if (input.payee !== undefined) data.payee = input.payee
     if (input.notes !== undefined) data.notes = input.notes
     if (input.status !== undefined) data.status = input.status
     if (input.type !== undefined) data.type = input.type
@@ -137,7 +137,7 @@ export async function updateTransactionAction(
       data.entries = input.entries
     } else if (
       existing.status === 'posted' &&
-      (input.date !== undefined || input.memo !== undefined || input.notes !== undefined)
+      (input.date !== undefined || input.payee !== undefined || input.notes !== undefined)
     ) {
       // header-only edit on posted tx — no entry rewrite
     }
@@ -196,7 +196,7 @@ export async function bulkUpdateTransactionsAction(input: {
     const data: Record<string, unknown> = {}
 
     if (input.patch.date !== undefined) data.date = input.patch.date
-    if (input.patch.memo !== undefined) data.memo = input.patch.memo
+    if (input.patch.payee !== undefined) data.payee = input.patch.payee
     if (input.patch.status !== undefined) data.status = input.patch.status
 
     if (!Object.keys(data).length) {

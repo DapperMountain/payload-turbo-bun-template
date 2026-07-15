@@ -5,8 +5,8 @@ import type { Payload } from 'payload'
 import type { User } from '@/types'
 import { getCollectionId } from '@/utils'
 
-/** Distinct merchant payee names (transaction memos) grouped by budget. */
-export async function findPayeeMemosByBudget(
+/** Distinct merchant payee names grouped by budget. */
+export async function findPayeesByBudget(
   payload: Payload,
   options: { user: User; workspaceId: string },
 ): Promise<Record<string, string[]>> {
@@ -29,20 +29,20 @@ export async function findPayeeMemosByBudget(
   const byBudget = new Map<string, Set<string>>()
 
   for (const transaction of result.docs) {
-    const memo = transaction.memo?.trim()
-    if (!memo) continue
+    const payee = transaction.payee?.trim()
+    if (!payee) continue
 
     const budgetId = getCollectionId(transaction.budget)
     if (!budgetId) continue
 
-    const memos = byBudget.get(budgetId) ?? new Set<string>()
-    memos.add(memo)
-    byBudget.set(budgetId, memos)
+    const names = byBudget.get(budgetId) ?? new Set<string>()
+    names.add(payee)
+    byBudget.set(budgetId, names)
   }
 
   const out: Record<string, string[]> = {}
-  for (const [budgetId, memos] of byBudget) {
-    out[budgetId] = [...memos].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+  for (const [budgetId, names] of byBudget) {
+    out[budgetId] = [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
   }
 
   return out

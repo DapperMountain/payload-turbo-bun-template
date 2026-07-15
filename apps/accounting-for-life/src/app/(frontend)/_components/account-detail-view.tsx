@@ -22,7 +22,7 @@ import { parseFiltersParam } from '@/lib/filters/parse'
 import { getAppPayload } from '@/lib/frontend/payload.server'
 import { buildGroupedAccountOptions } from '@/lib/frontend/transaction-picker-options'
 import { findFilteredTransactions } from '@/lib/frontend/transaction-query.server'
-import { findPayeeMemosByBudget } from '@/lib/frontend/transaction-payees.server'
+import { findPayeesByBudget } from '@/lib/frontend/transaction-payees.server'
 import { groupTransactionsByDate, withNewestFirstRunningBalances } from '@/lib/frontend/transactions.server'
 import type { Account, Category, User } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
@@ -121,7 +121,7 @@ export async function AccountDetailViewLoader(props: {
       workspaceId: props.workspaceId,
       accountId: account.id,
     }),
-    findPayeeMemosByBudget(payload, {
+    findPayeesByBudget(payload, {
       user: props.user,
       workspaceId: props.workspaceId,
     }),

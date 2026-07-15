@@ -17,7 +17,7 @@ const Transactions: CollectionConfig = {
   },
   admin: {
     group: custom.adminGroups.ledger,
-    useAsTitle: 'memo',
+    useAsTitle: 'payee',
     defaultColumns: ['date', 'type', 'status', 'budget', 'workspace'],
     description: custom.collections.transactions.description,
   },
@@ -40,10 +40,10 @@ const Transactions: CollectionConfig = {
       },
     },
     {
-      name: 'memo',
+      name: 'payee',
       type: 'textarea',
       admin: {
-        description: custom.fields.transactions.memoDescription,
+        description: custom.fields.transactions.payeeDescription,
       },
     },
     {
@@ -74,6 +74,35 @@ const Transactions: CollectionConfig = {
         { label: custom.fields.transactions.status.pending, value: 'pending' },
         { label: custom.fields.transactions.status.posted, value: 'posted' },
       ],
+    },
+    {
+      name: 'source',
+      type: 'select',
+      required: true,
+      defaultValue: 'manual',
+      options: [
+        { label: custom.fields.transactions.source.manual, value: 'manual' },
+        { label: custom.fields.transactions.source.import, value: 'import' },
+      ],
+      admin: {
+        description: custom.fields.transactions.sourceDescription,
+      },
+    },
+    {
+      name: 'externalId',
+      type: 'text',
+      index: true,
+      admin: {
+        description: custom.fields.transactions.externalIdDescription,
+      },
+    },
+    {
+      name: 'importBatch',
+      type: 'text',
+      index: true,
+      admin: {
+        description: custom.fields.transactions.importBatchDescription,
+      },
     },
     {
       name: 'entries',

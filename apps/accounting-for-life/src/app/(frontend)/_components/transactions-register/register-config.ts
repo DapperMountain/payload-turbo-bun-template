@@ -2,7 +2,7 @@ import { sortTransactionDateTime } from '@/lib/frontend/transaction-datetime'
 import type { TransactionRegisterRow } from '@/lib/frontend/transactions.display'
 
 export const REGISTER_COLUMN_IDS = [
-  'memo',
+  'payee',
   'category',
   'account',
   'amount',
@@ -36,7 +36,7 @@ export type RegisterColumnDef = {
 }
 
 export const REGISTER_COLUMN_DEFS: Record<RegisterColumnId, RegisterColumnDef> = {
-  memo: { id: 'memo', labelKey: 'custom:frontend:filters:fields:payee' },
+  payee: { id: 'payee', labelKey: 'custom:frontend:filters:fields:payee' },
   category: { id: 'category', labelKey: 'custom:frontend:filters:fields:category' },
   account: { id: 'account', labelKey: 'custom:frontend:nav:accounts' },
   amount: { id: 'amount', labelKey: 'custom:frontend:transactions:amountColumn', align: 'right' },
@@ -49,7 +49,7 @@ export const REGISTER_COLUMN_DEFS: Record<RegisterColumnId, RegisterColumnDef> =
 
 /** Shared cell/header sizing so auto layout does not crush columns. */
 export const REGISTER_COLUMN_CLASS: Record<RegisterColumnId, string> = {
-  memo: 'min-w-[12rem]',
+  payee: 'min-w-[12rem]',
   category: 'min-w-[10rem]',
   account: 'min-w-[9rem]',
   amount: 'w-[8rem] min-w-[8rem] text-right',
@@ -69,9 +69,10 @@ export function normalizeColumnOrder(order: string[]): RegisterColumnId[] {
   const result: RegisterColumnId[] = []
 
   for (const id of order) {
-    if (!isRegisterColumnId(id) || seen.has(id)) continue
-    seen.add(id)
-    result.push(id)
+    const columnId = id === 'memo' ? 'payee' : id
+    if (!isRegisterColumnId(columnId) || seen.has(columnId)) continue
+    seen.add(columnId)
+    result.push(columnId)
   }
 
   for (const id of DEFAULT_REGISTER_COLUMN_ORDER) {
@@ -104,8 +105,8 @@ export function sortRegisterRows(
     let result = 0
 
     switch (column) {
-      case 'memo':
-        result = compareStrings(a.memo ?? '', b.memo ?? '')
+      case 'payee':
+        result = compareStrings(a.payee ?? '', b.payee ?? '')
         break
       case 'category':
         result = compareStrings(a.categoryLabel ?? '', b.categoryLabel ?? '')

@@ -225,7 +225,6 @@ export default {
         fields: {
           date: 'Date',
           time: 'Time',
-          memo: 'Memo',
           payee: 'Payee',
           budget: 'Budget',
           category: 'Category',
@@ -346,8 +345,8 @@ export default {
         entryAmountDescription: 'Signed amount (negative = credit, positive = debit).',
         entryFxRateDescription:
           'Optional. Reporting units per 1 account unit when the account currency differs from the workspace reporting currency.',
-        memoDescription: 'Payee or short title shown in the register.',
-        notesDescription: 'Optional memo shown as a note icon in the register when set.',
+        payeeDescription: 'Payee or short title shown in the register.',
+        notesDescription: 'Optional note shown as a note icon in the register when set.',
         notes: 'Notes',
         type: {
           transaction: 'Transaction',
@@ -359,6 +358,14 @@ export default {
           pending: 'Pending',
           posted: 'Posted',
         },
+        source: {
+          manual: 'Manual',
+          import: 'Import',
+        },
+        sourceDescription: 'How this transaction entered the ledger (manual entry vs institution sync/import).',
+        externalIdDescription:
+          'Stable id from an import or institution feed. Unique per workspace when set (US-6.2).',
+        importBatchDescription: 'Optional batch/file/sync run id that created this transaction.',
       },
       transactionEntries: {
         amountDescription: 'Signed amount in the line unit (negative = credit, positive = debit).',

@@ -182,20 +182,20 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
     setRowError(null)
   }, [
     row.id,
-    row.memo,
+    row.payee,
     row.notes,
     row.primaryAccountId,
     row.amount,
     row.status,
     transaction.id,
     transaction.updatedAt,
-    transaction.memo,
+    transaction.payee,
     transaction.notes,
     transaction.type,
   ])
 
   const saveField = (patch: {
-    memo?: string | null
+    payee?: string | null
     payeeValue?: string
     categoryId?: string | null
     accountId?: string
@@ -270,13 +270,13 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
         const result = await updateTransactionAction({
           id: row.transactionId,
-          memo:
+          payee:
             patch.payeeValue !== undefined
               ? isPayeeTransferId(patch.payeeValue)
                 ? null
                 : patch.payeeValue || null
-              : patch.memo !== undefined
-                ? patch.memo
+              : patch.payee !== undefined
+                ? patch.payee
                 : undefined,
           status: patch.status,
           type:
@@ -316,7 +316,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
   const renderCell = (columnId: RegisterColumnId) => {
     switch (columnId) {
-      case 'memo':
+      case 'payee':
         if (canInlineEdit) {
           return (
             <PayeePicker
@@ -354,9 +354,9 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         ) : (
           <span
             className="truncate font-medium"
-            title={row.memo || t('custom:frontend:transactions:untitled')}
+            title={row.payee || t('custom:frontend:transactions:untitled')}
           >
-            {row.memo || t('custom:frontend:transactions:untitled')}
+            {row.payee || t('custom:frontend:transactions:untitled')}
           </span>
         )
       case 'category':

@@ -35,7 +35,7 @@ Content-Type: application/json
   "budget": "<budget-uuid>",
   "date": "2026-07-12T20:00:00.000Z",
   "type": "transfer",
-  "memo": null,
+  "payee": null,
   "entries": [
     { "account": "<checking-uuid>", "amount": -100 },
     { "account": "<savings-uuid>", "amount": 100 }
@@ -110,7 +110,7 @@ Content-Type: application/json
   "budget": "<budget-uuid>",
   "date": "2026-07-12T20:00:00.000Z",
   "type": "transaction",
-  "memo": "Sell BTC with fee",
+  "payee": "Sell BTC with fee",
   "entries": [
     { "account": "<btc-wallet>", "amount": -0.01, "fxRate": 50000 },
     { "account": "<usd-checking>", "amount": 495 },
@@ -152,6 +152,18 @@ Budget-owned collections (`accounts`, `transactions`, `categories`, `category-gr
 - **`workspaces.reportingCurrency`:** relationship to a unit in that workspace (seed sets USD).
 - **Posting:** `writeTransactionEntries` snapshots `fxRate` / `reportingAmount`. Same unit → rate `1`. Different unit → require `fxRate` on the virtual entry (`reportingAmount = amount * fxRate`).
 - **Balance:** Same-unit → `Σ amount ≈ 0`. Mixed-unit → `Σ reportingAmount ≈ 0` (see mixed-currency examples above).
+
+## Import / sync footholds (US-6.2)
+
+On `transactions`:
+
+| Field | Notes |
+|-------|--------|
+| `source` | `manual` (default) \| `import` |
+| `externalId` | Optional institution/import id; **unique per workspace** when set (`validateUniqueExternalId`) |
+| `importBatch` | Optional batch/run/file id for grouping imports |
+
+Match/merge between manual and imported rows is **US-6.1** (not yet implemented).
 
 ## Other collections
 

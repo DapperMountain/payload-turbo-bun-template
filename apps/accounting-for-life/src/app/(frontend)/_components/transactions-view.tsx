@@ -14,7 +14,7 @@ import {
   categoryDisplayLabel,
 } from '@/lib/frontend/category-filter-options'
 import { findFilteredTransactions } from '@/lib/frontend/transaction-query.server'
-import { findPayeeMemosByBudget } from '@/lib/frontend/transaction-payees.server'
+import { findPayeesByBudget } from '@/lib/frontend/transaction-payees.server'
 import { buildGroupedAccountOptions } from '@/lib/frontend/transaction-picker-options'
 import { groupTransactionsByDate } from '@/lib/frontend/transactions.server'
 import type { Account, Category, User } from '@/types'
@@ -79,7 +79,7 @@ export async function TransactionsViewLoader(props: {
       user: props.user,
       overrideAccess: false,
     }),
-    findPayeeMemosByBudget(payload, {
+    findPayeesByBudget(payload, {
       user: props.user,
       workspaceId: props.workspaceId,
     }),

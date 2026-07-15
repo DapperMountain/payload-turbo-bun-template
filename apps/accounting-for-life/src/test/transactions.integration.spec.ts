@@ -73,7 +73,7 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        memo: 'Move to savings',
+        payee: 'Move to savings',
         type: 'transfer',
         entries: [
           { account: checkingA.id, amount: -100 },
@@ -108,7 +108,7 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        memo: 'Resize transfer',
+        payee: 'Resize transfer',
         type: 'transfer',
         entries: [
           { account: checkingA.id, amount: -100, sortOrder: 0 },
@@ -287,7 +287,7 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        memo: 'Grocery run',
+        payee: 'Grocery run',
         type: 'transaction',
         entries: [
           { account: checkingA.id, amount: -40, sortOrder: 0 },
@@ -302,7 +302,7 @@ describe('transactions integration', () => {
       user: member,
       overrideAccess: false,
       data: {
-        memo: 'Updated memo',
+        payee: 'Updated payee',
         // Flip payment/category signs — income category legs must be credits.
         entries: [
           { account: checkingA.id, amount: 40, sortOrder: 0 },
@@ -311,7 +311,7 @@ describe('transactions integration', () => {
       },
     })
 
-    expect(updated.memo).toBe('Updated memo')
+    expect(updated.payee).toBe('Updated payee')
 
     const entries = await payload.find({
       collection: 'transaction-entries',
@@ -360,7 +360,7 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        memo: 'Coffee',
+        payee: 'Coffee',
         type: 'transaction',
         entries: [
           { account: checkingA.id, amount: -6, sortOrder: 0 },
@@ -705,7 +705,7 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        memo: 'USD transfer with FX snapshot',
+        payee: 'USD transfer with FX snapshot',
         type: 'transfer',
         entries: [
           { account: checkingA.id, amount: -25 },
@@ -765,7 +765,7 @@ describe('transactions integration', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-12',
-          memo: 'Missing FX',
+          payee: 'Missing FX',
           type: 'transfer',
           entries: [
             { account: eurChecking.id, amount: -10 },
@@ -783,7 +783,7 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        memo: 'EUR to USD with rate',
+        payee: 'EUR to USD with rate',
         type: 'transfer',
         entries: [
           { account: eurChecking.id, amount: -10, fxRate: 1.1 },
@@ -862,7 +862,7 @@ describe('transactions integration', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-12',
-          memo: 'Unbalanced swap',
+          payee: 'Unbalanced swap',
           type: 'transaction',
           entries: [
             { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
@@ -881,7 +881,7 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        memo: 'Sell BTC with fee',
+        payee: 'Sell BTC with fee',
         type: 'transaction',
         entries: [
           { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
@@ -905,5 +905,52 @@ describe('transactions integration', () => {
     const btcLeg = legs.docs.find((leg) => getCollectionId(leg.account) === btcWallet.id)
     expect(btcLeg?.fxRate).toBe(50_000)
     expect(btcLeg?.reportingAmount).toBe(-500)
+  })
+
+  it('rejects duplicate externalId within a workspace (US-6.2)', async () => {
+    const first = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        payee: 'Imported A',
+        type: 'transaction',
+        source: 'import',
+        externalId: 'plaid:txn-100',
+        importBatch: 'batch-2026-07-12',
+        entries: [
+          { account: checkingA.id, amount: -20 },
+          { account: checkingB.id, amount: 20 },
+        ],
+      },
+    })
+
+    expect(first.externalId).toBe('plaid:txn-100')
+    expect(first.source).toBe('import')
+    expect(first.importBatch).toBe('batch-2026-07-12')
+
+    await expect(
+      payload.create({
+        collection: 'transactions',
+        user: member,
+        overrideAccess: false,
+        data: {
+          workspace: fx.workspaceA.id,
+          budget: fx.budgetA.id,
+          date: '2026-07-12',
+          payee: 'Imported duplicate',
+          type: 'transaction',
+          source: 'import',
+          externalId: 'plaid:txn-100',
+          entries: [
+            { account: checkingA.id, amount: -5 },
+            { account: checkingB.id, amount: 5 },
+          ],
+        },
+      }),
+    ).rejects.toThrow(/externalId/)
   })
 })

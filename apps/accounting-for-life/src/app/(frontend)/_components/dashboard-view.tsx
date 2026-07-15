@@ -107,7 +107,7 @@ export async function DashboardView(props: { user: User; workspaceId: string }) 
             <ul className="space-y-2">
               {transactions.docs.map((tx) => (
                 <li className="flex items-center justify-between text-sm" key={tx.id}>
-                  <span>{tx.memo || t('custom:frontend:transactions:untitled')}</span>
+                  <span>{tx.payee || t('custom:frontend:transactions:untitled')}</span>
                   <span className="text-muted-foreground">
                     {tx.date ? new Date(tx.date).toLocaleDateString() : ''}
                   </span>

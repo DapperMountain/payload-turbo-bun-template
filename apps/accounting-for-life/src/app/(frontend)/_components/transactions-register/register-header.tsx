@@ -103,7 +103,7 @@ function SortableHeaderCell(props: {
           onClick={() => onSort(columnId)}
           type="button"
         >
-          <span className="truncate">{t(def.labelKey as 'custom:frontend:filters:fields:memo')}</span>
+          <span className="truncate">{t(def.labelKey as 'custom:frontend:filters:fields:payee')}</span>
           {isActive ? (
             sort.direction === 'asc' ? (
               <ArrowUp className="size-3.5 shrink-0" />

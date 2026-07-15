@@ -270,7 +270,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       isPayeeTransferId(payeeValue) || allSplitsAreTransfers(splitState.splits)
         ? 'transfer'
         : type
-    const resolvedMemo =
+    const resolvedPayee =
       resolvedType === 'transfer' || isPayeeTransferId(payeeValue) ? undefined : payeeValue || undefined
 
     setError(null)
@@ -297,7 +297,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       const result = await createTransactionAction({
         budget: budgetId,
         date: normalizeTransactionDateTime(date),
-        memo: resolvedMemo,
+        payee: resolvedPayee,
         type: resolvedType,
         entries,
       })

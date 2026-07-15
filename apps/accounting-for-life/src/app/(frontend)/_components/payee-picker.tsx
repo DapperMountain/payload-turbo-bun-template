@@ -134,8 +134,8 @@ export function PayeePicker(props: PayeePickerProps) {
     commitValue(toPayeeTransferId(accountId))
   }
 
-  const selectMerchant = (memo: string) => {
-    commitValue(memo)
+  const selectMerchant = (payee: string) => {
+    commitValue(payee)
   }
 
   const plain = appearance === 'plain'

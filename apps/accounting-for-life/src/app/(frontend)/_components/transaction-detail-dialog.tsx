@@ -305,7 +305,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
       const built = buildEntries()
       if (!built.ok) return
 
-      const resolvedMemo = isPayeeTransferId(payeeValue) ? null : payeeValue || null
+      const resolvedPayee = isPayeeTransferId(payeeValue) ? null : payeeValue || null
 
       const resolvedType = resolveTransactionTypeFromPayee(payeeValue, splitState.splits)
       const typeDirty = resolvedType !== transaction.type
@@ -315,7 +315,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
       const result = await updateTransactionAction({
         id: transaction.id,
         date: dateDirty ? normalizeTransactionDateTime(date) : undefined,
-        memo: payeeDirty ? resolvedMemo : undefined,
+        payee: payeeDirty ? resolvedPayee : undefined,
         notes: notes.trim() || null,
         status: statusDirty ? status : undefined,
         type: typeDirty ? resolvedType : undefined,

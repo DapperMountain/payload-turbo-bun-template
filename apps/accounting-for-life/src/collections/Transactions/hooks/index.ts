@@ -2,9 +2,11 @@ import { syncTransactionEntries } from './createTransactionEntries'
 import { prepareTransactionPosting } from './prepareTransactionPosting'
 import { removeTransactionEntriesOnDelete } from './removeTransactionEntriesOnDelete'
 import { shapeTransactionEntriesOnRead } from './shapeTransactionEntriesOnRead'
+import { validateUniqueExternalId } from './validateUniqueExternalId'
 
-// beforeChange validates virtual `entries`; afterChange writes transaction-entries; afterRead shapes `entries` for API.
+// beforeValidate: unique externalId; beforeChange: entries; afterChange writes legs; afterRead shapes entries.
 export const hooks = {
+  beforeValidate: [validateUniqueExternalId],
   beforeChange: [prepareTransactionPosting],
   afterChange: [syncTransactionEntries],
   afterRead: [shapeTransactionEntriesOnRead],

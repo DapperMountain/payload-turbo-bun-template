@@ -156,7 +156,7 @@ export type TransactionRegisterRow = {
   transactionId: string
   entryIndex: number
   date: string | null
-  memo: string | null
+  payee: string | null
   notes: string | null
   type: Transaction['type']
   status: Transaction['status']
@@ -291,7 +291,7 @@ export function registerRowFromEntry(
     transactionId: transaction.id,
     entryIndex,
     date: transaction.date ?? null,
-    memo: transaction.memo ?? null,
+    payee: transaction.payee ?? null,
     notes: transaction.notes ?? null,
     type: transaction.type,
     status: transaction.status,
@@ -318,7 +318,7 @@ export function registerRowsFromTransaction(
         transactionId: transaction.id,
         entryIndex: 0,
         date: transaction.date ?? null,
-        memo: transaction.memo ?? null,
+        payee: transaction.payee ?? null,
         notes: transaction.notes ?? null,
         type: transaction.type,
         status: transaction.status,

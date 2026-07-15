@@ -9,6 +9,18 @@ import {
   down as downAccountVisibility,
   up as upAccountVisibility,
 } from './20260715_account_visibility'
+import {
+  down as downImportFields,
+  up as upImportFields,
+} from './20260715_transaction_import_fields'
+import {
+  down as downReportingCurrency,
+  up as upReportingCurrency,
+} from './20260715_workspace_reporting_currency'
+import {
+  down as downMemoToPayee,
+  up as upMemoToPayee,
+} from './20260715_rename_transaction_memo_to_payee'
 
 export const migrations = [
   {
@@ -35,5 +47,20 @@ export const migrations = [
     down: downAccountVisibility,
     name: '20260715_account_visibility',
     up: upAccountVisibility,
+  },
+  {
+    down: downImportFields,
+    name: '20260715_transaction_import_fields',
+    up: upImportFields,
+  },
+  {
+    down: downReportingCurrency,
+    name: '20260715_workspace_reporting_currency',
+    up: upReportingCurrency,
+  },
+  {
+    down: downMemoToPayee,
+    name: '20260715_rename_transaction_memo_to_payee',
+    up: upMemoToPayee,
   },
 ]

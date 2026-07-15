@@ -124,21 +124,21 @@ export function buildPayeeTransferOptions(
 }
 
 export function buildPayeeMerchantOptions(
-  memos: string[],
+  payees: string[],
   query = '',
 ): RelationshipFilterOption[] {
   const q = query.trim().toLowerCase()
-  const unique = [...new Set(memos.map((memo) => memo.trim()).filter(Boolean))]
+  const unique = [...new Set(payees.map((payee) => payee.trim()).filter(Boolean))]
 
   const filtered = q
-    ? unique.filter((memo) => memo.toLowerCase().includes(q))
+    ? unique.filter((payee) => payee.toLowerCase().includes(q))
     : unique
 
   return filtered
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-    .map((memo) => ({
-      id: memo,
-      label: memo,
+    .map((payee) => ({
+      id: payee,
+      label: payee,
       group: PAYEE_MERCHANT_GROUP,
     }))
 }
@@ -178,7 +178,7 @@ export type TransferPayeePresentation = TransferAccountPair & {
 export function resolveTransferPair(
   accounts: Account[],
   options: {
-    transaction?: Pick<Transaction, 'entries' | 'entryJoin' | 'type' | 'memo'> | null
+    transaction?: Pick<Transaction, 'entries' | 'entryJoin' | 'type' | 'payee'> | null
     payeeValue?: string
     paymentAccountId?: string | null
   },
@@ -250,7 +250,7 @@ export function transferPayeePresentation(
 
 export function payeeValueFromTransaction(transaction: Transaction): string {
   if (transaction.type !== 'transfer') {
-    return transaction.memo ?? ''
+    return transaction.payee ?? ''
   }
 
   const form = splitFormFromEntries(transactionEntries(transaction))
@@ -260,7 +260,7 @@ export function payeeValueFromTransaction(transaction: Transaction): string {
     return transfer.payee
   }
 
-  return transaction.memo ?? ''
+  return transaction.payee ?? ''
 }
 
 export function transferDestinationFromPayee(payeeValue: string): string | null {

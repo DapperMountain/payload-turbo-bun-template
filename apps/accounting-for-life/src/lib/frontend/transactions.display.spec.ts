@@ -14,7 +14,7 @@ function transferTransaction(): Transaction {
     id: 'tx-transfer',
     budget: 'budget-a',
     date: '2026-07-12T20:00:00.000Z',
-    memo: null,
+    payee: null,
     type: 'transfer',
     status: 'posted',
     entries: [
@@ -84,7 +84,7 @@ describe('register rows from transactions', () => {
       id: 'tx-income',
       budget: 'budget-a',
       date: '2026-07-12T20:00:00.000Z',
-      memo: 'Arlo Jack',
+      payee: 'Arlo Jack',
       type: 'transaction',
       status: 'posted',
       entries: [
@@ -111,7 +111,7 @@ describe('register rows from transactions', () => {
       id: 'tx-income-scoped',
       budget: 'budget-a',
       date: '2026-07-12T20:00:00.000Z',
-      memo: 'Arlo Jack',
+      payee: 'Arlo Jack',
       notes: 'Gift',
       type: 'transaction',
       status: 'posted',

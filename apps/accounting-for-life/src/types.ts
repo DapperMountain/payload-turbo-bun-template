@@ -367,13 +367,25 @@ export interface Transaction {
   /**
    * Payee or short title shown in the register.
    */
-  memo?: string | null;
+  payee?: string | null;
   /**
-   * Optional memo shown as a note icon in the register when set.
+   * Optional note shown as a note icon in the register when set.
    */
   notes?: string | null;
   type: 'transaction' | 'transfer' | 'adjustment' | 'opening_balance';
   status: 'pending' | 'posted';
+  /**
+   * How this transaction entered the ledger (manual entry vs institution sync/import).
+   */
+  source: 'manual' | 'import';
+  /**
+   * Stable id from an import or institution feed. Unique per workspace when set (US-6.2).
+   */
+  externalId?: string | null;
+  /**
+   * Optional batch/file/sync run id that created this transaction.
+   */
+  importBatch?: string | null;
   /**
    * Balanced legs to post on create/update (not stored on the transaction document). Omit for pending headers.
    */
@@ -908,10 +920,13 @@ export interface TransactionsSelect<T extends boolean = true> {
   workspace?: T;
   budget?: T;
   date?: T;
-  memo?: T;
+  payee?: T;
   notes?: T;
   type?: T;
   status?: T;
+  source?: T;
+  externalId?: T;
+  importBatch?: T;
   entries?:
     | T
     | {

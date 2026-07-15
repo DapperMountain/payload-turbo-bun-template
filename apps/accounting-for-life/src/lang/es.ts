@@ -226,7 +226,6 @@ export default {
         fields: {
           date: 'Fecha',
           time: 'Hora',
-          memo: 'Nota',
           payee: 'Beneficiario',
           budget: 'Presupuesto',
           category: 'Categoría',
@@ -349,7 +348,7 @@ export default {
         entryAmountDescription: 'Importe con signo (negativo = crédito, positivo = débito).',
         entryFxRateDescription:
           'Opcional. Unidades de informe por 1 unidad de la cuenta cuando la moneda difiere de la de informe del espacio.',
-        memoDescription: 'Beneficiario o título corto en el registro.',
+        payeeDescription: 'Beneficiario o título corto en el registro.',
         notesDescription: 'Nota opcional; se muestra como icono en el registro cuando está definida.',
         notes: 'Notas',
         type: {
@@ -362,6 +361,15 @@ export default {
           pending: 'Pendiente',
           posted: 'Publicada',
         },
+        source: {
+          manual: 'Manual',
+          import: 'Importación',
+        },
+        sourceDescription:
+          'Cómo entró esta transacción en el libro (entrada manual vs sincronización/importación).',
+        externalIdDescription:
+          'Id estable de una importación o fuente institucional. Único por espacio cuando está definido (US-6.2).',
+        importBatchDescription: 'Id opcional del lote/archivo/sincronización que creó esta transacción.',
       },
       transactionEntries: {
         amountDescription: 'Importe con signo en la unidad de la partida (negativo = crédito, positivo = débito).',

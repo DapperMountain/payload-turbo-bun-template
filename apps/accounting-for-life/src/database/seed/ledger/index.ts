@@ -165,7 +165,7 @@ export async function seedLedger(payload: Payload, options?: SeedRunOptions): Pr
         where: {
           and: [
             { workspace: { equals: workspace.id } },
-            { memo: { equals: 'Seed transfer to savings' } },
+            { payee: { equals: 'Seed transfer to savings' } },
           ],
         },
         overrideAccess: true,
@@ -185,7 +185,7 @@ export async function seedLedger(payload: Payload, options?: SeedRunOptions): Pr
           workspace: workspace.id,
           budget: defaultBudget.id,
           date: new Date().toISOString().slice(0, 10),
-          memo: 'Seed transfer to savings',
+          payee: 'Seed transfer to savings',
           type: 'transfer',
           entries: [
             { account: checking.id, amount: -100 },

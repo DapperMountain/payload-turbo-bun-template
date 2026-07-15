@@ -32,7 +32,7 @@ Decisions captured during initial planning (July 2026).
 |------------|---------|------------|
 | `units` | Workspace currency registry (`code`, `kind`: fiat/crypto/custom, `decimalPlaces`) | No |
 | `accounts` | Chart accounts: `classification`, `subtype`, `unit`, `budget`, `visibility`, optional `category` (credit cards only) | Yes (50) |
-| `transactions` | Header: `date`, `memo`, `type`, `status`, `budget` | Yes (50) |
+| `transactions` | Header: `date`, `payee`, `notes`, `type`, `status`, `budget`, `source`, `externalId`, `importBatch` | Yes (50) |
 | `transaction-entries` | Legs: `account`, signed `amount`, `unit`, optional `category`, `fxRate`, `reportingAmount` | No |
 | `workspaces` | Household + optional `reportingCurrency` → `units` | No |
 
@@ -80,6 +80,7 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 - **Plugin architecture** — `@payloadcms/plugin-*` or local plugin package; hooks register only when plugin enabled.
 - **SimpleFIN** first (existing subscription).
 - Geography not artificially limited at schema level.
+- **Import foothold (US-6.2):** `transactions.source` (`manual` \| `import`), optional `externalId` (unique per workspace when set), optional `importBatch`. Match/merge UI is US-6.1.
 
 ## Asset valuation
 
