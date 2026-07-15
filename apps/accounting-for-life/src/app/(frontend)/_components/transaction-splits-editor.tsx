@@ -218,11 +218,12 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
           ) : (
             <div className="grid gap-2">
               <Label>{t('custom:frontend:filters:fields:category')}</Label>
-              <Input
-                disabled
-                readOnly
-                value={t('custom:frontend:transactions:categoryNotNeeded')}
-              />
+              <div
+                aria-disabled
+                className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+              >
+                {t('custom:frontend:transactions:categoryNotNeeded')}
+              </div>
             </div>
           )}
 

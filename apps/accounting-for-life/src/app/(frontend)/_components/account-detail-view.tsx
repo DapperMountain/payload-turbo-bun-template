@@ -258,7 +258,6 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
             accounts={accounts}
             categories={categories}
             hiddenColumns={['account']}
-            lockedAccountId={account.id}
             payeeOptionsByBudget={payeeOptionsByBudget}
             registerGroups={registerGroups}
             transactions={transactions}

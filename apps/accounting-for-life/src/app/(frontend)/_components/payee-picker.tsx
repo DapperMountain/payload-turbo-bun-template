@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Input } from '@dappermountain/ui/components/input'
 import { Popover, PopoverContent, PopoverAnchor } from '@dappermountain/ui/components/popover'
+import { ChevronDown } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
 import { AccountLabel } from '@/app/(frontend)/_components/account-label'
@@ -176,8 +177,11 @@ export function PayeePicker(props: PayeePickerProps) {
   const hasListItems =
     showAddNew || merchantOptions.length > 0 || filteredTransfers.length > 0
 
+  const outline = appearance === 'input'
+
   return (
     <Popover
+      modal={false}
       onOpenChange={(next) => {
         if (focused && !next) return
         setOpen(next)
@@ -185,13 +189,22 @@ export function PayeePicker(props: PayeePickerProps) {
       open={open && !disabled}
     >
       <PopoverAnchor asChild>
-        <div className={cn('relative min-w-0', className)}>
+        <div
+          className={cn(
+            'relative min-w-0',
+            // Match GroupedPicker outline trigger (Account field in edit dialog).
+            outline &&
+              'flex h-9 w-full items-center rounded-md border border-input bg-transparent shadow-xs',
+            className,
+          )}
+        >
           {showTransferChrome && transferPresentation ? (
             <button
               className={cn(
-                'absolute inset-0 z-[1] flex min-w-0 items-center px-1.5 text-left',
-                appearance === 'plain' && 'rounded-md hover:bg-muted/50',
-                appearance === 'input' && 'rounded-md border border-transparent px-3',
+                'absolute inset-0 z-[1] flex min-w-0 items-center gap-2 text-left',
+                outline
+                  ? 'justify-between px-3'
+                  : 'rounded-md px-1.5 hover:bg-muted/50',
               )}
               disabled={disabled}
               onClick={(event) => {
@@ -201,12 +214,15 @@ export function PayeePicker(props: PayeePickerProps) {
               type="button"
             >
               <TransferPayeeLabel className="min-w-0" presentation={transferPresentation} />
+              {outline ? <ChevronDown className="size-4 shrink-0 opacity-50" /> : null}
             </button>
           ) : null}
           <Input
             aria-hidden={showTransferChrome || undefined}
             className={cn(
               'w-full',
+              outline &&
+                'h-full border-0 bg-transparent pr-8 shadow-none focus-visible:ring-0',
               appearance === 'plain' &&
                 'h-7 border-transparent bg-transparent px-1.5 shadow-none hover:bg-muted/50 focus-visible:border-input focus-visible:bg-background',
               // Hide the field entirely while the transfer chrome is painted over it —
@@ -245,6 +261,12 @@ export function PayeePicker(props: PayeePickerProps) {
             title={!focused && !showTransferChrome && value ? value : undefined}
             value={displayValue}
           />
+          {outline && !showTransferChrome ? (
+            <ChevronDown
+              aria-hidden
+              className="pointer-events-none absolute right-3 size-4 shrink-0 opacity-50"
+            />
+          ) : null}
         </div>
       </PopoverAnchor>
       <PopoverContent

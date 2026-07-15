@@ -157,7 +157,7 @@ export default {
         paymentToCreditNamed: 'Pago: {name}',
         transferKind: 'Transferencia',
         paymentKind: 'Pago',
-        categoryNotNeeded: 'Categoría no necesaria',
+        categoryNotNeeded: 'Transferencia',
         hasNotes: 'Tiene notas',
         notesPlaceholder: 'Añadir una nota…',
         splitViewHint: 'Esta transacción usa divisiones — cambie a la vista Dividir para editar importes.',

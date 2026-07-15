@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@dappermountain/ui/components/dialog'
-import { Input } from '@dappermountain/ui/components/input'
 import { Label } from '@dappermountain/ui/components/label'
 import {
   Select,
@@ -111,7 +110,6 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [activeView, setActiveView] = useState<TransactionDialogView>('standard')
-  const lockedAccountId = defaultPaymentAccountId ?? null
 
   const [date, setDate] = useState(() => nowTransactionDateTime())
   const [payeeValue, setPayeeValue] = useState('')
@@ -174,15 +172,15 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     if (!budgetId) return
     setSplitState((prev) => {
       const accountIds = buildGroupedAccountOptions(accounts, budgetId).map((option) => option.id)
-      const locked =
-        lockedAccountId && accountIds.includes(lockedAccountId)
-          ? lockedAccountId
-          : accountIds.includes(prev.paymentAccount)
-            ? prev.paymentAccount
+      const next =
+        accountIds.includes(prev.paymentAccount)
+          ? prev.paymentAccount
+          : defaultPaymentAccountId && accountIds.includes(defaultPaymentAccountId)
+            ? defaultPaymentAccountId
             : (accountIds[0] ?? '')
-      return { ...prev, paymentAccount: locked }
+      return { ...prev, paymentAccount: next }
     })
-  }, [accounts, budgetId, lockedAccountId])
+  }, [accounts, budgetId, defaultPaymentAccountId])
 
   const handleViewChange = (view: TransactionDialogView) => {
     if (view === 'split') {
@@ -320,7 +318,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
               <TabsTrigger value="split">{t('custom:frontend:transactions:tabSplit')}</TabsTrigger>
             </TabsList>
 
-            <div className="grid gap-4 pt-4">
+            <TabsContent className="grid gap-4 pt-4" value="standard">
               <TransactionDialogDateField
                 id="tx-date"
                 onChange={setDate}
@@ -328,17 +326,12 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
               />
               <TransactionDialogAccountField
                 accountOptions={accountOptions}
-                accounts={accounts}
                 formatAccountGroup={formatAccountGroup}
-                lockedAccountId={lockedAccountId}
                 onChange={(value) =>
                   setSplitState((prev) => ({ ...prev, paymentAccount: value }))
                 }
                 value={splitState.paymentAccount}
               />
-            </div>
-
-            <TabsContent className="grid gap-4 pt-4" value="standard">
               <div className="grid gap-2">
                 <Label htmlFor="tx-payee">{t('custom:frontend:filters:fields:payee')}</Label>
                 <PayeePicker
@@ -399,16 +392,30 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
               {categoryDisabled ? (
                 <div className="grid gap-2">
                   <Label>{t('custom:frontend:filters:fields:category')}</Label>
-                  <Input
-                    disabled
-                    readOnly
-                    value={t('custom:frontend:transactions:categoryNotNeeded')}
-                  />
+                  <div
+                    aria-disabled
+                    className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                  >
+                    {t('custom:frontend:transactions:categoryNotNeeded')}
+                  </div>
                 </div>
               ) : null}
             </TabsContent>
 
-            <TabsContent className="pt-4" value="split">
+            <TabsContent className="grid gap-4 pt-4" value="split">
+              <TransactionDialogDateField
+                id="tx-date-split"
+                onChange={setDate}
+                value={date}
+              />
+              <TransactionDialogAccountField
+                accountOptions={accountOptions}
+                formatAccountGroup={formatAccountGroup}
+                onChange={(value) =>
+                  setSplitState((prev) => ({ ...prev, paymentAccount: value }))
+                }
+                value={splitState.paymentAccount}
+              />
               <TransactionSplitsEditor
                 accounts={accounts}
                 budgetId={budgetId ?? undefined}

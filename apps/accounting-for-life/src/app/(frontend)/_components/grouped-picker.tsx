@@ -104,6 +104,8 @@ export function GroupedPicker(props: GroupedPickerProps) {
 
   return (
     <Popover
+      // Nested dialogs: keep pointer events on the dialog surface so the trigger can open.
+      modal={false}
       onOpenChange={(next) => {
         setOpen(next)
         if (!next) setQuery('')
@@ -113,9 +115,9 @@ export function GroupedPicker(props: GroupedPickerProps) {
       <PopoverTrigger asChild>
         <Button
           className={cn(
-            'w-auto justify-between font-normal',
+            'justify-between font-normal',
             plain &&
-              'h-7 border-transparent bg-transparent px-1.5 shadow-none hover:bg-muted/50',
+              'h-7 w-auto border-transparent bg-transparent px-1.5 shadow-none hover:bg-muted/50',
             !plain && 'w-full',
             className,
           )}

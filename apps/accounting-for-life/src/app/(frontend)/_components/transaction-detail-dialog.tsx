@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@dappermountain/ui/components/dialog'
-import { Input } from '@dappermountain/ui/components/input'
 import { Label } from '@dappermountain/ui/components/label'
 import { Textarea } from '@dappermountain/ui/components/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@dappermountain/ui/components/tabs'
@@ -29,6 +28,7 @@ import {
   TransactionDialogDateField,
 } from '@/app/(frontend)/_components/transaction-dialog-fields'
 import { TransactionSplitsEditor } from '@/app/(frontend)/_components/transaction-splits-editor'
+import { TransactionStatusChip } from '@/app/(frontend)/_components/transaction-status-badge'
 import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
 import {
   createPayeeLabelHelpers,
@@ -84,7 +84,6 @@ export type TransactionDetailDialogProps = {
   accountLabels: Record<string, string>
   categories: Category[]
   payeeOptionsByBudget: Record<string, string[]>
-  lockedAccountId?: string | null
   initialView?: TransactionDialogView
 }
 
@@ -96,7 +95,6 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     accounts,
     categories,
     payeeOptionsByBudget,
-    lockedAccountId = null,
     initialView = 'standard',
   } = props
   const { t } = useAppTranslation()
@@ -109,6 +107,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
   const [payeeValue, setPayeeValue] = useState('')
   const [initialPayeeValue, setInitialPayeeValue] = useState('')
   const [notes, setNotes] = useState('')
+  const [status, setStatus] = useState<Transaction['status']>('pending')
   const [categoryId, setCategoryId] = useState('')
   const [splitState, setSplitState] = useState<TransactionSplitFormState>({
     paymentAccount: '',
@@ -159,6 +158,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
     setInitialPayeeValue(nextPayee)
     const nextNotes = transaction.notes ?? ''
     setNotes(nextNotes)
+    setStatus(transaction.status)
     setCategoryId(normalized.displayCategoryId)
     setSplitState(normalized)
     setError(null)
@@ -291,12 +291,14 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
       const resolvedType = resolveTransactionTypeFromPayee(payeeValue, splitState.splits)
       const typeDirty = resolvedType !== transaction.type
       const dateDirty = !transactionDateTimeEquals(date, transaction.date)
+      const statusDirty = status !== transaction.status
 
       const result = await updateTransactionAction({
         id: transaction.id,
         date: dateDirty ? normalizeTransactionDateTime(date) : undefined,
         memo: payeeDirty ? resolvedMemo : undefined,
         notes: notes.trim() || null,
+        status: statusDirty ? status : undefined,
         type: typeDirty ? resolvedType : undefined,
         entries: built.lines,
       })
@@ -331,11 +333,18 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
       <DialogContent className="flex max-h-[90vh] flex-col gap-4 overflow-hidden sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{payeeTitle}</DialogTitle>
-          <DialogDescription>
-            {t(`custom:fields:transactions:type:${transaction.type}`)}
-            {' · '}
-            {t(`custom:fields:transactions:status:${transaction.status}`)}
-            {showMultiSplit ? ` · ${t('custom:frontend:transactions:splits')}` : ''}
+          <DialogDescription asChild>
+            <div className="flex items-center justify-between gap-3">
+              <span>
+                {t(`custom:fields:transactions:type:${transaction.type}`)}
+                {showMultiSplit ? ` · ${t('custom:frontend:transactions:splits')}` : ''}
+              </span>
+              <TransactionStatusChip
+                disabled={readOnly || isPending}
+                onStatusChange={setStatus}
+                status={status}
+              />
+            </div>
           </DialogDescription>
         </DialogHeader>
 
@@ -346,7 +355,7 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
               <TabsTrigger value="split">{t('custom:frontend:transactions:tabSplit')}</TabsTrigger>
             </TabsList>
 
-            <div className="grid gap-4 pt-4">
+            <TabsContent className="grid gap-4 pt-4" value="standard">
               <TransactionDialogDateField
                 disabled={readOnly || isPending}
                 id="tx-edit-date"
@@ -355,18 +364,13 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
               />
               <TransactionDialogAccountField
                 accountOptions={accountOptions}
-                accounts={accounts}
                 disabled={readOnly || isPending}
                 formatAccountGroup={formatAccountGroup}
-                lockedAccountId={lockedAccountId}
                 onChange={(value) =>
                   setSplitState((prev) => ({ ...prev, paymentAccount: value }))
                 }
                 value={splitState.paymentAccount}
               />
-            </div>
-
-            <TabsContent className="grid gap-4 pt-4" value="standard">
               <div className="grid gap-2">
                 <Label htmlFor="tx-edit-payee">{t('custom:frontend:filters:fields:payee')}</Label>
                 <PayeePicker
@@ -415,11 +419,12 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
               {categoryDisabled ? (
                 <div className="grid gap-2">
                   <Label>{t('custom:frontend:filters:fields:category')}</Label>
-                  <Input
-                    disabled
-                    readOnly
-                    value={t('custom:frontend:transactions:categoryNotNeeded')}
-                  />
+                  <div
+                    aria-disabled
+                    className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                  >
+                    {t('custom:frontend:transactions:categoryNotNeeded')}
+                  </div>
                 </div>
               ) : null}
 
@@ -430,7 +435,22 @@ export function TransactionDetailDialog(props: TransactionDetailDialogProps) {
               ) : null}
             </TabsContent>
 
-            <TabsContent className="pt-4" value="split">
+            <TabsContent className="grid gap-4 pt-4" value="split">
+              <TransactionDialogDateField
+                disabled={readOnly || isPending}
+                id="tx-edit-date-split"
+                onChange={setDate}
+                value={date}
+              />
+              <TransactionDialogAccountField
+                accountOptions={accountOptions}
+                disabled={readOnly || isPending}
+                formatAccountGroup={formatAccountGroup}
+                onChange={(value) =>
+                  setSplitState((prev) => ({ ...prev, paymentAccount: value }))
+                }
+                value={splitState.paymentAccount}
+              />
               {readOnly ? (
                 <p className="text-sm text-muted-foreground">
                   {t('custom:fields:transactions:entriesDescription')}

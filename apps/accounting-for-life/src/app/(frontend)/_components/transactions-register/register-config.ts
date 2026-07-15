@@ -5,7 +5,6 @@ export const REGISTER_COLUMN_IDS = [
   'memo',
   'category',
   'account',
-  'status',
   'amount',
   'balance',
 ] as const
@@ -17,7 +16,7 @@ export type RegisterSortColumnId = RegisterColumnId | 'date'
 
 export const DEFAULT_REGISTER_COLUMN_ORDER: RegisterColumnId[] = [...REGISTER_COLUMN_IDS]
 
-export const REGISTER_COLUMNS_STORAGE_KEY = 'afl-transactions-register-columns-v2'
+export const REGISTER_COLUMNS_STORAGE_KEY = 'afl-transactions-register-columns-v3'
 export const REGISTER_SORT_STORAGE_KEY = 'afl-transactions-register-sort-v2'
 
 export type RegisterSortState = {
@@ -40,7 +39,6 @@ export const REGISTER_COLUMN_DEFS: Record<RegisterColumnId, RegisterColumnDef> =
   memo: { id: 'memo', labelKey: 'custom:frontend:filters:fields:payee' },
   category: { id: 'category', labelKey: 'custom:frontend:filters:fields:category' },
   account: { id: 'account', labelKey: 'custom:frontend:nav:accounts' },
-  status: { id: 'status', labelKey: 'custom:frontend:transactions:statusLabel' },
   amount: { id: 'amount', labelKey: 'custom:frontend:transactions:amountColumn', align: 'right' },
   balance: {
     id: 'balance',
@@ -54,7 +52,6 @@ export const REGISTER_COLUMN_CLASS: Record<RegisterColumnId, string> = {
   memo: 'min-w-[12rem]',
   category: 'min-w-[10rem]',
   account: 'min-w-[9rem]',
-  status: 'min-w-[6.5rem]',
   amount: 'w-[8rem] min-w-[8rem] text-right',
   balance: 'w-[8rem] min-w-[8rem] text-right',
 }
@@ -115,9 +112,6 @@ export function sortRegisterRows(
         break
       case 'account':
         result = compareStrings(a.accountLabel, b.accountLabel)
-        break
-      case 'status':
-        result = compareStrings(a.status, b.status)
         break
       case 'amount':
         result = a.amount - b.amount

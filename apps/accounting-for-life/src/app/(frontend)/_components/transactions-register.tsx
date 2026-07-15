@@ -48,7 +48,6 @@ export type TransactionsRegisterProps = {
   accounts: Account[]
   accountLabels: Record<string, string>
   payeeOptionsByBudget: Record<string, string[]>
-  lockedAccountId?: string | null
   registerGroups: {
     date: string
     label: string
@@ -67,7 +66,6 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
     accounts,
     accountLabels,
     payeeOptionsByBudget,
-    lockedAccountId,
     hiddenColumns,
   } = props
   const { t } = useAppTranslation()
@@ -144,7 +142,8 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
   }, [registerGroups, sort])
 
   const detailTransaction = detailId ? (byId.get(detailId) ?? null) : null
-  const columnCount = visibleColumnOrder.length + (bulkMode ? 2 : 1)
+  // Data columns + fixed status gutter + detail chevron (+ bulk checkbox when active).
+  const columnCount = visibleColumnOrder.length + (bulkMode ? 3 : 2)
 
   const toggleSelected = (id: string, checked: boolean) => {
     setSelected((prev) => {
@@ -370,7 +369,6 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
         accounts={accounts}
         categories={categories}
         initialView={detailInitialView}
-        lockedAccountId={lockedAccountId}
         onOpenChange={(open) => {
           setDetailOpen(open)
           if (!open) setDetailInitialView('standard')

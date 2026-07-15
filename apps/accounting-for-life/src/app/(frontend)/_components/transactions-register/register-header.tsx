@@ -141,6 +141,8 @@ export function TransactionsRegisterHeaderRow(props: RegisterHeaderRowProps) {
         </TableHead>
       ) : null}
 
+      <TableHead className="w-6 px-1" />
+
       {columnOrder.map((columnId) => (
         <SortableHeaderCell columnId={columnId} key={columnId} onSort={onSort} sort={sort} />
       ))}

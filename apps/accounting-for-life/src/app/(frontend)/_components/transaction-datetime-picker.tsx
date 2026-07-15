@@ -84,7 +84,7 @@ export function TransactionDateTimePicker(props: TransactionDateTimePickerProps)
     : t('custom:frontend:transactions:pickDateTime')
 
   return (
-    <Popover onOpenChange={handleOpenChange} open={open}>
+    <Popover modal={false} onOpenChange={handleOpenChange} open={open}>
       <PopoverTrigger asChild>
         <Button
           className={cn(

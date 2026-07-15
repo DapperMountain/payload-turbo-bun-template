@@ -3,13 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { Checkbox } from '@dappermountain/ui/components/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@dappermountain/ui/components/select'
 import { TableCell, TableRow } from '@dappermountain/ui/components/table'
 import { ChevronRight, StickyNote } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
@@ -18,6 +11,7 @@ import { updateTransactionAction } from '@/app/(frontend)/actions/transactions'
 import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
 import { PayeePicker } from '@/app/(frontend)/_components/payee-picker'
+import { TransactionStatusDot } from '@/app/(frontend)/_components/transaction-status-badge'
 import { TransactionSplitsPopover } from '@/app/(frontend)/_components/transaction-splits-popover'
 import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
 import {
@@ -131,7 +125,6 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   const [categoryId, setCategoryId] = useState(primaryCategoryId(transaction))
   const [accountId, setAccountId] = useState(row.primaryAccountId)
   const [amountDraft, setAmountDraft] = useState(() => formatAmountMagnitudeForEdit(row.amount))
-  const [status, setStatus] = useState(row.status)
 
   const resolvedPaymentAccount = useMemo(
     () => findAccount(accounts, accountId),
@@ -143,7 +136,8 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
     [resolvedPaymentAccount, row.amount],
   )
 
-  const hasNotes = Boolean(row.notes?.trim())
+  const notesText = row.notes?.trim() ?? ''
+  const hasNotes = Boolean(notesText)
 
   const readOnly = false
   const canInlineEdit = !bulkMode
@@ -170,7 +164,6 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
     setCategoryId(primaryCategoryId(transaction))
     setAccountId(row.primaryAccountId)
     setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
-    setStatus(row.status)
     setEditingAmount(false)
     setRowError(null)
   }, [
@@ -451,43 +444,6 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           return <span className="text-muted-foreground">{row.accountLabel}</span>
         }
 
-      case 'status':
-        if (canInlineEdit) {
-          return (
-            <Select
-              disabled={isPending}
-              onValueChange={(value) => {
-                const next = value as Transaction['status']
-                setStatus(next)
-                if (next !== row.status) {
-                  saveField({ status: next })
-                }
-              }}
-              value={status}
-            >
-              <SelectTrigger
-                className="h-7 w-auto min-w-[5.5rem] border-transparent bg-transparent px-1 shadow-none hover:bg-muted/50"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(['pending', 'posted'] as const).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`custom:fields:transactions:status:${value}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )
-        }
-
-        return (
-          <span className="text-muted-foreground">
-            {t(`custom:fields:transactions:status:${row.status}`)}
-          </span>
-        )
-
       case 'amount': {
         const amountControl = (
           <div
@@ -554,8 +510,9 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
               {hasNotes ? (
                 <StickyNote
-                  aria-label={t('custom:frontend:transactions:hasNotes')}
+                  aria-label={notesText}
                   className="size-3.5 text-muted-foreground"
+                  title={notesText}
                 />
               ) : null}
             </span>
@@ -586,6 +543,12 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           />
         </TableCell>
       ) : null}
+
+      <TableCell className="w-6 px-1">
+        <div className="flex h-7 items-center justify-center">
+          <TransactionStatusDot status={row.status} />
+        </div>
+      </TableCell>
 
       {columnOrder.map((columnId) => (
         <TableCell

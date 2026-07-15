@@ -158,7 +158,7 @@ export default {
         paymentToCreditNamed: 'Payment: {name}',
         transferKind: 'Transfer',
         paymentKind: 'Payment',
-        categoryNotNeeded: 'Category not needed',
+        categoryNotNeeded: 'Transfer',
         hasNotes: 'Has notes',
         notesPlaceholder: 'Add a note…',
         splitViewHint: 'This transaction uses splits — switch to the Split view to edit amounts.',
