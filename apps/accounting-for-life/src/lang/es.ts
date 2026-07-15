@@ -94,6 +94,7 @@ export default {
         balance: 'Saldo',
         accountType: 'Tipo de cuenta',
         transactionCount: 'Transacciones contabilizadas',
+        visibilityLabel: 'Visibilidad',
       },
       transactions: {
         create: 'Nueva transacción',
@@ -151,6 +152,7 @@ export default {
         splitLine: 'Partida {index}',
         editSplitsInline: 'Use el editor de divisiones para esta transacción.',
         payeePlaceholder: 'Beneficiario o cuenta de transferencia…',
+        searchPayees: 'Buscar beneficiarios…',
         addPayeeNamed: 'Añadir "{name}"',
         paymentsAndTransfers: 'Pagos y transferencias',
         transferToAccountNamed: 'Transferencia: {name}',
@@ -318,6 +320,12 @@ export default {
       },
       accounts: {
         categoryDescription: 'Sobre de pago solo para cuentas de tarjeta de crédito.',
+        visibilityDescription:
+          'Quién puede ver esta cuenta y las transacciones que solo la involucran. Los administradores del presupuesto siempre ven todas las cuentas.',
+        visibility: {
+          all_members: 'Todos los miembros del presupuesto',
+          admins: 'Solo administradores del presupuesto',
+        },
         classification: {
           asset: 'Activo',
           liability: 'Pasivo',

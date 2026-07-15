@@ -16,6 +16,7 @@ export type CreateAccountInput = {
   unit: string
   budget: string
   isOnBudget?: boolean
+  visibility?: Account['visibility']
 }
 
 export async function createAccountAction(input: CreateAccountInput): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -42,6 +43,7 @@ export async function createAccountAction(input: CreateAccountInput): Promise<{ 
         unit: input.unit,
         budget: input.budget,
         isOnBudget: input.isOnBudget ?? true,
+        visibility: input.visibility ?? 'all_members',
         workspace: workspace.id,
       },
       user,

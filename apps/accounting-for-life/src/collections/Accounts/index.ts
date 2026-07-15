@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { accountsAccess } from '@/access/collections'
 import { custom } from '@/lang'
+import { getCollectionId, userHasBudgetRole, userIsSystemAdmin } from '@/utils'
 
 import { hooks } from './hooks'
 
@@ -18,7 +19,7 @@ const Accounts: CollectionConfig = {
   admin: {
     group: custom.adminGroups.ledger,
     useAsTitle: 'name',
-    defaultColumns: ['name', 'classification', 'subtype', 'budget', 'workspace'],
+    defaultColumns: ['name', 'classification', 'subtype', 'visibility', 'budget', 'workspace'],
     description: custom.collections.accounts.description,
   },
   hooks,
@@ -72,6 +73,33 @@ const Accounts: CollectionConfig = {
       name: 'isOnBudget',
       type: 'checkbox',
       defaultValue: true,
+    },
+    {
+      name: 'visibility',
+      type: 'select',
+      required: true,
+      defaultValue: 'all_members',
+      options: [
+        {
+          label: custom.fields.accounts.visibility.all_members,
+          value: 'all_members',
+        },
+        {
+          label: custom.fields.accounts.visibility.admins,
+          value: 'admins',
+        },
+      ],
+      admin: {
+        description: custom.fields.accounts.visibilityDescription,
+      },
+      access: {
+        update: ({ req: { user }, doc }) => {
+          if (!user) return false
+          if (userIsSystemAdmin(user)) return true
+          const budgetId = getCollectionId(doc?.budget)
+          return budgetId ? userHasBudgetRole(user, budgetId, 'BUDGET_ADMIN') : false
+        },
+      },
     },
     {
       name: 'budget',

@@ -91,6 +91,7 @@ async function ensureAccount(
       budget: budget.id,
       unit: unit.id,
       isOnBudget: true,
+      visibility: 'all_members',
       ...seed,
     },
     overrideAccess: true,

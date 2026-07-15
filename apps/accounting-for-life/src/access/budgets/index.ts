@@ -2,6 +2,12 @@
  * Budget membership scopes (US-1.2) and body-`budget` write access (US-1.3).
  */
 export {
+  accountVisibilityScope,
+  accountVisibilityWhere,
+  transactionEntryVisibilityScope,
+  transactionVisibilityScope,
+} from './accountVisibilityScope'
+export {
   budgetContentScope,
   budgetContentWriterScope,
   budgetDocumentScope,

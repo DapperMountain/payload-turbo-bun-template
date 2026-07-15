@@ -15,7 +15,8 @@ Decisions captured during initial planning (July 2026).
 - **Budget delete:** Budgets use Payload `trash: true`. Soft-delete (trash) is allowed for `BUDGET_ADMIN`; permanent purge (Empty trash) is system-admin only. Membership rows stay on soft-delete so restore keeps access; `beforeDelete` clears live `user.budgets[]` before permanent delete.
 - **Active budget (US-1.3):** Body `budget` is API authority for create/update on budget-owned collections (membership checked as boolean — Payload create `Where` is not enforced). `payload-budget` cookie is frontend UI default only; never stamped onto write payloads.
 - **Review workflow** — assign transactions to users; rules can auto-assign. Approval states TBD during Epic 10 implementation.
-- Hiding transactions from some members may use **account-level visibility** rather than deleting ledger rows.
+- Hiding transactions from some members uses **account-level visibility** rather than deleting ledger rows.
+- **Account visibility (US-3.2):** `accounts.visibility` defaults to `all_members`. `admins` hides the account from `BUDGET_MEMBER` / `BUDGET_READONLY` (budget admins and system admins still see it). Transaction and `transaction-entries` reads filter so members do not list docs that only touch admin-only accounts. Per-user allowlists and account-scoped **write** ACL remain **US-10.1**.
 
 ## Ledger & budgeting
 
@@ -29,7 +30,7 @@ Decisions captured during initial planning (July 2026).
 | Collection | Purpose | Versioning |
 |------------|---------|------------|
 | `units` | Workspace currency registry (`code`, `kind`: fiat/crypto/custom, `decimalPlaces`) | No |
-| `accounts` | Chart accounts: `classification`, `subtype`, `unit`, `budget`, optional `category` (credit cards only) | Yes (50) |
+| `accounts` | Chart accounts: `classification`, `subtype`, `unit`, `budget`, `visibility`, optional `category` (credit cards only) | Yes (50) |
 | `transactions` | Header: `date`, `memo`, `type`, `status`, `budget` | Yes (50) |
 | `transaction-entries` | Legs: `account`, signed `amount`, `unit`, optional `category`, `fxRate`, `reportingAmount` | No |
 | `workspaces` | Household + optional `reportingCurrency` → `units` | No |

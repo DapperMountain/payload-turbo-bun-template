@@ -96,6 +96,7 @@ export default {
         balance: 'Balance',
         accountType: 'Account type',
         transactionCount: 'Posted transactions',
+        visibilityLabel: 'Visibility',
       },
       transactions: {
         create: 'New transaction',
@@ -152,6 +153,7 @@ export default {
         splitLine: 'Split {index}',
         editSplitsInline: 'Use the splits editor for this transaction.',
         payeePlaceholder: 'Payee or transfer account…',
+        searchPayees: 'Search payees…',
         addPayeeNamed: 'Add "{name}"',
         paymentsAndTransfers: 'Payments and transfers',
         transferToAccountNamed: 'Transfer: {name}',
@@ -315,6 +317,12 @@ export default {
       },
       accounts: {
         categoryDescription: 'Payment envelope for credit card accounts only.',
+        visibilityDescription:
+          'Who can see this account and transactions that only touch it. Budget admins always see every account.',
+        visibility: {
+          all_members: 'All budget members',
+          admins: 'Budget admins only',
+        },
         classification: {
           asset: 'Asset',
           liability: 'Liability',

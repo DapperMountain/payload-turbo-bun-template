@@ -345,6 +345,10 @@ export interface Account {
    */
   category?: (string | null) | Category;
   isOnBudget?: boolean | null;
+  /**
+   * Who can see this account and transactions that only touch it. Budget admins always see every account.
+   */
+  visibility: 'all_members' | 'admins';
   budget: string | Budget;
   updatedAt: string;
   createdAt: string;
@@ -891,6 +895,7 @@ export interface AccountsSelect<T extends boolean = true> {
   unit?: T;
   category?: T;
   isOnBudget?: T;
+  visibility?: T;
   budget?: T;
   updatedAt?: T;
   createdAt?: T;

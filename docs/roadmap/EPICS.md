@@ -42,7 +42,7 @@ One **workspace = household**. Multiple **budgets** per workspace with shared ac
 |----|-------|-----|--------|--------|
 | US-3.1 | Account types (asset, liability, credit card, equity, income, expense) and chart structure | 3 | 2 | **Done** |
 | US-3.4 | Auto-create Credit Card Payment category + group when credit card account added | 3 | 3 | **Done** |
-| US-3.2 | Account CRUD with workspace + budget scope and access rules | 5 | 3 | **Partial** — access + CRUD; visibility rules TBD |
+| US-3.2 | Account CRUD with workspace + budget scope and access rules | 5 | 3 | **Done** — budget CRUD/access + `visibility` (`all_members` \| `admins`); txs/entries filtered. Granular write ACL → US-10.1 |
 | US-3.3 | Derive running balance from posted journal entries | 5 | 3 | **Done** — posted Σ on accounts list + account register running balance |
 
 ---

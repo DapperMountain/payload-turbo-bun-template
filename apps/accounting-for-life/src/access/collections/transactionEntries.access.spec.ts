@@ -1,15 +1,51 @@
 import { describe, expect, it } from 'bun:test'
 
 import { transactionEntriesAccess } from '@/access/collections'
-import { accessArgs, systemAdminUser, workspaceMemberUser } from '@/access/test'
+import {
+  accessArgs,
+  systemAdminUser,
+  workspaceAdminUser,
+  workspaceMemberUser,
+} from '@/access/test'
+
+const memberEntryScope = {
+  and: [
+    { 'account.budget': { in: ['budget-a'] } },
+    {
+      or: [
+        { 'account.visibility': { equals: 'all_members' } },
+        { 'account.visibility': { exists: false } },
+      ],
+    },
+  ],
+}
+
+const adminEntryScope = {
+  or: [
+    memberEntryScope,
+    {
+      and: [
+        { 'account.budget': { in: ['budget-a'] } },
+        { 'account.visibility': { equals: 'admins' } },
+      ],
+    },
+  ],
+}
 
 describe('transactionEntriesAccess', () => {
   describe('read', () => {
     const read = transactionEntriesAccess.read!
 
-    it('scopes workspace members to their workspaces', async () => {
-      const result = await read(accessArgs(workspaceMemberUser))
-      expect(result).toEqual({ workspace: { in: ['workspace-a'] } })
+    it('allows system admins full access', async () => {
+      await expect(read(accessArgs(systemAdminUser))).resolves.toBe(true)
+    })
+
+    it('scopes members to entries on all_members accounts', async () => {
+      await expect(read(accessArgs(workspaceMemberUser))).resolves.toEqual(memberEntryScope)
+    })
+
+    it('includes admins-only account entries for budget admins', async () => {
+      await expect(read(accessArgs(workspaceAdminUser))).resolves.toEqual(adminEntryScope)
     })
   })
 

@@ -127,5 +127,6 @@ Run: `bun test ./src/access` from the app directory (see `docs/TESTING.md`).
 | `addUserBudgetMembership` | Idempotent grant (create hook + seeds) |
 | `canCreateOnBudget` / `canUpdateOnBudget` | Create/update against body `budget` (US-1.3; create must be boolean, not `Where`) |
 | `budgetContentAccess` | Read = membership `Where`; create/update = body `budget` checks |
+| `accountVisibilityScope` / `transactionVisibilityScope` / `transactionEntryVisibilityScope` | US-3.2: `accounts.visibility` (`all_members` \| `admins`) on account/txn/entry reads |
 | `budgetsAccess` | Document scope by membership; create = workspace admin; delete = trash for budget admin, permanent for system admin |
 | `payload-budget` cookie | Frontend active-budget UI only — not access or hooks |

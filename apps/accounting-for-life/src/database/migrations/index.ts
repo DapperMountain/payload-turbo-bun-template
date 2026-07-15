@@ -5,6 +5,10 @@ import {
   down as downUnitKinds,
   up as upUnitKinds,
 } from './20260714_unit_kinds_fiat_crypto_custom'
+import {
+  down as downAccountVisibility,
+  up as upAccountVisibility,
+} from './20260715_account_visibility'
 
 export const migrations = [
   {
@@ -26,5 +30,10 @@ export const migrations = [
     down: downUnitKinds,
     name: '20260714_unit_kinds_fiat_crypto_custom',
     up: upUnitKinds,
+  },
+  {
+    down: downAccountVisibility,
+    name: '20260715_account_visibility',
+    up: upAccountVisibility,
   },
 ]

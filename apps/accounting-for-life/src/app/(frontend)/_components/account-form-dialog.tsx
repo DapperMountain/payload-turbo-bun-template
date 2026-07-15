@@ -60,6 +60,7 @@ export function AccountFormDialog(props: AccountFormDialogProps) {
   )
   const [unit, setUnit] = useState(units[0]?.id ?? '')
   const [budget, setBudget] = useState(budgets[0]?.id ?? '')
+  const [visibility, setVisibility] = useState<Account['visibility']>('all_members')
 
   const subtypeOptions = subtypesForClassification(classification)
 
@@ -69,6 +70,7 @@ export function AccountFormDialog(props: AccountFormDialogProps) {
     setSubtype(defaultSubtypeForClassification('asset'))
     setUnit(units[0]?.id ?? '')
     setBudget(budgets[0]?.id ?? '')
+    setVisibility('all_members')
     setError(null)
   }
 
@@ -86,6 +88,7 @@ export function AccountFormDialog(props: AccountFormDialogProps) {
         subtype,
         unit,
         budget,
+        visibility,
       })
 
       if (!result.ok) {
@@ -196,6 +199,28 @@ export function AccountFormDialog(props: AccountFormDialogProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t('custom:frontend:accounts:visibilityLabel')}</Label>
+            <Select
+              onValueChange={(value) => setVisibility(value as Account['visibility'])}
+              value={visibility}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(['all_members', 'admins'] as const).map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`custom:fields:accounts:visibility:${value}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {t('custom:fields:accounts:visibilityDescription')}
+            </p>
           </div>
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}

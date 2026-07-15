@@ -9,7 +9,24 @@ import {
   workspaceMemberUser,
 } from '@/access/test'
 
-const budgetScope = { budget: { in: ['budget-a'] } }
+const memberAccountScope = {
+  and: [
+    { budget: { in: ['budget-a'] } },
+    {
+      or: [{ visibility: { equals: 'all_members' } }, { visibility: { exists: false } }],
+    },
+  ],
+}
+
+const adminAccountScope = {
+  or: [
+    memberAccountScope,
+    {
+      and: [{ budget: { in: ['budget-a'] } }, { visibility: { equals: 'admins' } }],
+    },
+  ],
+}
+
 const onBudgetA = { data: { budget: 'budget-a' } }
 const onBudgetB = { data: { budget: 'budget-b' } }
 
@@ -21,12 +38,16 @@ describe('accountsAccess', () => {
       await expectAccess(read, systemAdminUser, true)
     })
 
-    it('scopes budget members to their budgets', async () => {
-      await expectAccess(read, workspaceMemberUser, budgetScope)
+    it('scopes members to all_members accounts in their budgets', async () => {
+      await expectAccess(read, workspaceMemberUser, memberAccountScope)
     })
 
-    it('allows readonly members to read', async () => {
-      await expectAccess(read, budgetReadonlyUser, budgetScope)
+    it('allows readonly members to read all_members accounts', async () => {
+      await expectAccess(read, budgetReadonlyUser, memberAccountScope)
+    })
+
+    it('includes admins-only accounts for budget admins', async () => {
+      await expectAccess(read, workspaceAdminUser, adminAccountScope)
     })
   })
 
@@ -51,8 +72,8 @@ describe('accountsAccess', () => {
 
     it('scopes writable budgets and checks reassigned body budget', async () => {
       await expectAccess(update, systemAdminUser, true)
-      await expectAccess(update, workspaceMemberUser, budgetScope)
-      await expectAccess(update, workspaceMemberUser, budgetScope, onBudgetA)
+      await expectAccess(update, workspaceMemberUser, { budget: { in: ['budget-a'] } })
+      await expectAccess(update, workspaceMemberUser, { budget: { in: ['budget-a'] } }, onBudgetA)
       await expectAccess(update, workspaceMemberUser, false, onBudgetB)
       await expectAccess(update, budgetReadonlyUser, false)
     })
@@ -66,7 +87,7 @@ describe('accountsAccess', () => {
     })
 
     it('allows budget admins', async () => {
-      await expectAccess(del, workspaceAdminUser, budgetScope)
+      await expectAccess(del, workspaceAdminUser, { budget: { in: ['budget-a'] } })
     })
 
     it('denies budget members', async () => {

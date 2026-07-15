@@ -1,18 +1,18 @@
 import { requireOne } from '@/access/helpers'
 import { isSystemAdmin } from '@/access/roles'
 import {
+  accountVisibilityScope,
   canCreateOnBudget,
   canUpdateOnBudget,
-  isBudgetContent,
   isBudgetContentAdmin,
 } from '@/access/budgets'
 
 import { budgetContentAccess } from './budgetContent'
 
-/** Members manage on-budget accounts; budget admins retain delete. */
+/** Members manage on-budget accounts; visibility filters read (US-3.2). */
 export const accountsAccess = {
   ...budgetContentAccess,
-  read: requireOne(isSystemAdmin, isBudgetContent),
+  read: requireOne(isSystemAdmin, accountVisibilityScope),
   create: canCreateOnBudget(),
   update: canUpdateOnBudget(),
   delete: requireOne(isSystemAdmin, isBudgetContentAdmin),

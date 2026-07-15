@@ -114,7 +114,7 @@ Budget-owned collections (`accounts`, `transactions`, `categories`, `category-gr
 
 | Collection | API-first notes |
 |------------|-----------------|
-| **accounts** | Credit-card payment category rules in hooks; balance computed from posted legs (not stored); required `unit` is the account currency |
+| **accounts** | Credit-card payment category rules in hooks; balance computed from posted legs (not stored); required `unit` is the account currency; `visibility` (`all_members` \| `admins`) filters account / transaction / entry reads (US-3.2) |
 | **budgets** | `enforceSingleDefaultBudget` hook — only one `isDefault` per workspace |
 | **envelope-balances** | `validateEnvelopeBalance` hook — category must match budget; income categories rejected |
 | **transaction-entries** | Read-oriented for clients; writes via transaction hooks; stores FX snapshot fields |
