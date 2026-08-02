@@ -66,8 +66,8 @@ Multi-leg transactions for swaps, barter, fees — not crypto-specific.
 
 | ID | Story | Pts | Sprint | Status |
 |----|-------|-----|--------|--------|
-| US-5.1 | Multi-leg transaction model (N legs, mixed currencies, fees) | 8 | 5 | **Done** — N-leg `entries` + reporting balance; consumer **Swap** tab for free-form legs + FX |
-| US-5.2 | Split transactions (percentage or fixed amounts per leg) | 5 | 5 | **Done** — consumer Standard/Split tabs; % converts to amounts at post |
+| US-5.1 | Multi-leg transaction model (N legs, mixed currencies, fees) | 8 | 5 | **Done** — N-leg `entries` + quote balance; progressive editor (simple + Add line); fees = ordinary lines |
+| US-5.2 | Split transactions (percentage or fixed amounts per leg) | 5 | 5 | **Done** — allocate popover + multi-line editor; % converts to amounts at post |
 | US-5.3 | Admin UI: create/edit manual transactions and transfers | 3 | 5 | **Done** — consumer create/edit + register; Payload admin stays thin |
 
 ---

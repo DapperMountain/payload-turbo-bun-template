@@ -47,7 +47,9 @@ Content-Type: application/json
 - Omit `entries` to create a **pending** header only.
 - Amounts are **signed** (negative = credit to the account, positive = debit) per account classification rules in the UI.
 
-#### Example: categorize a posted transaction
+#### Example: categorize a posted transaction (classical DE)
+
+Cash/liability leg stays uncategorized; the category tags the balancing system **Budget expenses** / **Budget income** P&L leg.
 
 ```http
 PATCH /api/transactions/<id>
@@ -55,8 +57,8 @@ Content-Type: application/json
 
 {
   "entries": [
-    { "account": "<checking-uuid>", "amount": -25, "category": "<category-uuid>" },
-    { "account": "<income-uuid>", "amount": 25 }
+    { "account": "<checking-uuid>", "amount": -25 },
+    { "account": "<budget-expenses-uuid>", "amount": 25, "category": "<groceries-uuid>" }
   ]
 }
 ```
@@ -76,12 +78,13 @@ Hooks replace all legs when `entries` is supplied on update.
 
 Validation includes:
 
-- Double-entry balance: same-unit journals require `Σ amount ≈ 0`; mixed-unit journals require `Σ reportingAmount ≈ 0` (via `fxRate` on each cross-reporting leg)
+- Double-entry balance: same-unit journals require `Σ amount ≈ 0`; mixed-unit journals require Σ amounts in the **quote** unit ≈ 0 (via `fxRate` = quote per 1 account unit on each cross-quote leg)
+- When `quoteUnit` differs from workspace `reportingCurrency`, `quoteToReportingRate` (reporting per 1 quote) is required so `reportingAmount` can be snapshotted
 - Transfers cannot include categories
 - Accounts belong to transaction workspace and budget
 - Categories on lines belong to transaction workspace and budget
 
-#### Example: mixed-currency transfer (balanced in reporting USD)
+#### Example: mixed-currency transfer (quote = reporting USD)
 
 ```http
 POST /api/transactions
@@ -99,9 +102,31 @@ Content-Type: application/json
 }
 ```
 
-`-10 EUR × 1.1 + 11 USD = 0` reporting. Unequal native amounts with balanced reporting is required when units differ.
+`-10 EUR × 1.1 + 11 USD = 0` in quote (= reporting). Unequal native amounts with balanced quote amounts is required when units differ.
 
-#### Example: crypto sell with fee (three legs)
+#### Example: quote ≠ reporting (balance in EUR, snapshot to USD)
+
+```http
+POST /api/transactions
+Content-Type: application/json
+
+{
+  "workspace": "<workspace-uuid>",
+  "budget": "<budget-uuid>",
+  "date": "2026-07-12T20:00:00.000Z",
+  "type": "transfer",
+  "quoteUnit": "<eur-unit>",
+  "quoteToReportingRate": 1.1,
+  "entries": [
+    { "account": "<eur-checking>", "amount": -10 },
+    { "account": "<usd-checking>", "amount": 12, "fxRate": 0.8333333333 }
+  ]
+}
+```
+
+`-10 + 12 × (10/12) = 0` EUR quote; `reportingAmount` uses × `1.1` USD per EUR.
+
+#### Example: crypto swap with exchange fee (category, not a fee account)
 
 ```http
 POST /api/transactions
@@ -112,16 +137,49 @@ Content-Type: application/json
   "budget": "<budget-uuid>",
   "date": "2026-07-12T20:00:00.000Z",
   "type": "transaction",
-  "payee": "Sell BTC with fee",
+  "payee": "Kraken",
   "entries": [
-    { "account": "<btc-wallet>", "amount": -0.01, "fxRate": 50000 },
-    { "account": "<usd-checking>", "amount": 495 },
-    { "account": "<fee-expense>", "amount": 5 }
+    { "account": "<xrp-wallet>", "amount": -100, "fxRate": 0.5 },
+    { "account": "<xlm-wallet>", "amount": 200, "fxRate": 0.25 },
+    { "account": "<usd-checking>", "amount": -5 },
+    {
+      "account": "<budget-expenses-uuid>",
+      "amount": 5,
+      "category": "<financial-fees>",
+      "payee": "Kraken"
+    }
   ]
 }
 ```
 
-`-0.01 × 50000 + 495 + 5 = 0` reporting. Fee legs are ordinary expense (or asset) lines — no separate fee type.
+`-100 × 0.5 + 200 × 0.25 − 5 + 5 = 0` reporting. The exchange is the **header payee**; the fee is Checking −5 balanced by the system **Budget expenses** account with category **Financial Fees**. Optional per-entry `payee` is available when a fee or split has a different merchant than the header (see ATM example below).
+
+#### Example: ATM withdrawal with fee (line payee)
+
+```http
+POST /api/transactions
+Content-Type: application/json
+
+{
+  "workspace": "<workspace-uuid>",
+  "budget": "<budget-uuid>",
+  "date": "2026-08-01T16:00:00.000Z",
+  "type": "transaction",
+  "payee": "ATM Co",
+  "entries": [
+    { "account": "<checking-uuid>", "amount": -105 },
+    { "account": "<cash-uuid>", "amount": 100 },
+    {
+      "account": "<budget-expenses-uuid>",
+      "amount": 5,
+      "category": "<financial-fees>",
+      "payee": "ATM Co"
+    }
+  ]
+}
+```
+
+Checking outflows $105; $100 lands in Cash (transfer leg, no entry payee); $5 fee is a classical P&L leg on **Budget expenses** with merchant **ATM Co**. When several merchants appear on lines, clients may clear the header `payee` and let the register derive `A · B` from entry payees.
 
 Shared helpers live under `collections/Transactions/lib/` (e.g. `applyCategoryToEntries` for rebuilding lines when changing category).
 
@@ -142,9 +200,17 @@ Server actions in `app/(frontend)/actions/transactions.ts` call `payload.create`
 - `requireAppUser` + active workspace check
 - `revalidatePath` for RSC caches
 
-The register UI builds `entries` in the browser (splits, payee → transfer destination, amount sign, or **Swap** multi-leg journals with optional `fxRate`) — that is **presentation**. The **rules** run in hooks regardless of client.
+Notes live on **entries** (optional per leg). When exactly one entry has a note, the register bubbles it onto the primary row. There is no transaction-header `notes` field. The consumer swap UI shows one note for the give/receive pair and persists it on the **give** leg (receive cleared); other lines keep their own notes.
 
-**Swap tab (US-5.1):** free-form N-leg editor; balances in reporting currency; posts the same `entries` shape as the REST examples above (sell+fee / mixed-currency transfer).
+Optional **`payee` on entries** stores a merchant name for that leg (allocate category lines and journal “other” lines). Transfer destinations stay as account legs / `__transfer__` payee drafts — not duplicated as entry `payee`.
+
+**Counterparty (posted `type: transaction`):** every categorized (P&L/fee) entry must have a merchant `payee` — header alone is not enough. Cash/wallet legs stay account-only. Editor lines (allocate splits, swap sides/other lines) each need a merchant or transfer/account. Pure `type: transfer` books use destination accounts (no merchant required). Pending headers without entries stay loose. Simple payment saves copy the header merchant onto the system P&L leg; allocate and fee lines set per-line payees.
+
+The register UI builds `entries` in the browser via **Standard** and **Split** tabs — that is **presentation**. The **rules** run in hooks regardless of client.
+
+**Editor bodies (US-5.1):** one posting pipeline (`entries`); no Swap tab. Consumer UI uses three bodies in one dialog: **payment** (account / payee / amount / category; **Add line** → allocate), **exchange** / **journal** (grouped swap: give/receive + optional other lines for fees/third-party payees; header payee for the exchange/DEX when not a pure transfer; one swap note; sides may be account or merchant payee). Mixed-unit rates derive from amounts; reporting valuation may be deferred. Register: **one row per transaction header** (transfers included); payee column shows entry merchants or the header exchange name (e.g. Kraken). Soft-nav to `/transactions/[id]` overlays the register via intercepting `@modal`.
+
+**Economic kind (display):** Register and detail badges derive activity (`spend` / `earn` / `transfer` / account-scoped `withdraw`/`deposit`). Cash↔holding moves are ambiguous (`buy` / `sell` / `transfer`) — optional header `economicKind` stores the user’s confirmation when shown.
 
 ## Budget field on writes (US-1.3)
 
@@ -153,9 +219,11 @@ Budget-owned collections (`accounts`, `transactions`, `categories`, `category-gr
 ## Currencies & FX (Epic 2)
 
 - **`units.kind`:** `fiat` | `crypto` | `custom`. Codes are unique per workspace (normalized to uppercase).
-- **`workspaces.reportingCurrency`:** relationship to a unit in that workspace (seed sets USD).
-- **Posting:** `writeTransactionEntries` snapshots `fxRate` / `reportingAmount`. Same unit → rate `1`. Different unit → require `fxRate` on the virtual entry (`reportingAmount = amount * fxRate`).
-- **Balance:** Same-unit → `Σ amount ≈ 0`. Mixed-unit → `Σ reportingAmount ≈ 0` (see mixed-currency examples above).
+- **`workspaces.reportingCurrency`:** relationship to a unit in that workspace (seed sets USD) — portfolio / budget numeraire.
+- **`transactions.quoteUnit`:** optional valuation unit for the journal (effective quote = `quoteUnit ?? reportingCurrency`).
+- **`transactions.quoteToReportingRate`:** required when quote ≠ reporting (reporting per 1 quote).
+- **Posting:** `writeTransactionEntries` snapshots entry `fxRate` (quote per 1 native) and `reportingAmount = amount × rateToQuote × quoteToReportingRate`. Same unit as quote → rate `1`.
+- **Balance:** Same-unit → `Σ amount ≈ 0`. Mixed-unit → Σ quote amounts ≈ 0 (see mixed-currency examples above).
 
 ## Import / sync footholds (US-6.2)
 

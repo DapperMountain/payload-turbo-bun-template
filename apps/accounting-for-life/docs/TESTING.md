@@ -30,7 +30,7 @@ From `apps/accounting-for-life`:
 
 1. Copy [`.env.test.example`](../.env.test.example) → `.env.test` (gitignored).
 2. Start Postgres: root `compose.yml` — **`db`** (5442), **`db-test`** (5443).
-3. Migrate the test DB: `bun --env-file .env.test run payload migrate`.
+3. Migrate the test DB: `DATABASE_URL="$DATABASE_URL_TEST" bun --env-file .env.test run payload migrate` (Payload reads `DATABASE_URL`; `.env.test` also sets `DATABASE_URL_TEST` for the harness). Confirm the push-vs-migrate prompt with `y` when asked. Migrations that touch legacy columns/enums are idempotent when push already applied the current schema.
 4. Run tests (`bun test` or a scoped command above).
 
 Unit-only commands do not need a running database.

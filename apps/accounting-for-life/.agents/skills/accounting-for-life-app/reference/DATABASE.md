@@ -18,7 +18,9 @@ Configured in `config/payload.ts`:
 | `bun run db:migrate:run` | Apply migrations (CI, production) |
 | `bun run db:push` | **Development:** sync Postgres to the current Payload config (Drizzle push) |
 
-**Development (not deployed):** `prodMigrations` is empty. Payload pushes schema on connect when `NODE_ENV !== 'production'`. Use `bun run db:push` from the host (`DATABASE_URL` → `localhost:5442`) after collection/field renames.
+**Development:** Payload pushes schema on connect when `NODE_ENV !== 'production'`. Use `bun run db:push` from the host (`DATABASE_URL` → `localhost:5442`) after collection/field renames. Migration files under `src/database/migrations/` still matter for CI/test DBs and production — after pull, run `bun run db:migrate:run` (confirm the push-vs-migrate prompt with `y` when asked). Migrations that copy/drop legacy columns are idempotent when push already applied the shape.
+
+After schema or posting-model changes on an existing DB, run `bun run db:seed rewrite-posting` to convert legacy same-account category twins to cash + system P&L and backfill entry merchants from the header.
 
 After a wipe (`PAYLOAD_DROP_DATABASE=true bun run db:push`), users and demo data seed automatically when `DATA_SEED_ENABLED=1`. Otherwise run `bun run db:seed all` (requires `DATA_SEED_*` in `.env`).
 
@@ -85,12 +87,13 @@ bun run db:seed workspaces   # Demo Household (localhost:3001)
 bun run db:seed budgets        # Household + Vacation on demo → categories via hook
 bun run db:seed categories   # backfill groups + categories for existing budgets
 bun run db:seed categories --budget=<uuid>
-bun run db:seed ledger       # USD unit, Checking + Savings, sample transfer (Demo Household)
+bun run db:seed ledger           # units, wallets, samples; also system P&L + twin rewrite
+bun run db:seed rewrite-posting  # cash+P&L rewrite for legacy same-account twins
 ```
 
-**Ledger seed** (`seed/ledger/`): per workspace, creates a **USD** unit and **Checking** + **Savings** accounts on the default budget. On **Demo Household**, also posts a sample **transfer** transaction so **Accounts** and **Transactions** lists are non-empty in admin.
+**Ledger seed** (`seed/ledger/`): per workspace, creates a **USD** unit and **Checking** + **Savings** on the default budget, plus thin system **Budget expenses** / **Budget income** accounts (`isSystemDefault`). On **Demo Household**, also seeds **XRP / XLM / BTC / SEASHELLS** units and holding wallets, a same-unit transfer, and sample **swaps** (plain XRP→XLM, Kraken swap + Financial Fees on Budget expenses, BTC→XRP/XLM basket, seashell barter).
 
-Implemented as a Payload bin script (`payload seed` in `config/payload.ts`). `categories` and `ledger` are never gated by `DATA_SEED_ENABLED`. Creating a budget in admin also runs `seedCategories` via the collection hook.
+Implemented as a Payload bin script (`payload seed` in `config/payload.ts`). `categories` and `ledger` are never gated by `DATA_SEED_ENABLED`. Creating a budget in admin also runs `seedCategories` and `seedSystemPnlAccounts` via collection hooks.
 
 When the app runs in Docker, run this **from the host** with a `DATABASE_URL` that reaches Postgres on `localhost:5442` (the compose `db` hostname only works inside the network).
 

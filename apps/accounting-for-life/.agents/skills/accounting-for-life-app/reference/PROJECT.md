@@ -85,6 +85,8 @@ Website-template plugins (redirects, search, form-builder, nested-docs) are **no
 
 Domain rules for transactions, envelopes, and budgets live in **collection hooks**, not Next.js server actions. The virtual `entries` field on `transactions` is the read/write contract for posting legs; `transaction-entries` are hook-derived rows in a separate collection for queryability.
 
+**Classical allocate posting:** payment cash/liability leg + system **Budget expenses** / **Budget income** P&L leg (seeded per budget, `isSystemDefault`). Categories tag the P&L leg; same-account payment/offset twins are not used. Helpers: `src/lib/frontend/system-pnl-accounts.ts`, `splitsToEntries` / `buildEntriesForSave`.
+
 See **[`docs/API_FIRST.md`](../../../docs/API_FIRST.md)** for REST examples, hook pipeline, and what belongs in `app/(frontend)/actions/`.
 
 ## Code validation
@@ -99,3 +101,5 @@ See **[`docs/API_FIRST.md`](../../../docs/API_FIRST.md)** for REST examples, hoo
 ## Next.js
 
 `next.config.ts` composes `withPayload` and `withDesignSystem`. Frontend lives under `src/app/(frontend)/` and imports UI from `@dappermountain/design-system` only — see [`docs/DESIGN_SYSTEM.md`](../../../docs/DESIGN_SYSTEM.md).
+
+Consumer app routes under `(app)/` include `/transactions` (register) and `/transactions/[transactionId]` (edit dialog). Soft navigation opens the editor via an intercepting parallel route (`(app)/@modal/(.)transactions/[transactionId]`) so the underlying list/dashboard stays mounted; hard loads still render the standalone detail page. Closing uses `router.back()` when history allows so filters and pagination are preserved. The dialog has three bodies — **payment**, **exchange**, and **journal** — not separate Transaction/Swap tabs. Exchange/journal share the grouped **swap** editor (give/receive + optional fee/other lines; one note; account or payee per side). Allocate splits stay on the **payment** body with a per-line payee (YNAB-style); optional merchant **`payee` on entries** persists fee/other lines. Posted `type: transaction` books require a merchant `payee` on every categorized entry (header alone is insufficient); allocate/swap editor lines each need merchant or account/transfer. Transfers use destination accounts. UI gates mirror the hook. Exchange/journal editors also expose a header payee for DEX/exchange names; register shows entry merchants or that header.
