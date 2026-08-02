@@ -2,11 +2,13 @@ import { describe, expect, it } from 'bun:test'
 
 import {
   buildEntriesForSave,
+  clearSelfTransferDestinations,
   collapseSplitFormState,
   defaultTransactionDialogView,
-  headerPayeeFromAllocateSplits,
+  hasSelfTransferDestination,
   isCollapsibleSingleCategorySplit,
   isCollapsibleSingleTransferSplit,
+  merchantPayeesFromSplits,
   newSplitDraft,
   newTransferSplitDraft,
   normalizeSplitFormFromEntries,
@@ -27,6 +29,20 @@ const systemPnl: SystemPnlAccounts = {
 }
 
 describe('transaction-splits', () => {
+  it('clears transfer destinations that equal the payment account', () => {
+    const state = {
+      paymentAccount: 'checking',
+      totalAmount: '-40',
+      splits: [newTransferSplitDraft('checking', '40')],
+    }
+    expect(hasSelfTransferDestination(state, '')).toBe(true)
+    expect(hasSelfTransferDestination(state, '__transfer__:checking')).toBe(true)
+
+    const cleared = clearSelfTransferDestinations(state)
+    expect(cleared.splits[0]?.payee).toBe('')
+    expect(hasSelfTransferDestination(cleared, '')).toBe(false)
+  })
+
   it('posts one payment leg and multiple transfer destinations', () => {
     const lines = splitsToEntries({
       paymentAccount: 'checking',
@@ -108,7 +124,7 @@ describe('transaction-splits', () => {
     const regular = splitsToEntries(prepared.state, {
       singleCategoryId: prepared.categoryId,
       systemPnl,
-      headerPayee: 'Costco',
+      merchantPayee: 'Costco',
     })
     const fromSplit = splitsToEntries(single, { systemPnl })
 
@@ -134,7 +150,7 @@ describe('transaction-splits', () => {
     const lines = splitsToEntries(prepared.state, {
       singleCategoryId: prepared.categoryId,
       systemPnl,
-      headerPayee: 'Costco',
+      merchantPayee: 'Costco',
     })
 
     const entries = lines.map((line, index) => ({
@@ -252,7 +268,7 @@ describe('transaction-splits', () => {
     })
     expect(cashLine).toMatchObject({ account: 'cash', amount: 100 })
     expect(cashLine?.payee).toBeUndefined()
-    expect(headerPayeeFromAllocateSplits(form.splits)).toBe('ATM Co')
+    expect(merchantPayeesFromSplits(form.splits)).toEqual(['ATM Co'])
 
     const restored = splitFormFromEntries(
       lines.map((line, index) => ({
@@ -271,16 +287,16 @@ describe('transaction-splits', () => {
     )
     const fee = restored.splits.find((split) => split.category === 'financial-fees')
     expect(fee?.payee).toBe('ATM Co')
-    expect(headerPayeeFromAllocateSplits(restored.splits)).toBe('ATM Co')
+    expect(merchantPayeesFromSplits(restored.splits)).toEqual(['ATM Co'])
   })
 
-  it('clears header payee when allocate splits have multiple merchants', () => {
+  it('lists every merchant when allocate splits have multiple merchants', () => {
     expect(
-      headerPayeeFromAllocateSplits([
+      merchantPayeesFromSplits([
         newSplitDraft('Store A', 'groceries', '40'),
         newSplitDraft('Store B', 'dining', '60'),
       ]),
-    ).toBeNull()
+    ).toEqual(['Store A', 'Store B'])
   })
 
   it('seeds two allocate lines with payee when leaving the simple form', () => {
@@ -421,7 +437,7 @@ describe('transaction-splits', () => {
     ).toThrow(/needs a payee/)
   })
 
-  it('rejects single-category posts without a header merchant', () => {
+  it('rejects single-category posts without a merchant payee', () => {
     expect(() =>
       splitsToEntries(
         {

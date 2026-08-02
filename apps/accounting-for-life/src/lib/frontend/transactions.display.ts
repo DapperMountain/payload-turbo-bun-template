@@ -145,23 +145,17 @@ export function merchantPayeesFromEntries(
 }
 
 /**
- * Register payee column: prefer entry merchant payees, then header merchant,
- * else null (transfer presentation / untitled).
- *
- * Multi-merchant allocate/journal rows join names (`A · B`). Exchange / swap+fee
- * books still show a single counterparty when the header or one entry merchant
- * is set (e.g. Kraken) — blanking those rows made swaps look untitled.
+ * Register payee column: merchant payees stored on entry lines, else null
+ * (transfer presentation / untitled). Multi-merchant allocate/journal rows
+ * join names (`A · B`).
  */
 export function registerPayeeLabel(transaction: Transaction): string | null {
-  const lines = transactionEntries(transaction)
-  const fromEntries = merchantPayeesFromEntries(lines)
+  const fromEntries = merchantPayeesFromEntries(transactionEntries(transaction))
 
   if (fromEntries.length === 1) return fromEntries[0]!
   if (fromEntries.length === 2) return fromEntries.join(' · ')
   if (fromEntries.length > 2) return `${fromEntries[0]} · +${fromEntries.length - 1}`
 
-  const header = transaction.payee?.trim()
-  if (header && !isPayeeTransferId(header)) return header
   return null
 }
 

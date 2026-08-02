@@ -112,7 +112,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'Move to savings',
         type: 'transfer',
         entries: [
           { account: checkingA.id, amount: -100 },
@@ -147,7 +146,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'Resize transfer',
         type: 'transfer',
         entries: [
           { account: checkingA.id, amount: -100, sortOrder: 0 },
@@ -255,7 +253,6 @@ describe('transactions integration', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-12',
-          payee: 'Wrong-budget category',
           type: 'transaction',
           entries: [
             {
@@ -332,7 +329,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'Grocery run',
         type: 'transaction',
         entries: [
           { account: checkingA.id, amount: -40, sortOrder: 0 },
@@ -353,7 +349,6 @@ describe('transactions integration', () => {
       user: member,
       overrideAccess: false,
       data: {
-        payee: 'Updated payee',
         // Flip payment/category signs — income category legs must be credits.
         entries: [
           { account: checkingA.id, amount: 40, sortOrder: 0 },
@@ -368,7 +363,7 @@ describe('transactions integration', () => {
       },
     })
 
-    expect(updated.payee).toBe('Updated payee')
+    expect(updated.status).toBe('posted')
 
     const entries = await payload.find({
       collection: 'transaction-entries',
@@ -417,7 +412,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'Coffee',
         type: 'transaction',
         entries: [
           { account: checkingA.id, amount: -6, sortOrder: 0 },
@@ -634,7 +628,6 @@ describe('transactions integration', () => {
         budget: fx.budgetA.id,
         date: `${year}-07-15`,
         type: 'transaction',
-        payee: 'Market',
         entries: [
           { account: card.id, amount: 50, sortOrder: 0 },
           {
@@ -785,7 +778,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'USD transfer with FX snapshot',
         type: 'transfer',
         entries: [
           { account: checkingA.id, amount: -25 },
@@ -845,7 +837,6 @@ describe('transactions integration', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-12',
-          payee: 'Missing FX',
           type: 'transfer',
           entries: [
             { account: eurChecking.id, amount: -10 },
@@ -863,7 +854,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'EUR to USD with rate',
         type: 'transfer',
         entries: [
           { account: eurChecking.id, amount: -10, fxRate: 1.1 },
@@ -942,7 +932,6 @@ describe('transactions integration', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-12',
-          payee: 'Unbalanced swap',
           type: 'transaction',
           entries: [
             { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
@@ -961,7 +950,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'Sell BTC with fee',
         type: 'transaction',
         entries: [
           { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
@@ -1025,7 +1013,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'Deferred quote→reporting',
         type: 'transfer',
         quoteUnit: eur.id,
         entries: [
@@ -1053,7 +1040,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'EUR quote to USD reporting',
         type: 'transfer',
         quoteUnit: eur.id,
         quoteToReportingRate: 1.1,
@@ -1095,7 +1081,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-12',
-        payee: 'Imported A',
         type: 'transaction',
         source: 'import',
         externalId: 'plaid:txn-100',
@@ -1120,7 +1105,6 @@ describe('transactions integration', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-12',
-          payee: 'Imported duplicate',
           type: 'transaction',
           source: 'import',
           externalId: 'plaid:txn-100',
@@ -1142,7 +1126,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-10',
-        payee: 'Starbucks',
         type: 'transaction',
         source: 'manual',
         status: 'pending',
@@ -1161,7 +1144,6 @@ describe('transactions integration', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-11T15:00:00.000Z',
-        payee: 'STARBUCKS STORE 123',
         type: 'transaction',
         source: 'import',
         externalId: 'plaid:match-200',
@@ -1193,7 +1175,6 @@ describe('transactions integration', () => {
     expect(kept.source).toBe('import')
     expect(kept.externalId).toBe('plaid:match-200')
     expect(kept.importBatch).toBe('batch-match')
-    expect(kept.payee).toBe('Starbucks')
     expect(kept.status).toBe('posted')
     expect(kept.date).toContain('2026-07-11')
 
@@ -1394,7 +1375,6 @@ describe('transactions integration — weird transfer edge cases', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-18',
-        payee: null,
         type: 'transfer',
         quoteUnit: posting.quoteUnit,
         quoteToReportingRate: posting.quoteToReportingRate,
@@ -1440,7 +1420,6 @@ describe('transactions integration — weird transfer edge cases', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-18',
-        payee: 'Looks like a sell',
         type: 'transfer',
         entries: [
           { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
@@ -1491,7 +1470,6 @@ describe('transactions integration — weird transfer edge cases', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-18',
-          payee: 'Asymmetric USD',
           type: 'transfer',
           entries: [
             { account: checking.id, amount: -100 },
@@ -1511,7 +1489,6 @@ describe('transactions integration — weird transfer edge cases', () => {
         workspace: fx.workspaceA.id,
         budget: fx.budgetA.id,
         date: '2026-07-18',
-        payee: 'Sell with fee',
         type: 'transaction',
         entries: [
           { account: btcWallet.id, amount: -0.02, fxRate: 50_000 },

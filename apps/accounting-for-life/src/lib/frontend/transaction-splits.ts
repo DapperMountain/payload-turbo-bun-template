@@ -3,6 +3,7 @@ import { getCollectionId } from '@/utils/getCollectionId'
 
 import {
   isPayeeTransferId,
+  isTransferToSameAccount,
   toPayeeTransferId,
   transferDestinationFromPayee,
 } from '@/lib/frontend/transaction-payee'
@@ -47,6 +48,37 @@ export function splitStateAfterCategoryChange(
 
 export function splitIsTransfer(split: SplitDraft): boolean {
   return isPayeeTransferId(split.payee)
+}
+
+/**
+ * Clear transfer destinations that equal the payment account (invalid self-transfer).
+ * Used when the payment account changes or before save.
+ */
+export function clearSelfTransferDestinations(
+  state: TransactionSplitFormState,
+): TransactionSplitFormState {
+  const paymentAccountId = state.paymentAccount
+  if (!paymentAccountId) return state
+
+  let changed = false
+  const splits = state.splits.map((split) => {
+    if (!isTransferToSameAccount(paymentAccountId, split.payee)) return split
+    changed = true
+    return { ...split, payee: '' }
+  })
+
+  return changed ? { ...state, splits } : state
+}
+
+/** True when the payee control or any split transfers to the payment account. */
+export function hasSelfTransferDestination(
+  state: TransactionSplitFormState,
+  payeeValue = '',
+): boolean {
+  if (isTransferToSameAccount(state.paymentAccount, payeeValue)) return true
+  return state.splits.some((split) =>
+    isTransferToSameAccount(state.paymentAccount, split.payee),
+  )
 }
 
 export function newSplitDraft(payee = '', category = '', amount = '', notes = ''): SplitDraft {
@@ -412,12 +444,10 @@ export function buildEntriesForSave(input: BuildEntriesInput): TransactionEntryI
   const isTransfer = resolveIsTransfer({ ...input, splitState })
   const view = activeView
   const systemPnl = resolveSystemPnlForPosting(input)
-  const headerMerchant =
-    payeeValue.trim() && !isPayeeTransferId(payeeValue) ? payeeValue.trim() : undefined
   const splitOptions = {
     systemPnl,
     categoryPurpose,
-    headerPayee: headerMerchant,
+    merchantPayee: merchantPayeeFromValue(payeeValue),
   }
 
   if (isTransfer) {
@@ -495,8 +525,8 @@ export type SplitsToEntriesOptions = {
   categoryPurpose?: Category['purpose'] | null
   accounts?: Account[]
   budgetId?: string | null
-  /** Merchant on the header — copied onto the P&L leg for single-category posts. */
-  headerPayee?: string | null
+  /** Merchant from the simple payment form — written onto the P&L leg for single-category posts. */
+  merchantPayee?: string | null
 }
 
 /** Merchant name from a payee picker value (excludes transfer-account ids). */
@@ -508,7 +538,7 @@ export function merchantPayeeFromValue(payeeValue: string | null | undefined): s
 
 /**
  * True when allocate spending splits each have a merchant, and transfer splits have a destination.
- * Empty form (simple payment) is not allocate — caller checks header payee separately.
+ * Empty form (simple payment) is not allocate — caller checks the single-line merchant separately.
  */
 export function allocateSplitsHaveCounterparties(splits: SplitDraft[]): boolean {
   if (splits.length === 0) return true
@@ -541,7 +571,7 @@ export function splitsToEntries(
     budgetId: options?.budgetId,
   })
   const categoryPurpose = options?.categoryPurpose ?? null
-  const headerMerchant = merchantPayeeFromValue(options?.headerPayee)
+  const singleMerchant = merchantPayeeFromValue(options?.merchantPayee)
 
   const requireSystemPnl = (): SystemPnlAccounts => {
     if (!systemPnl) {
@@ -557,7 +587,7 @@ export function splitsToEntries(
       throw new Error('Assign a category or add splits before posting')
     }
 
-    if (!headerMerchant) {
+    if (!singleMerchant) {
       throw new Error('Each categorized line needs a payee')
     }
 
@@ -573,7 +603,7 @@ export function splitsToEntries(
         amount: categorySign,
         category: singleCategoryId,
         sortOrder: 1,
-        payee: headerMerchant,
+        payee: singleMerchant,
       },
     ]
   }
@@ -651,19 +681,6 @@ export function merchantPayeesFromSplits(splits: SplitDraft[]): string[] {
     if (name && !isPayeeTransferId(name)) names.add(name)
   }
   return [...names]
-}
-
-/**
- * Header payee after an allocate save: single merchant → that name;
- * several → clear (register uses entry payees); none → leave unchanged (null sentinel).
- */
-export function headerPayeeFromAllocateSplits(
-  splits: SplitDraft[],
-): string | null | undefined {
-  const merchants = merchantPayeesFromSplits(splits)
-  if (merchants.length === 1) return merchants[0]!
-  if (merchants.length > 1) return null
-  return undefined
 }
 
 export function splitFormFromEntries(entries: TransactionEntry[]): TransactionSplitFormState {
@@ -753,7 +770,7 @@ export function allSplitsAreTransfers(splits: SplitDraft[]): boolean {
   return splits.length > 0 && splits.every(splitIsTransfer)
 }
 
-/** Seed a single transfer split from the header payee when opening the splits editor. */
+/** Seed a single transfer split from the payee control when opening the splits editor. */
 export function seedTransferSplitsFromPayee(
   state: TransactionSplitFormState,
   payeeValue: string,

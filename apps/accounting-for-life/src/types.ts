@@ -368,10 +368,6 @@ export interface Transaction {
   workspace?: (string | null) | Workspace;
   budget: string | Budget;
   date: string;
-  /**
-   * Payee or short title shown in the register.
-   */
-  payee?: string | null;
   type: 'transaction' | 'transfer' | 'adjustment' | 'opening_balance';
   /**
    * Optional confirmation when a cash↔holding move could be a buy, sell, or transfer. Leave empty to derive.
@@ -949,7 +945,6 @@ export interface TransactionsSelect<T extends boolean = true> {
   workspace?: T;
   budget?: T;
   date?: T;
-  payee?: T;
   type?: T;
   economicKind?: T;
   status?: T;

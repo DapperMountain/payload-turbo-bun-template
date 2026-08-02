@@ -3,12 +3,14 @@ import { describe, expect, it } from 'bun:test'
 import {
   defaultCategoryIdForPayee,
   isTransferFromPayee,
+  isTransferToSameAccount,
+  payeeValueFromTransaction,
   resolveTransactionTypeFromPayee,
   resolveTransferPair,
   toPayeeTransferId,
   transferPayeePresentation,
 } from '@/lib/frontend/transaction-payee'
-import type { Account, Category } from '@/types'
+import type { Account, Category, Transaction } from '@/types'
 
 const categories: Category[] = [
   {
@@ -85,6 +87,50 @@ describe('transaction payee helpers', () => {
   it('resolves transaction type from current payee state', () => {
     expect(resolveTransactionTypeFromPayee('Target', [])).toBe('transaction')
     expect(resolveTransactionTypeFromPayee(toPayeeTransferId('cash'), [])).toBe('transfer')
+  })
+
+  it('detects transfer to the same account as payment', () => {
+    expect(isTransferToSameAccount('checking', toPayeeTransferId('checking'))).toBe(true)
+    expect(isTransferToSameAccount('checking', toPayeeTransferId('savings'))).toBe(false)
+    expect(isTransferToSameAccount('checking', 'Walmart')).toBe(false)
+    expect(isTransferToSameAccount('', toPayeeTransferId('checking'))).toBe(false)
+  })
+
+  it('derives payee from entry merchant or synthesized transfer destination', () => {
+    const withMerchant = {
+      id: 'tx-1',
+      budget: 'budget-a',
+      date: '2026-07-11T12:00:00.000Z',
+      type: 'transaction' as const,
+      status: 'posted' as const,
+      source: 'manual' as const,
+      entries: [
+        {
+          id: 'e1',
+          account: 'checking',
+          amount: -200,
+          payee: 'Boardwalk shell stand',
+          sortOrder: 0,
+        },
+        { id: 'e2', account: 'savings', amount: 5, sortOrder: 1 },
+      ],
+      updatedAt: '',
+      createdAt: '',
+    } satisfies Transaction
+
+    expect(payeeValueFromTransaction(withMerchant)).toBe('Boardwalk shell stand')
+
+    const walletTransfer = {
+      ...withMerchant,
+      id: 'tx-2',
+      type: 'transaction' as const,
+      entries: [
+        { id: 'e1', account: 'checking', amount: -100, sortOrder: 0 },
+        { id: 'e2', account: 'savings', amount: 100, sortOrder: 1 },
+      ],
+    } satisfies Transaction
+
+    expect(payeeValueFromTransaction(walletTransfer)).toBe(toPayeeTransferId('savings'))
   })
 
   it('defaults to the first spending category in the budget', () => {

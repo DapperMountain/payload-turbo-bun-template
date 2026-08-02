@@ -16,6 +16,11 @@ import { cn } from '@dappermountain/ui/lib/utils'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
 import { PayeePicker } from '@/app/(frontend)/_components/payee-picker'
 import { TransactionAmountField } from '@/app/(frontend)/_components/transaction-amount-field'
+import {
+  resolveUnitForAccount,
+  unitFormatFromDoc,
+  type UnitFormatInput,
+} from '@/lib/frontend/format-unit-amount'
 import { isSystemPnlAccount } from '@/lib/frontend/system-pnl-accounts'
 import {
   isPayeeTransferId,
@@ -44,6 +49,17 @@ import {
 import type { Account, Unit } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
 
+function unitCodeForAccount(
+  account: Account | undefined,
+  unitsById: Record<string, UnitFormatInput>,
+  units: Unit[],
+): string {
+  if (!account || isSystemPnlAccount(account)) return ''
+  const fromAccount = resolveUnitForAccount(account, unitsById)?.code?.trim()
+  if (fromAccount) return fromAccount
+  return unitCode(units, accountUnitId(account))
+}
+
 export type TransactionSwapEditorProps = {
   legs: SwapLegDraft[]
   onChange: (legs: SwapLegDraft[]) => void
@@ -56,6 +72,11 @@ export type TransactionSwapEditorProps = {
   budgetId?: string
   payeeOptions?: string[]
   disabled?: boolean
+  /**
+   * When true, pin the first two legs as a give/receive group even if amounts are
+   * empty/zero (Add → Swap). Detection still wins when a pair is already clear.
+   */
+  forceSwapPair?: boolean
 }
 
 function formatAmount(amount: number | null): string {
@@ -283,16 +304,25 @@ function LegCard(props: {
   )
 }
 
+/**
+ * One side of a give/receive pair: the wallet account moving value, plus an
+ * optional merchant (exchange / DEX) on that leg. Transfers are expressed by the
+ * two accounts, so this payee field never offers transfer destinations.
+ */
 function SwapSideCard(props: {
   roleLabel: string
   amountLabel: string
   leg: SwapLegDraft
   disabled?: boolean
   accounts: Account[]
+  accountOptions: RelationshipFilterOption[]
+  formatAccountGroup: (group: string) => string
+  units: Unit[]
+  unitsById: Record<string, UnitFormatInput>
   budgetId?: string
   payeeOptions?: string[]
-  /** Fallback wallet when the side is a merchant/DEX name. */
-  defaultAccountId?: string
+  /** Other swap side — never selectable here (no self-transfer). */
+  counterpartyAccountId?: string
   signedAs: 'outflow' | 'inflow'
   onUpdate: (patch: Partial<SwapLegDraft>) => void
 }) {
@@ -303,35 +333,23 @@ function SwapSideCard(props: {
     leg,
     disabled,
     accounts,
+    accountOptions,
+    formatAccountGroup,
+    units,
+    unitsById,
     budgetId,
     payeeOptions = [],
-    defaultAccountId = '',
+    counterpartyAccountId = '',
     signedAs,
     onUpdate,
   } = props
 
-  const sideAccount = findAccount(accounts, leg.account)
-  const payeeFieldValue = leg.payee.trim()
-    ? leg.payee.trim()
-    : leg.account && !isSystemPnlAccount(sideAccount)
-      ? toPayeeTransferId(leg.account)
-      : ''
+  const walletOptions = useMemo(
+    () => accountOptions.filter((option) => option.id !== counterpartyAccountId),
+    [accountOptions, counterpartyAccountId],
+  )
 
-  const commitPayee = (value: string) => {
-    if (isPayeeTransferId(value)) {
-      onUpdate({
-        account: payeeTransferAccountId(value) || leg.account,
-        payee: '',
-        category: '',
-      })
-      return
-    }
-    onUpdate({
-      payee: value,
-      account: leg.account || defaultAccountId,
-      category: '',
-    })
-  }
+  const sideUnitCode = unitCodeForAccount(findAccount(accounts, leg.account), unitsById, units)
 
   return (
     <div className="grid gap-3 rounded-md border bg-background/80 p-3">
@@ -339,37 +357,62 @@ function SwapSideCard(props: {
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {roleLabel}
         </span>
+        {sideUnitCode ? (
+          <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums text-foreground">
+            {sideUnitCode}
+          </span>
+        ) : null}
+      </div>
+      <div className="grid gap-2">
+        <Label>{t('custom:frontend:filters:fields:account')}</Label>
+        <GroupedPicker
+          disabled={disabled}
+          formatGroup={formatAccountGroup}
+          onValueChange={(value) => onUpdate({ account: value, category: '' })}
+          options={walletOptions}
+          placeholder={t('custom:frontend:filters:selectValue')}
+          searchPlaceholder={t('custom:frontend:filters:searchAccounts')}
+          value={leg.account}
+        />
       </div>
       <div className="grid gap-2">
         <Label>{t('custom:frontend:filters:fields:payee')}</Label>
         <PayeePicker
           accounts={accounts}
+          allowTransfers={false}
           budgetId={budgetId}
           disabled={disabled}
-          onCommit={commitPayee}
-          onValueChange={commitPayee}
+          onCommit={(value) => onUpdate({ payee: value.trim(), category: '' })}
+          onValueChange={(value) => onUpdate({ payee: value.trim(), category: '' })}
           payeeOptions={payeeOptions}
-          placeholder={t('custom:frontend:transactions:payeePlaceholder')}
-          sourceAccountId={leg.account || defaultAccountId}
-          value={payeeFieldValue}
+          placeholder={t('custom:frontend:transactions:payeeMerchantPlaceholder')}
+          value={leg.payee}
         />
       </div>
       <div className="grid gap-2">
         <Label>{amountLabel}</Label>
-        <Input
-          disabled={disabled}
-          inputMode="decimal"
-          onChange={(event) =>
-            onUpdate({
-              amount:
-                signedAs === 'outflow'
-                  ? toSignedOutflow(event.target.value)
-                  : toSignedInflow(event.target.value),
-            })
-          }
-          placeholder="0"
-          value={magnitudeString(leg.amount)}
-        />
+        <div className="relative">
+          <Input
+            className={sideUnitCode ? 'pr-14' : undefined}
+            disabled={disabled}
+            inputMode="decimal"
+            onChange={(event) =>
+              onUpdate({
+                amount:
+                  signedAs === 'outflow'
+                    ? toSignedOutflow(event.target.value)
+                    : toSignedInflow(event.target.value),
+              })
+            }
+            placeholder="0"
+            value={magnitudeString(leg.amount)}
+          />
+          {sideUnitCode ? (
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium text-muted-foreground">
+              {sideUnitCode}
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   )
@@ -395,8 +438,18 @@ export function TransactionSwapEditor(props: TransactionSwapEditorProps) {
     reportingCurrencyId,
     formatAccountGroup,
     disabled,
+    forceSwapPair = false,
   } = props
   const { t } = useAppTranslation()
+
+  const unitsById = useMemo(() => {
+    const map: Record<string, UnitFormatInput> = {}
+    for (const unit of units) {
+      const formatted = unitFormatFromDoc(unit)
+      if (formatted) map[unit.id] = formatted
+    }
+    return map
+  }, [units])
 
   /** Stable identity of the grouped pair — never re-picks other legs after the user clears it. */
   const [pinnedKeys, setPinnedKeys] = useState<{ giveKey: string; receiveKey: string } | null>(
@@ -430,15 +483,23 @@ export function TransactionSwapEditor(props: TransactionSwapEditorProps) {
     return accountOptions[0]?.id ?? ''
   }, [pair, legs, accountOptions])
 
-  // Initial open: pin a detectable pair once. Never re-pin after the user clears the swap.
+  // Initial open: pin a detectable pair, or the first two legs when Add → Swap forced a group.
   useEffect(() => {
     if (didInitialPin.current || suppressAutoPin || pinnedKeys) return
-    if (!detectedPair) return
-    const keys = pairKeysFromPair(legs, detectedPair)
-    if (!keys) return
+    if (detectedPair) {
+      const keys = pairKeysFromPair(legs, detectedPair)
+      if (!keys) return
+      didInitialPin.current = true
+      setPinnedKeys(keys)
+      return
+    }
+    if (!forceSwapPair || legs.length < 2) return
+    const give = legs[0]
+    const receive = legs[1]
+    if (!give || !receive) return
     didInitialPin.current = true
-    setPinnedKeys(keys)
-  }, [detectedPair, legs, pinnedKeys, suppressAutoPin])
+    setPinnedKeys({ giveKey: give.key, receiveKey: receive.key })
+  }, [detectedPair, forceSwapPair, legs, pinnedKeys, suppressAutoPin])
 
   // If a pinned leg disappeared (e.g. external replace), drop the pin without stealing other lines.
   useEffect(() => {
@@ -570,15 +631,19 @@ export function TransactionSwapEditor(props: TransactionSwapEditorProps) {
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-start">
               <SwapSideCard
                 amountLabel={t('custom:frontend:transactions:transferAmountLeaving')}
+                accountOptions={accountOptions}
                 accounts={accounts}
                 budgetId={budgetId}
-                defaultAccountId={defaultOtherAccountId}
+                counterpartyAccountId={receive.account}
                 disabled={disabled}
+                formatAccountGroup={formatAccountGroup}
                 leg={give}
                 onUpdate={(patch) => updateLeg(pair.giveIndex, patch)}
                 payeeOptions={payeeOptions}
                 roleLabel={t('custom:frontend:transactions:exchangeGiveAccount')}
                 signedAs="outflow"
+                units={units}
+                unitsById={unitsById}
               />
 
               <div className="flex items-center justify-center py-1 sm:pt-10">
@@ -587,15 +652,19 @@ export function TransactionSwapEditor(props: TransactionSwapEditorProps) {
 
               <SwapSideCard
                 amountLabel={t('custom:frontend:transactions:transferAmountReceived')}
+                accountOptions={accountOptions}
                 accounts={accounts}
                 budgetId={budgetId}
-                defaultAccountId={defaultOtherAccountId}
+                counterpartyAccountId={give.account}
                 disabled={disabled}
+                formatAccountGroup={formatAccountGroup}
                 leg={receive}
                 onUpdate={(patch) => updateLeg(pair.receiveIndex, patch)}
                 payeeOptions={payeeOptions}
                 roleLabel={t('custom:frontend:transactions:exchangeReceiveAccount')}
                 signedAs="inflow"
+                units={units}
+                unitsById={unitsById}
               />
             </div>
 

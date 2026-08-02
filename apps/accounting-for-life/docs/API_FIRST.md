@@ -35,7 +35,6 @@ Content-Type: application/json
   "budget": "<budget-uuid>",
   "date": "2026-07-12T20:00:00.000Z",
   "type": "transfer",
-  "payee": null,
   "entries": [
     { "account": "<checking-uuid>", "amount": -100 },
     { "account": "<savings-uuid>", "amount": 100 }
@@ -137,9 +136,8 @@ Content-Type: application/json
   "budget": "<budget-uuid>",
   "date": "2026-07-12T20:00:00.000Z",
   "type": "transaction",
-  "payee": "Kraken",
   "entries": [
-    { "account": "<xrp-wallet>", "amount": -100, "fxRate": 0.5 },
+    { "account": "<xrp-wallet>", "amount": -100, "fxRate": 0.5, "payee": "Kraken" },
     { "account": "<xlm-wallet>", "amount": 200, "fxRate": 0.25 },
     { "account": "<usd-checking>", "amount": -5 },
     {
@@ -152,7 +150,7 @@ Content-Type: application/json
 }
 ```
 
-`-100 × 0.5 + 200 × 0.25 − 5 + 5 = 0` reporting. The exchange is the **header payee**; the fee is Checking −5 balanced by the system **Budget expenses** account with category **Financial Fees**. Optional per-entry `payee` is available when a fee or split has a different merchant than the header (see ATM example below).
+`-100 × 0.5 + 200 × 0.25 − 5 + 5 = 0` reporting. The exchange name rides on the **give leg** (`payee: "Kraken"`); the fee is Checking −5 balanced by the system **Budget expenses** account with category **Financial Fees** and its own merchant. There is no transaction-level `payee` — every merchant is a line value (see ATM example below).
 
 #### Example: ATM withdrawal with fee (line payee)
 
@@ -165,7 +163,6 @@ Content-Type: application/json
   "budget": "<budget-uuid>",
   "date": "2026-08-01T16:00:00.000Z",
   "type": "transaction",
-  "payee": "ATM Co",
   "entries": [
     { "account": "<checking-uuid>", "amount": -105 },
     { "account": "<cash-uuid>", "amount": 100 },
@@ -179,7 +176,7 @@ Content-Type: application/json
 }
 ```
 
-Checking outflows $105; $100 lands in Cash (transfer leg, no entry payee); $5 fee is a classical P&L leg on **Budget expenses** with merchant **ATM Co**. When several merchants appear on lines, clients may clear the header `payee` and let the register derive `A · B` from entry payees.
+Checking outflows $105; $100 lands in Cash (transfer leg, no entry payee); $5 fee is a classical P&L leg on **Budget expenses** with merchant **ATM Co**. When several merchants appear on lines, the register joins them (`A · B`).
 
 Shared helpers live under `collections/Transactions/lib/` (e.g. `applyCategoryToEntries` for rebuilding lines when changing category).
 
@@ -202,13 +199,13 @@ Server actions in `app/(frontend)/actions/transactions.ts` call `payload.create`
 
 Notes live on **entries** (optional per leg). When exactly one entry has a note, the register bubbles it onto the primary row. There is no transaction-header `notes` field. The consumer swap UI shows one note for the give/receive pair and persists it on the **give** leg (receive cleared); other lines keep their own notes.
 
-Optional **`payee` on entries** stores a merchant name for that leg (allocate category lines and journal “other” lines). Transfer destinations stay as account legs / `__transfer__` payee drafts — not duplicated as entry `payee`.
+**`payee` on entries** is the only payee in the schema — a merchant name for that leg (payment P&L leg, allocate category lines, journal “other” lines, swap sides). `transactions.payee` was dropped in `20260802_drop_transaction_payee`. Transfer destinations stay as account legs / `__transfer__` payee drafts in the editor — not duplicated as entry `payee`.
 
-**Counterparty (posted `type: transaction`):** every categorized (P&L/fee) entry must have a merchant `payee` — header alone is not enough. Cash/wallet legs stay account-only. Editor lines (allocate splits, swap sides/other lines) each need a merchant or transfer/account. Pure `type: transfer` books use destination accounts (no merchant required). Pending headers without entries stay loose. Simple payment saves copy the header merchant onto the system P&L leg; allocate and fee lines set per-line payees.
+**Counterparty (posted `type: transaction`):** every categorized (P&L/fee) entry must have a merchant `payee`. Cash/wallet legs stay account-only. Editor lines (allocate splits, swap sides/other lines) each need a merchant or transfer/account. Pure `type: transfer` books use destination accounts (no merchant required). Pending headers without entries stay loose. The single Payee control on the payment body writes the implied P&L (or transfer) line; allocate and fee lines set per-line payees.
 
 The register UI builds `entries` in the browser via **Standard** and **Split** tabs — that is **presentation**. The **rules** run in hooks regardless of client.
 
-**Editor bodies (US-5.1):** one posting pipeline (`entries`); no Swap tab. Consumer UI uses three bodies in one dialog: **payment** (account / payee / amount / category; **Add line** → allocate), **exchange** / **journal** (grouped swap: give/receive + optional other lines for fees/third-party payees; header payee for the exchange/DEX when not a pure transfer; one swap note; sides may be account or merchant payee). Mixed-unit rates derive from amounts; reporting valuation may be deferred. Register: **one row per transaction header** (transfers included); payee column shows entry merchants or the header exchange name (e.g. Kraken). Soft-nav to `/transactions/[id]` overlays the register via intercepting `@modal`.
+**Editor bodies (US-5.1):** one posting pipeline (`entries`); no Swap tab. Consumer UI uses three bodies in one dialog: **payment** (account / payee / amount / category; **Add line** → allocate), **exchange** / **journal** (grouped swap: give/receive + optional other lines for fees/third-party payees; one swap note; each side picks a wallet account plus an optional merchant-only payee — no header payee control). Mixed-unit rates derive from amounts; reporting valuation may be deferred. Register: **one row per transaction header** (transfers included); payee column shows entry merchants (e.g. Kraken) and is blank for pure transfers. Soft-nav to `/transactions/[id]` overlays the register via intercepting `@modal`.
 
 **Economic kind (display):** Register and detail badges derive activity (`spend` / `earn` / `transfer` / account-scoped `withdraw`/`deposit`). Cash↔holding moves are ambiguous (`buy` / `sell` / `transfer`) — optional header `economicKind` stores the user’s confirmation when shown.
 

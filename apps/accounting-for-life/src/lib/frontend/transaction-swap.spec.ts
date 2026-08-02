@@ -14,7 +14,7 @@ import {
   isSwapFormBalanced,
   isWalletTransferEntries,
   displayIndexesForSwapExtras,
-  headerPayeeFromSwapLegs,
+  merchantPayeesFromSwapLegs,
   orderLegsGiveReceiveFirst,
   resolveTypeFromSwapLegs,
   swapLegsHaveCounterparties,
@@ -132,6 +132,12 @@ describe('transaction-swap', () => {
         { account: 'savings', amount: 50, category: null, fxRate: null },
       ]),
     ).toBe(false)
+    expect(
+      isWalletTransferEntries([
+        { account: 'btc', amount: -1, category: null, fxRate: null, payee: 'Boardwalk' },
+        { account: 'usd', amount: 5, category: null, fxRate: null },
+      ]),
+    ).toBe(false)
   })
 
   it('shows all swap other-lines (classical cash + P&L fees have no twins to hide)', () => {
@@ -150,14 +156,13 @@ describe('transaction-swap', () => {
     expect(displayIndexesForSwapExtras(legs, [2, 3])).toEqual([2, 3])
   })
 
-  it('does not promote a fee-line merchant to the swap header payee', () => {
+  it('keeps a fee-line merchant on its own leg', () => {
     const legs = [
       leg({ key: 'give', account: 'btc', amount: '-1' }),
       leg({ key: 'recv', account: 'usd', amount: '100' }),
       leg({ key: 'fee', account: 'fee', amount: '5', payee: 'Kraken' }),
     ]
-    // Leave an existing exchange header alone (undefined = no sync).
-    expect(headerPayeeFromSwapLegs(legs, accounts)).toBeUndefined()
+    expect(merchantPayeesFromSwapLegs(legs)).toEqual(['Kraken'])
   })
 
   it('requires account or merchant on each leg and merchant on categorized legs', () => {

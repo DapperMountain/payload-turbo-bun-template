@@ -9,7 +9,11 @@ import {
 } from '@/collections/Transactions/lib/matchAndMergeTransactions'
 import { requireAppUser } from '@/lib/frontend/auth.server'
 import { getAppPayload } from '@/lib/frontend/payload.server'
-import { entriesFromTransaction, transactionEntries } from '@/lib/frontend/transactions.server'
+import {
+  entriesFromTransaction,
+  merchantPayeesFromEntries,
+  transactionEntries,
+} from '@/lib/frontend/transactions.server'
 import { resolveActiveWorkspace } from '@/lib/frontend/workspace.server'
 import type { Transaction } from '@/types'
 import { getCollectionId } from '@/utils'
@@ -19,7 +23,6 @@ export type TransactionEntryInputClient = TransactionEntryInput
 export type CreateTransactionInput = {
   budget: string
   date: string
-  payee?: string
   type: Transaction['type']
   economicKind?: Transaction['economicKind']
   entries?: TransactionEntryInput[]
@@ -30,7 +33,6 @@ export type CreateTransactionInput = {
 export type UpdateTransactionInput = {
   id: string
   date?: string
-  payee?: string | null
   status?: Transaction['status']
   type?: Transaction['type']
   economicKind?: Transaction['economicKind']
@@ -41,7 +43,6 @@ export type UpdateTransactionInput = {
 
 export type BulkTransactionHeaderPatch = {
   date?: string
-  payee?: string | null
   status?: Transaction['status']
 }
 
@@ -85,7 +86,6 @@ export async function createTransactionAction(
         workspace: workspace.id,
         budget: input.budget,
         date: input.date,
-        payee: input.payee,
         type: input.type,
         ...(input.economicKind !== undefined ? { economicKind: input.economicKind } : {}),
         entries: input.entries,
@@ -142,7 +142,6 @@ export async function updateTransactionAction(
     const data: Record<string, unknown> = {}
 
     if (input.date !== undefined) data.date = input.date
-    if (input.payee !== undefined) data.payee = input.payee
     if (input.status !== undefined) data.status = input.status
     if (input.type !== undefined) data.type = input.type
     if (input.economicKind !== undefined) data.economicKind = input.economicKind
@@ -191,7 +190,6 @@ export async function bulkUpdateTransactionsAction(input: {
     const data: Record<string, unknown> = {}
 
     if (input.patch.date !== undefined) data.date = input.patch.date
-    if (input.patch.payee !== undefined) data.payee = input.patch.payee
     if (input.patch.status !== undefined) data.status = input.patch.status
 
     if (!Object.keys(data).length) {
@@ -259,11 +257,13 @@ export async function bulkSetTransactionCategoryAction(input: {
           continue
         }
 
+        // Reuse the row's single existing merchant so newly categorized legs stay valid.
+        const merchants = merchantPayeesFromEntries(existingEntries)
         const nextEntries = applyCategoryToEntries(
           entriesFromTransaction(transaction),
           transaction.type,
           input.categoryId,
-          { payee: transaction.payee },
+          { payee: merchants.length === 1 ? merchants[0] : null },
         )
 
         await payload.update({

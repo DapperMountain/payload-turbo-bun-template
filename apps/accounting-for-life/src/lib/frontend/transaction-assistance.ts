@@ -132,6 +132,10 @@ export function journalLegsToSplitState(
 /**
  * Which editor body to show for an existing transaction.
  * Legacy `preferred` (`split` / `swap`) is a soft hint only when the layout is ambiguous.
+ *
+ * Two-leg wallet↔wallet transfers (any units) use the YNAB payment body — single line,
+ * account as payee, category not needed. Fee / N-leg / free-form books use journal.
+ * Escape hatch: “Edit as journal” from the payment body.
  */
 export function resolveEditorLayout(options: {
   entries: Array<Pick<TransactionEntry, 'account' | 'amount' | 'category' | 'fxRate'>>
@@ -139,8 +143,9 @@ export function resolveEditorLayout(options: {
   reportingCurrencyId: string | null | undefined
   preferred?: TransactionDialogView
 }): TransactionEditorLayout {
+  // Clean two-leg wallet transfers → payment (not the 2-line exchange editor).
   if (isExchangeEntries(options.entries, options.accounts)) {
-    return 'exchange'
+    return 'payment'
   }
 
   if (entriesPreferSwapView(options.entries, options.accounts, options.reportingCurrencyId)) {
@@ -171,7 +176,7 @@ export function shouldExpandTransactionLines(options: {
   return resolveEditorLayout(options) === 'journal'
 }
 
-/** Header type for the exchange body: account payee → transfer; DEX/name → transaction. */
+/** Exchange body type: account payee → transfer; DEX/name → transaction. */
 export function resolveExchangeTransactionType(
   payeeValue: string,
 ): Extract<Transaction['type'], 'transaction' | 'transfer'> {
@@ -181,7 +186,7 @@ export function resolveExchangeTransactionType(
 /**
  * Post give/receive legs from exchange form state.
  * Uses the receive account from the transfer split (or account payee), so DEX
- * trades can keep an external header payee while posting two wallet legs.
+ * trades can keep a merchant on their legs while posting two wallet legs.
  */
 export function buildExchangeFormPosting(options: {
   splitState: TransactionSplitFormState

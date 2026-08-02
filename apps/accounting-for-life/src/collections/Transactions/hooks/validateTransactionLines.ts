@@ -156,7 +156,10 @@ export function validateTransactionLinesBalance(
  *
  * YNAB: asset ↔ asset moves are "category not needed".
  */
-export function validateTransferEntries(type: string, lines: TransactionLineInput[]): void {
+export function validateTransferEntries(
+  type: string,
+  lines: Array<TransactionLineInput & { account?: string | null }>,
+): void {
   if (type !== 'transfer') {
     return
   }
@@ -165,6 +168,15 @@ export function validateTransferEntries(type: string, lines: TransactionLineInpu
 
   if (hasCategory) {
     throw new Error('Transfer transactions cannot include category assignments')
+  }
+
+  const accountIds = new Set(
+    lines
+      .map((line) => (typeof line.account === 'string' ? line.account.trim() : ''))
+      .filter(Boolean),
+  )
+  if (accountIds.size < 2) {
+    throw new Error('Transfer requires two different accounts')
   }
 }
 
@@ -183,15 +195,11 @@ function merchantFromPayee(payee: string | null | undefined): string | null {
 
 /**
  * Posted `type: transaction` books: every categorized (P&L/fee) leg needs a
- * merchant `payee`. Header alone is not enough. Cash/wallet legs stay account-only.
- * Transfers use destination accounts instead.
- *
- * `headerPayee` is accepted for call-site compatibility; it does not satisfy
- * categorized legs.
+ * merchant `payee`. Cash/wallet legs stay account-only; transfers use
+ * destination accounts instead.
  */
 export function validateTransactionCounterparty(
   type: string,
-  _headerPayee: string | null | undefined,
   lines: Array<{ payee?: string | null; category?: string | null }>,
 ): void {
   if (type !== 'transaction') return

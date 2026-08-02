@@ -162,13 +162,12 @@ async function preparePostedEntries(
   budgetId: string,
   quoteUnitId: string | null,
   quoteToReportingRate: number | null | undefined,
-  headerPayee: string | null | undefined,
 ): Promise<void> {
   const unitByAccountId = await loadValidatedAccountUnits(req, lines, workspaceId, budgetId)
   const reportingUnitId = await resolveReportingUnitId(req, workspaceId)
 
   validateEntryCompleteness(lines)
-  validateTransactionCounterparty(type, headerPayee, lines)
+  validateTransactionCounterparty(type, lines)
   validateTransactionLinesBalance(lines, {
     reportingUnitId,
     quoteUnitId,
@@ -228,9 +227,6 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
         ? data.quoteToReportingRate
         : originalDoc?.quoteToReportingRate
 
-    const headerPayee =
-      data.payee !== undefined ? data.payee : originalDoc?.payee
-
     await preparePostedEntries(
       req,
       lines,
@@ -239,7 +235,6 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
       budgetId as string,
       quoteUnitId,
       quoteToReportingRate,
-      headerPayee,
     )
 
     stashEntries(req, context, 'replaceEntries', lines)
@@ -273,7 +268,6 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
     budgetId,
     quoteUnitId,
     quoteToReportingRate,
-    data.payee,
   )
 
   stashEntries(req, context, 'entries', lines)

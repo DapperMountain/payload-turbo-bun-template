@@ -13,7 +13,6 @@ import {
   collapseToSingleCategory,
   isMultiSplitTransaction,
   newSplitDraft,
-  newTransferSplitDraft,
   removeSplitDraft,
   splitAllocationRemaining,
   splitAmountFromPercent,
@@ -33,6 +32,7 @@ import {
   findAccount,
   interpolateTemplate,
   isPayeeTransferId,
+  isTransferToSameAccount,
 } from '@/lib/frontend/transaction-payee'
 import type { Account, Unit } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
@@ -49,6 +49,8 @@ export type TransactionSplitsEditorProps = {
   onCollapsedToRegular?: (categoryId: string) => void
   preferredCategoryId?: string
   units?: Unit[]
+  /** When true, parent owns Add (Line | Swap); only Unsplit remains here. */
+  hideAddButton?: boolean
 }
 
 type SplitAllocationMode = 'amount' | 'percent'
@@ -65,6 +67,7 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
     onCollapsedToRegular,
     preferredCategoryId = '',
     units = [],
+    hideAddButton = false,
   } = props
   const { t } = useAppTranslation()
   const [allocationMode, setAllocationMode] = useState<SplitAllocationMode>('amount')
@@ -81,6 +84,12 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
   const formatPaymentAmount = (amount: number) => formatUnitAmount(amount, paymentUnit)
 
   const updateSplit = (index: number, patch: Partial<SplitDraft>) => {
+    if (
+      patch.payee !== undefined &&
+      isTransferToSameAccount(state.paymentAccount, patch.payee)
+    ) {
+      return
+    }
     onChange({
       ...state,
       splits: state.splits.map((split, splitIndex) =>
@@ -93,13 +102,6 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
     onChange({
       ...state,
       splits: [...state.splits, newSplitDraft()],
-    })
-  }
-
-  const addTransferSplit = () => {
-    onChange({
-      ...state,
-      splits: [...state.splits, newTransferSplitDraft()],
     })
   }
 
@@ -286,34 +288,28 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
         </div>
       ))}
 
-      <div className="flex flex-wrap gap-2">
-        <Button disabled={disabled} onClick={addSplit} size="sm" type="button" variant="outline">
-          <Plus className="size-4" />
-          {t('custom:frontend:transactions:addCategorySplit')}
-        </Button>
-        <Button
-          disabled={disabled}
-          onClick={addTransferSplit}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <Plus className="size-4" />
-          {t('custom:frontend:transactions:addTransferSplit')}
-        </Button>
+      {hideAddButton && !showCollapse ? null : (
+        <div className="flex flex-wrap gap-2">
+          {hideAddButton ? null : (
+            <Button disabled={disabled} onClick={addSplit} size="sm" type="button" variant="outline">
+              <Plus className="size-4" />
+              {t('custom:frontend:transactions:addLine')}
+            </Button>
+          )}
 
-        {showCollapse ? (
-          <Button
-            disabled={disabled}
-            onClick={collapseToRegular}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            {t('custom:frontend:transactions:backToRegularTransaction')}
-          </Button>
-        ) : null}
-      </div>
+          {showCollapse ? (
+            <Button
+              disabled={disabled}
+              onClick={collapseToRegular}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {t('custom:frontend:transactions:backToRegularTransaction')}
+            </Button>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }

@@ -10,6 +10,7 @@ export {
   entriesFromTransaction,
   entryInputsFromDocs,
   groupTransactionsByDate,
+  merchantPayeesFromEntries,
   registerRowFromTransaction,
   registerRowsFromTransaction,
   transactionIdFromRegisterRowKey,

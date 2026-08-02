@@ -173,6 +173,24 @@ describe('validateTransferEntries', () => {
       ]),
     ).not.toThrow()
   })
+
+  it('rejects transfers that only touch one account', () => {
+    expect(() =>
+      validateTransferEntries('transfer', [
+        { account: 'checking', amount: -50 },
+        { account: 'checking', amount: 50 },
+      ]),
+    ).toThrow(/two different accounts/)
+  })
+
+  it('allows transfers between two accounts', () => {
+    expect(() =>
+      validateTransferEntries('transfer', [
+        { account: 'checking', amount: -50 },
+        { account: 'savings', amount: 50 },
+      ]),
+    ).not.toThrow()
+  })
 })
 
 describe('validateEntryCompleteness', () => {
@@ -220,9 +238,9 @@ describe('validateEntryCompleteness', () => {
 })
 
 describe('validateTransactionCounterparty', () => {
-  it('rejects categorized legs without a merchant payee even when header is set', () => {
+  it('rejects categorized legs without a merchant payee', () => {
     expect(() =>
-      validateTransactionCounterparty('transaction', 'Costco', [
+      validateTransactionCounterparty('transaction', [
         { account: 'checking', amount: -40 },
         { account: 'budget-expenses', amount: 40, category: 'groceries' },
       ] as never),
@@ -231,28 +249,22 @@ describe('validateTransactionCounterparty', () => {
 
   it('allows categorized legs with entry merchant', () => {
     expect(() =>
-      validateTransactionCounterparty('transaction', null, [
-        { amount: -40 },
-        { amount: 40, category: 'groceries', payee: 'Costco' },
+      validateTransactionCounterparty('transaction', [
+        {},
+        { category: 'groceries', payee: 'Costco' },
       ]),
     ).not.toThrow()
   })
 
   it('allows uncategorized multi-account books without entry merchants', () => {
     expect(() =>
-      validateTransactionCounterparty('transaction', 'Coinbase', [
-        { amount: -0.01 },
-        { amount: 500 },
-      ]),
+      validateTransactionCounterparty('transaction', [{}, {}]),
     ).not.toThrow()
   })
 
   it('skips transfers', () => {
     expect(() =>
-      validateTransactionCounterparty('transfer', null, [
-        { amount: -100 },
-        { amount: 100 },
-      ]),
+      validateTransactionCounterparty('transfer', [{}, {}]),
     ).not.toThrow()
   })
 })

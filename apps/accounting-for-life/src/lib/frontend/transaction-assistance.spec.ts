@@ -120,7 +120,7 @@ describe('transaction-assistance', () => {
     ).toBe('payment')
   })
 
-  it('keeps clean two-leg books on exchange even with legacy preferred=swap', () => {
+  it('uses payment layout for clean two-leg books even with legacy preferred=swap', () => {
     expect(
       resolveEditorLayout({
         entries: [
@@ -131,7 +131,7 @@ describe('transaction-assistance', () => {
         reportingCurrencyId: 'unit-usd',
         preferred: 'swap',
       }),
-    ).toBe('exchange')
+    ).toBe('payment')
   })
 
   it('honors legacy preferred split/swap only when layout would be payment', () => {
@@ -174,7 +174,7 @@ describe('transaction-assistance', () => {
     expect(journalLegsToSplitState(legs, accounts, 'unit-usd').ok).toBe(false)
   })
 
-  it('uses exchange layout for a simple two-leg transfer', () => {
+  it('uses payment layout for a same-unit two-leg transfer (YNAB single-line)', () => {
     expect(
       resolveEditorLayout({
         entries: [
@@ -184,7 +184,7 @@ describe('transaction-assistance', () => {
         accounts,
         reportingCurrencyId: 'unit-usd',
       }),
-    ).toBe('exchange')
+    ).toBe('payment')
     expect(
       shouldExpandTransactionLines({
         entries: [
@@ -197,7 +197,7 @@ describe('transaction-assistance', () => {
     ).toBe(false)
   })
 
-  it('uses exchange layout for BTC→USD (not journal)', () => {
+  it('uses payment layout for BTC→USD two-leg transfer (not journal or exchange)', () => {
     const entries = [
       { account: 'btc', amount: -0.01, category: null, fxRate: 50000 },
       { account: 'checking', amount: 500, category: null, fxRate: 1 },
@@ -209,16 +209,21 @@ describe('transaction-assistance', () => {
         accounts,
         reportingCurrencyId: 'unit-usd',
       }),
-    ).toBe('exchange')
+    ).toBe('payment')
   })
 
-  it('keeps DEX external payee as transaction type', () => {
+  it('keeps DEX merchant legs as transaction type', () => {
     expect(resolveExchangeTransactionType('Kraken')).toBe('transaction')
     expect(resolveExchangeTransactionType('__transfer__:savings')).toBe('transfer')
 
-    const legs = [newSwapLegDraft('xrp', '-100'), newSwapLegDraft('xlm', '200')]
-    expect(resolveTypeFromSwapLegs(legs, accounts, 'Uniswap')).toBe('transaction')
-    expect(resolveTypeFromSwapLegs(legs, accounts, '__transfer__:xlm')).toBe('transfer')
+    const walletLegs = [newSwapLegDraft('xrp', '-100'), newSwapLegDraft('xlm', '200')]
+    expect(resolveTypeFromSwapLegs(walletLegs, accounts)).toBe('transfer')
+
+    const dexLegs = [
+      { ...newSwapLegDraft('xrp', '-100'), payee: 'Uniswap' },
+      newSwapLegDraft('xlm', '200'),
+    ]
+    expect(resolveTypeFromSwapLegs(dexLegs, accounts)).toBe('transaction')
   })
 
   it('posts DEX exchange with external payee while using receive account legs', () => {

@@ -37,7 +37,8 @@ type SampleEntrySeed = {
 }
 
 type SampleTransactionSeed = {
-  payee: string
+  /** Stable idempotency handle — stored as `externalId` (`seed:<key>`). */
+  key: string
   type: 'transfer' | 'transaction'
   date: string
   /** When set, posts with an explicit quote unit (usually reporting USD). */
@@ -45,14 +46,9 @@ type SampleTransactionSeed = {
   entries: SampleEntrySeed[]
 }
 
-/** Prior demo payees — removed so renamed samples can replace them. */
-const OBSOLETE_SAMPLE_PAYEES = [
-  'Seed transfer to savings',
-  'Seed swap XRP → XLM',
-  'Seed swap XRP → XLM with fee',
-  'Seed BTC → XRP/XLM basket',
-  'Seed seashell market day',
-] as const
+function sampleExternalId(seed: SampleTransactionSeed): string {
+  return `seed:${seed.key}`
+}
 
 async function findAdminUser(payload: Payload): Promise<User | null> {
   const { admin } = config.database.seed
@@ -164,31 +160,6 @@ async function findCategoryByName(
   return found.docs[0] ?? null
 }
 
-async function deleteTransactionsByPayee(
-  payload: Payload,
-  workspace: Workspace,
-  payee: string,
-): Promise<number> {
-  const existing = await payload.find({
-    collection: 'transactions',
-    limit: 50,
-    where: {
-      and: [{ workspace: { equals: workspace.id } }, { payee: { equals: payee } }],
-    },
-    overrideAccess: true,
-  })
-
-  for (const doc of existing.docs) {
-    await payload.delete({
-      collection: 'transactions',
-      id: doc.id,
-      overrideAccess: true,
-    })
-  }
-
-  return existing.docs.length
-}
-
 /** Remove retired demo fee expense account once nothing references it. */
 async function removeObsoleteExchangeFeesAccount(
   payload: Payload,
@@ -232,6 +203,159 @@ async function removeObsoleteExchangeFeesAccount(
   })
 }
 
+function fingerprintKey(parts: Array<{ accountId: string; amount: number }>): string {
+  return [...parts]
+    .map((part) => `${part.accountId}:${part.amount}`)
+    .sort()
+    .join('|')
+}
+
+function seedFingerprint(
+  seed: SampleTransactionSeed,
+  accountsByName: Map<string, Account>,
+): string | null {
+  const parts: Array<{ accountId: string; amount: number }> = []
+  for (const entry of seed.entries) {
+    const account = accountsByName.get(entry.accountName)
+    if (!account) return null
+    parts.push({ accountId: account.id, amount: entry.amount })
+  }
+  return fingerprintKey(parts)
+}
+
+async function entryFingerprintForTransaction(
+  payload: Payload,
+  transactionId: string,
+): Promise<string | null> {
+  const legs = await payload.find({
+    collection: 'transaction-entries',
+    where: { transaction: { equals: transactionId } },
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (!legs.docs.length) return null
+  return fingerprintKey(
+    legs.docs.map((leg) => ({
+      accountId: getCollectionId(leg.account) ?? '',
+      amount: leg.amount,
+    })),
+  )
+}
+
+async function deleteTransactionCascade(payload: Payload, transactionId: string): Promise<void> {
+  await payload.delete({
+    collection: 'transactions',
+    id: transactionId,
+    overrideAccess: true,
+  })
+}
+
+/**
+ * Collapse duplicate `seed:<key>` rows (keep oldest) and prior demo samples that
+ * match a seed fingerprint but never got an `externalId` after the payee→key migrate.
+ */
+export async function dedupeSeedSampleTransactions(
+  payload: Payload,
+  workspace: Workspace,
+  budget: Budget,
+  accountsByName: Map<string, Account>,
+): Promise<number> {
+  let removed = 0
+
+  const seeded = await payload.find({
+    collection: 'transactions',
+    where: {
+      and: [
+        { workspace: { equals: workspace.id } },
+        { budget: { equals: budget.id } },
+        { externalId: { like: 'seed:%' } },
+      ],
+    },
+    sort: 'createdAt',
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  const keepByExternalId = new Map<string, string>()
+  for (const transaction of seeded.docs) {
+    const externalId = transaction.externalId?.trim()
+    if (!externalId) continue
+    const keeper = keepByExternalId.get(externalId)
+    if (!keeper) {
+      keepByExternalId.set(externalId, transaction.id)
+      continue
+    }
+    await deleteTransactionCascade(payload, transaction.id)
+    removed += 1
+    payload.logger.warn(
+      `🧹 [Ledger] Removed duplicate sample ${externalId} (${transaction.id}); kept ${keeper}.`,
+    )
+  }
+
+  for (const sample of DEMO_TRANSACTIONS) {
+    const externalId = sampleExternalId(sample)
+    const expected = seedFingerprint(sample, accountsByName)
+    if (!expected) continue
+
+    const candidates = await payload.find({
+      collection: 'transactions',
+      where: {
+        and: [
+          { workspace: { equals: workspace.id } },
+          { budget: { equals: budget.id } },
+          { type: { equals: sample.type } },
+          { date: { greater_than_equal: `${sample.date}T00:00:00.000Z` } },
+          { date: { less_than: `${sample.date}T23:59:59.999Z` } },
+        ],
+      },
+      sort: 'createdAt',
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const matching: string[] = []
+    for (const transaction of candidates.docs) {
+      const print = await entryFingerprintForTransaction(payload, transaction.id)
+      if (print === expected) matching.push(transaction.id)
+    }
+
+    if (matching.length === 0) continue
+
+    const stamped = matching.find((id) =>
+      seeded.docs.some((doc) => doc.id === id && doc.externalId === externalId),
+    )
+    const keeperId = stamped ?? matching[0]!
+
+    if (!stamped) {
+      await payload.update({
+        collection: 'transactions',
+        id: keeperId,
+        data: { externalId, source: 'manual' },
+        overrideAccess: true,
+        depth: 0,
+      })
+      keepByExternalId.set(externalId, keeperId)
+      payload.logger.info(
+        `✅ [Ledger] Claimed legacy sample as ${externalId} (${keeperId}).`,
+      )
+    }
+
+    for (const id of matching) {
+      if (id === keeperId) continue
+      await deleteTransactionCascade(payload, id)
+      removed += 1
+      payload.logger.warn(
+        `🧹 [Ledger] Removed duplicate of ${externalId} (${id}); kept ${keeperId}.`,
+      )
+    }
+  }
+
+  return removed
+}
+
 async function ensureSampleTransaction(
   payload: Payload,
   workspace: Workspace,
@@ -242,13 +366,14 @@ async function ensureSampleTransaction(
   unitsByCode: Map<string, Unit>,
   seed: SampleTransactionSeed,
 ): Promise<boolean> {
+  const externalId = sampleExternalId(seed)
   const existing = await payload.find({
     collection: 'transactions',
     limit: 1,
     where: {
       and: [
         { workspace: { equals: workspace.id } },
-        { payee: { equals: seed.payee } },
+        { externalId: { equals: externalId } },
       ],
     },
     overrideAccess: true,
@@ -258,10 +383,47 @@ async function ensureSampleTransaction(
     return false
   }
 
+  // Legacy rows (pre–externalId samples) — claim instead of inserting a twin.
+  const expected = seedFingerprint(seed, accountsByName)
+  if (expected) {
+    const candidates = await payload.find({
+      collection: 'transactions',
+      where: {
+        and: [
+          { workspace: { equals: workspace.id } },
+          { budget: { equals: budget.id } },
+          { type: { equals: seed.type } },
+          { date: { greater_than_equal: `${seed.date}T00:00:00.000Z` } },
+          { date: { less_than: `${seed.date}T23:59:59.999Z` } },
+        ],
+      },
+      sort: 'createdAt',
+      limit: 20,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    for (const transaction of candidates.docs) {
+      const print = await entryFingerprintForTransaction(payload, transaction.id)
+      if (print !== expected) continue
+      await payload.update({
+        collection: 'transactions',
+        id: transaction.id,
+        data: { externalId },
+        overrideAccess: true,
+        depth: 0,
+      })
+      payload.logger.info(
+        `✅ [Ledger] Linked existing sample to ${externalId} (${transaction.id}).`,
+      )
+      return false
+    }
+  }
+
   const entries = seed.entries.map((entry) => {
     const account = accountsByName.get(entry.accountName)
     if (!account) {
-      throw new Error(`[Ledger] Missing account "${entry.accountName}" for seed "${seed.payee}"`)
+      throw new Error(`[Ledger] Missing account "${entry.accountName}" for seed "${seed.key}"`)
     }
 
     let category: string | undefined
@@ -269,7 +431,7 @@ async function ensureSampleTransaction(
       const cat = categoriesByName.get(entry.categoryName)
       if (!cat) {
         throw new Error(
-          `[Ledger] Missing category "${entry.categoryName}" for seed "${seed.payee}"`,
+          `[Ledger] Missing category "${entry.categoryName}" for seed "${seed.key}"`,
         )
       }
       category = cat.id
@@ -287,7 +449,7 @@ async function ensureSampleTransaction(
 
   const quoteUnit = seed.quoteUnitCode ? unitsByCode.get(seed.quoteUnitCode) : undefined
   if (seed.quoteUnitCode && !quoteUnit) {
-    throw new Error(`[Ledger] Missing quote unit "${seed.quoteUnitCode}" for seed "${seed.payee}"`)
+    throw new Error(`[Ledger] Missing quote unit "${seed.quoteUnitCode}" for seed "${seed.key}"`)
   }
 
   await payload.create({
@@ -296,7 +458,7 @@ async function ensureSampleTransaction(
       workspace: workspace.id,
       budget: budget.id,
       date: seed.date,
-      payee: seed.payee,
+      externalId,
       type: seed.type,
       ...(quoteUnit ? { quoteUnit: quoteUnit.id } : {}),
       entries,
@@ -338,7 +500,7 @@ const DEMO_ACCOUNTS: AccountSeed[] = [
  */
 const DEMO_TRANSACTIONS: SampleTransactionSeed[] = [
   {
-    payee: 'Transfer to savings',
+    key: 'transfer-to-savings',
     type: 'transfer',
     date: '2026-07-01',
     entries: [
@@ -351,7 +513,7 @@ const DEMO_TRANSACTIONS: SampleTransactionSeed[] = [
     ],
   },
   {
-    payee: 'XRP to XLM',
+    key: 'xrp-to-xlm',
     type: 'transfer',
     date: '2026-07-08',
     quoteUnitCode: 'USD',
@@ -366,12 +528,12 @@ const DEMO_TRANSACTIONS: SampleTransactionSeed[] = [
     ],
   },
   {
-    payee: 'Kraken',
+    key: 'kraken-xrp-to-xlm-with-fee',
     type: 'transaction',
     date: '2026-07-09',
     quoteUnitCode: 'USD',
     entries: [
-      { accountName: 'XRP Wallet', amount: -100, fxRate: 0.5 },
+      { accountName: 'XRP Wallet', amount: -100, fxRate: 0.5, payee: 'Kraken' },
       { accountName: 'XLM Wallet', amount: 200, fxRate: 0.25 },
       // Classical DE fee: cash outflow + system expense P&L leg (category tag).
       { accountName: 'Checking', amount: -5 },
@@ -385,7 +547,7 @@ const DEMO_TRANSACTIONS: SampleTransactionSeed[] = [
     ],
   },
   {
-    payee: 'Coinbase',
+    key: 'coinbase-btc-basket',
     type: 'transaction',
     date: '2026-07-10',
     quoteUnitCode: 'USD',
@@ -394,6 +556,7 @@ const DEMO_TRANSACTIONS: SampleTransactionSeed[] = [
         accountName: 'BTC Wallet',
         amount: -0.005,
         fxRate: 60_000,
+        payee: 'Coinbase',
         notes: 'Sell into XRP + XLM basket with $10 cash residual.',
       },
       { accountName: 'XRP Wallet', amount: 400, fxRate: 0.5 },
@@ -402,7 +565,7 @@ const DEMO_TRANSACTIONS: SampleTransactionSeed[] = [
     ],
   },
   {
-    payee: 'Boardwalk shell stand',
+    key: 'boardwalk-seashells',
     type: 'transaction',
     date: '2026-07-11',
     quoteUnitCode: 'USD',
@@ -411,6 +574,7 @@ const DEMO_TRANSACTIONS: SampleTransactionSeed[] = [
         accountName: 'Seashell jar',
         amount: -200,
         fxRate: 0.025,
+        payee: 'Boardwalk shell stand',
         notes: 'Sold 200 seashells @ $0.025.',
       },
       { accountName: 'Checking', amount: 5 },
@@ -482,9 +646,6 @@ export async function seedLedger(payload: Payload, options?: SeedRunOptions): Pr
         return
       }
 
-      for (const payee of OBSOLETE_SAMPLE_PAYEES) {
-        await deleteTransactionsByPayee(payload, workspace, payee)
-      }
       await removeObsoleteExchangeFeesAccount(payload, workspace, defaultBudget)
 
       const unitsByCode = new Map<string, Unit>()
@@ -555,6 +716,18 @@ export async function seedLedger(payload: Payload, options?: SeedRunOptions): Pr
             sample.entries.every((entry) => !entry.categoryName),
           )
 
+      const removed = await dedupeSeedSampleTransactions(
+        payload,
+        workspace,
+        defaultBudget,
+        accountsByName,
+      )
+      if (removed > 0) {
+        payload.logger.info(
+          `🧹 [Ledger] Removed ${removed} duplicate demo sample(s) for "${workspace.name}".`,
+        )
+      }
+
       let created = 0
       for (const sample of samples) {
         const didCreate = await ensureSampleTransaction(
@@ -581,5 +754,55 @@ export async function seedLedger(payload: Payload, options?: SeedRunOptions): Pr
         `✅ [Ledger] Seeded units, accounts, and ${created} sample transaction(s) for "${workspace.name}" (${getCollectionId(defaultBudget)}).`,
       )
     })
+  }
+}
+
+/**
+ * Repair-only: collapse duplicate demo samples (by `seed:*` externalId or entry fingerprint).
+ * Safe to run from `db:seed repair` without recreating missing samples.
+ */
+export async function repairLedgerSampleDuplicates(payload: Payload): Promise<void> {
+  const workspaces = await payload.find({
+    collection: 'workspaces',
+    where: { domain: { equals: DEMO_WORKSPACE_DOMAIN } },
+    pagination: false,
+    overrideAccess: true,
+  })
+
+  for (const workspace of workspaces.docs) {
+    const budgets = await payload.find({
+      collection: 'budgets',
+      where: { workspace: { equals: workspace.id } },
+      pagination: false,
+      overrideAccess: true,
+    })
+    const defaultBudget =
+      budgets.docs.find((budget) => budget.isDefault) ?? budgets.docs[0]
+    if (!defaultBudget) continue
+
+    const accounts = await payload.find({
+      collection: 'accounts',
+      where: {
+        and: [
+          { workspace: { equals: workspace.id } },
+          { budget: { equals: defaultBudget.id } },
+        ],
+      },
+      pagination: false,
+      overrideAccess: true,
+    })
+    const accountsByName = new Map(accounts.docs.map((account) => [account.name, account]))
+
+    const removed = await dedupeSeedSampleTransactions(
+      payload,
+      workspace,
+      defaultBudget,
+      accountsByName,
+    )
+    if (removed > 0) {
+      payload.logger.info(
+        `🧹 [Ledger] Repair removed ${removed} duplicate demo sample(s) for "${workspace.name}".`,
+      )
+    }
   }
 }

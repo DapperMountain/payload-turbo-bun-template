@@ -120,6 +120,8 @@ Seeding is always off when `NODE_ENV=test` (`parseSeedConfig`). If `DATABASE_URL
 
 ## Transactions and hooks
 
+**Payee columns:** merchants live only on `transaction_entries.payee`. `transactions.payee` (and the versions twin `_transactions_v.version_payee`) was dropped by `20260802_drop_transaction_payee`; transfers are expressed by the two account legs. Queries that filter or autocomplete payees must join `transaction-entries`.
+
 When seeders or hooks call Payload Local API (`create`, `update`, `delete`, etc.):
 
 - **Always pass `req`** to nested operations inside hooks for atomicity.

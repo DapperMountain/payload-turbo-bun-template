@@ -10,7 +10,6 @@ const base = {
   workspace: 'ws-1',
   budget: 'budget-1',
   date: '2026-07-01T12:00:00.000Z',
-  payee: null as string | null,
   type: 'transaction' as const,
   status: 'pending' as const,
   source: 'manual' as const,
@@ -26,7 +25,7 @@ describe('matchTransactions', () => {
   })
 
   it('keeps the manual row and absorbs the import row', () => {
-    const manual = { ...base, id: 'manual-1', payee: 'Coffee' }
+    const manual = { ...base, id: 'manual-1' }
     const imported = {
       ...base,
       id: 'import-1',
@@ -34,9 +33,8 @@ describe('matchTransactions', () => {
       externalId: 'plaid:txn-1',
       importBatch: 'batch-a',
       date: '2026-07-02T12:00:00.000Z',
-      payee: 'STARBUCKS',
       status: 'posted' as const,
-      entries: [{ account: 'acct', amount: -5 }],
+      entries: [{ account: 'acct', amount: -5, payee: 'STARBUCKS' }],
     }
 
     const { keep, absorb } = resolveMatchPair(imported, manual)
@@ -48,13 +46,13 @@ describe('matchTransactions', () => {
     expect(patch.externalId).toBe('plaid:txn-1')
     expect(patch.importBatch).toBe('batch-a')
     expect(patch.date).toBe(imported.date)
-    expect(patch.payee).toBe('Coffee')
     expect(patch.status).toBe('posted')
     expect(patch.entries).toEqual([
       {
         account: 'acct',
         amount: -5,
         category: undefined,
+        payee: 'STARBUCKS',
         notes: undefined,
         sortOrder: 0,
         fxRate: undefined,

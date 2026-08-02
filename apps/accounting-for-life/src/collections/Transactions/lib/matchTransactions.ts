@@ -13,7 +13,6 @@ export type MatchCandidate = Pick<
   | 'workspace'
   | 'budget'
   | 'date'
-  | 'payee'
   | 'type'
   | 'status'
   | 'source'
@@ -79,7 +78,6 @@ export function resolveMatchPair(
 
 export type MatchMergePatch = {
   date?: string
-  payee?: string | null
   source: 'manual' | 'import'
   status?: 'pending' | 'posted'
   externalId?: string | null
@@ -103,15 +101,13 @@ function entryInputsFromCandidate(transaction: MatchCandidate): TransactionEntry
 }
 
 /**
- * Build the survivor update: prefer manual categorization/payee/entry notes; take import
+ * Build the survivor update: keep the manual legs (payees live on them); take import
  * identity + bank date; adopt absorb legs only when keep is still pending.
  */
 export function buildMatchMergePatch(
   keep: MatchCandidate,
   absorb: MatchCandidate,
 ): MatchMergePatch {
-  const keepPayee = keep.payee?.trim() || null
-  const absorbPayee = absorb.payee?.trim() || null
   const keepNotes = bubbledEntryNotes(entryInputsFromCandidate(keep))
   const absorbNotes = bubbledEntryNotes(entryInputsFromCandidate(absorb))
   const preferredNotes = keepNotes ?? absorbNotes
@@ -121,7 +117,6 @@ export function buildMatchMergePatch(
     externalId: keep.externalId?.trim() || absorb.externalId?.trim() || null,
     importBatch: keep.importBatch?.trim() || absorb.importBatch?.trim() || null,
     date: absorb.date,
-    payee: keepPayee ?? absorbPayee,
   }
 
   if (keep.status !== 'posted' && absorb.status === 'posted') {

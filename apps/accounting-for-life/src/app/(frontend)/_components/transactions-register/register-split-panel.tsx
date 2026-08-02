@@ -24,7 +24,6 @@ import {
   toPayeeTransferId,
 } from '@/lib/frontend/transaction-payee'
 import {
-  headerPayeeFromAllocateSplits,
   normalizeSplitFormFromEntries,
   splitIsTransfer,
   splitsToEntries,
@@ -60,12 +59,6 @@ function formatSignedAmount(
   if (amount < 0) return `−${formatted}`
   if (amount > 0) return `+${formatted}`
   return formatted
-}
-
-function headerMerchantPayee(transaction: Transaction): string {
-  const header = transaction.payee?.trim()
-  if (!header || isPayeeTransferId(header)) return ''
-  return header
 }
 
 function SwapSummarySide(props: {
@@ -116,7 +109,6 @@ export function RegisterSplitPanel(props: RegisterSplitPanelProps) {
   const entries = transactionEntries(transaction)
   const unitsById = useMemo(() => unitsByIdFromDocs(units), [units])
   const budgetId = getCollectionId(transaction.budget) ?? undefined
-  const headerPayee = headerMerchantPayee(transaction)
 
   const legs = useMemo(() => entriesToSwapLegs(entries), [entries])
   const pair = useMemo(() => detectSwapPairFromLegs(legs, accounts), [legs, accounts])
@@ -132,10 +124,9 @@ export function RegisterSplitPanel(props: RegisterSplitPanelProps) {
     category: string
   }): string => {
     if (leg.payee.trim()) return leg.payee.trim()
-    if (leg.category && headerPayee) return headerPayee
     const account = findAccount(accounts, leg.account)
     // Never surface system Income/Expense chart accounts as "Transfer: …".
-    if (isSystemPnlAccount(account)) return headerPayee || ''
+    if (isSystemPnlAccount(account)) return ''
     if (leg.account) return toPayeeTransferId(leg.account)
     return ''
   }
@@ -176,7 +167,7 @@ export function RegisterSplitPanel(props: RegisterSplitPanelProps) {
         if (!categoryId) {
           return { ...line, category: undefined }
         }
-        const payee = line.payee?.trim() || headerPayee || undefined
+        const payee = line.payee?.trim() || undefined
         return {
           ...line,
           category: categoryId,
@@ -199,11 +190,9 @@ export function RegisterSplitPanel(props: RegisterSplitPanelProps) {
           accounts,
           budgetId: getCollectionId(transaction.budget),
         })
-        const synced = headerPayeeFromAllocateSplits(splits)
         const result = await updateTransactionAction({
           id: transaction.id,
           entries: nextEntries,
-          ...(synced !== undefined ? { payee: synced } : {}),
         })
         if (result.ok) router.refresh()
       } catch {

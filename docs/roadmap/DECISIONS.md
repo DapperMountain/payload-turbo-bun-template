@@ -2,6 +2,14 @@
 
 Decisions captured during initial planning (July 2026).
 
+## Greenfield — no legacy compatibility
+
+This product is built **from the ground up**. There is no production user base or external schema contract to preserve.
+
+- Do **not** keep deprecated fields, dual-write caches, “legacy OR” query paths, or compatibility shims “just in case.”
+- When a model is wrong, **change it**: drop columns, rewrite seed/migrations for the new shape, update call sites in the same change.
+- Prefer deleting old code and docs over leaving `// legacy` branches. Idempotent migrations may still guard “column already gone” for local DBs that were push-migrated — that is not a product compatibility layer.
+
 ## Tenancy & budgets
 
 - **Workspace = household** (Payload multi-tenant plugin; collection slug `workspaces`).
@@ -21,7 +29,7 @@ Decisions captured during initial planning (July 2026).
 ## Ledger & budgeting
 
 - **Double-entry ledger** is the foundation; budgeting is a **separate module** that reads ledger state (supports both YNAB-style envelopes and Monarch-style cash-flow views later).
-- **Classical posting:** Categorized spends/income post as **cash/liability leg + system Income/Expense chart account leg**. Categories remain **envelope tags** on the P&L leg (not 1:1 chart accounts). Payees are metadata (header and/or entry), never balancing accounts. **Same-account payment + category-offset twins are rejected** — they cancel in `sumPostedAccountBalance` and are not how YNAB stores data. YNAB influences UX (transfers skip category, envelopes), not twin Checking legs.
+- **Classical posting:** Categorized spends/income post as **cash/liability leg + system Income/Expense chart account leg**. Categories remain **envelope tags** on the P&L leg (not 1:1 chart accounts). Payees are **entry-line metadata only** (`transaction-entries.payee`), never balancing accounts and never a transaction header field. **Same-account payment + category-offset twins are rejected** — they cancel in `sumPostedAccountBalance` and are not how YNAB stores data. YNAB influences UX (transfers skip category, envelopes), not twin Checking legs.
 - Per budget, seed thin system accounts **Budget expenses** / **Budget income** (`classification` expense/income, `isSystemDefault`) — hidden from normal payment/transfer pickers.
 - **Default currency per account** (`accounts.unit`); workspace **`reportingCurrency`** for portfolio / budget numeraire.
 - **Transaction quote unit** (`transactions.quoteUnit`, optional): valuation frame for rates and balance; defaults to workspace reporting currency when omitted.
@@ -35,14 +43,15 @@ Decisions captured during initial planning (July 2026).
 |------------|---------|------------|
 | `units` | Workspace currency registry (`code`, `kind`: fiat/crypto/custom, `decimalPlaces`) | No |
 | `accounts` | Chart accounts: `classification`, `subtype`, `unit`, `budget`, `visibility`, optional `isSystemDefault` (thin P&L), optional `category` (credit cards only) | Yes (50) |
-| `transactions` | Header: `date`, `payee`, `type`, `status`, `budget`, `source`, `externalId`, `importBatch`, optional `quoteUnit` / `quoteToReportingRate` | Yes (50) |
+| `transactions` | Header: `date`, `type`, `status`, `budget`, `source`, `externalId`, `importBatch`, optional `quoteUnit` / `quoteToReportingRate` (**no `payee`** — see below) | Yes (50) |
 | `transaction-entries` | Legs: `account`, signed `amount`, `unit`, optional `category`, `payee` (merchant), `notes`, `fxRate` (to quote), `reportingAmount` | No |
 | `workspaces` | Household + optional `reportingCurrency` → `units` | No |
 
 - **Balances:** Computed from posted `transaction-entries` (Σ signed amounts). Accounts list and account-register running balance use the same helper — not stored on the account document.
-- **Entry types:** `transaction`, `transfer`, `adjustment`, `opening_balance`. **Status:** `draft`, `posted`, `void`.
+- **Line-only payee (Aug 2026):** `transactions.payee` is **dropped** (migration `20260802_drop_transaction_payee`); merchants live on `transaction-entries.payee` and transfers are expressed by the two accounts. No derived header cache: register labels, dialog titles, filters, and payee autocomplete all read entry payees. Admin `useAsTitle` is `date`.
+- **Entry types:** `transaction`, `transfer`, `adjustment`, `opening_balance`. **Status:** `pending`, `posted` (consumer). Consumer UI does **not** pick type — `transfer` vs `transaction` is derived from the legs (wallet↔wallet accounts vs any merchant/category/P&L leg). `adjustment` / `opening_balance` remain schema values for seed/account-setup, not create-dialog choices.
 - **Economic kind (display):** Derived from legs for register/detail badges (`spend` / `earn` / `transfer` / `withdraw`/`deposit` with account viewpoint). Cash↔holding is ambiguous (`buy`/`sell`/`transfer`) — optional `transactions.economicKind` stores the user’s confirmation.
-- **Transfers / swaps:** `type: transfer` (account↔account) or `transaction` (involves a merchant/DEX payee), one **transaction header** with balanced legs (Model A). Asset ↔ asset pair legs: no categories (MVP). Swaps may add fee/other lines with their own payees. Register shows **one row per header**; account registers still show the viewpoint leg. A second header per account (Model B) is out of scope until import/register UX requires it.
+- **Transfers / swaps:** `type: transfer` (account↔account) or `transaction` (any leg carries a merchant/DEX payee or category), one **transaction header** with balanced legs (Model A). Two-leg wallet transfers (any units) use the **payment** body (YNAB single line: account payee, category disabled) — not the 2-line exchange editor. Fee / N-leg books use **journal** (or “Edit as journal”). Asset ↔ asset pair legs: no categories (MVP). Give/receive sides pick a **wallet account** plus an optional **merchant-only** payee (no transfer options, no self-transfer); swaps may add fee/other lines with their own payees. Register shows **one row per header**; account registers still show the viewpoint leg. A second header per account (Model B) is out of scope until import/register UX requires it.
 - **Credit cards:** `subtype: credit_card` auto-creates a `credit_card_payments` group + `credit_card_payment` category on account create.
 
 ## Categories & category groups
@@ -71,7 +80,7 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 
 - **Swap engine** in transaction core — crypto XRP→XLM, barter, fees as legs of one journal entry.
 - Not limited to cryptocurrency; custom currencies (hours, marbles) are first-class.
-- **Posting (US-5.1):** N legs via virtual `entries`; mixed-unit balance from amounts (reporting valuation may be deferred). Consumer UI: one dialog with **payment** / **exchange** / **journal** — no Swap tab. **Swap** is transfer-like (account↔account, account↔payee, or payee↔payee) with a grouped give/receive UI, one shared note, and optional **other lines** for fees/third-party payees (same editor as journal escape). Fees post as cash + system expense (category tag), not same-account twins. **Allocate splits** stay on the payment body with **payee per line** (YNAB-style UX). Give/receive legs have **no category**; fee/other lines may carry category and **per-line `payee`**. Posted `type: transaction` requires a merchant `payee` on every categorized entry (header alone insufficient); allocate/swap editor lines need merchant or account/transfer. Transfers use destination accounts. Exchange/swap+fee books keep a header counterparty (e.g. Kraken); a fee-line-only merchant is not promoted to the header, but an existing header is not cleared. Register payee column shows entry merchants when present, otherwise the header. Persists as `type: transaction` or `transfer`.
+- **Posting (US-5.1):** N legs via virtual `entries`; mixed-unit balance from amounts (reporting valuation may be deferred). Consumer UI: one dialog with **payment** / **exchange** / **journal** — no Swap tab. **Swap** is transfer-like (account↔account, each side optionally tagged with a merchant) with a grouped give/receive UI, one shared note, and optional **other lines** for fees/third-party payees (same editor as journal escape). Fees post as cash + system expense (category tag), not same-account twins. **Allocate splits** stay on the payment body with **payee per line** (YNAB-style UX). Give/receive legs have **no category**; fee/other lines may carry category and **per-line `payee`**. Posted `type: transaction` requires a merchant `payee` on every categorized entry; allocate/swap editor lines need merchant or account/transfer. Transfers use destination accounts. Exchange/DEX names live on the give/receive leg that carries them — there is **no header payee** to sync or clear. Register payee column joins entry merchants (`A · B`) and is blank for pure transfers. Persists as `type: transaction` or `transfer`.
 
 ## Business & tax
 
@@ -85,7 +94,7 @@ Reference: [Handling Credit Cards in YNAB](https://support.ynab.com/en_us/handli
 - **SimpleFIN** first (existing subscription).
 - Geography not artificially limited at schema level.
 - **Import foothold (US-6.2):** `transactions.source` (`manual` \| `import`), optional `externalId` (unique per workspace when set), optional `importBatch`.
-- **Match/merge (US-6.1):** Pair one `source: manual` + one `source: import` row; keep manual (categorization / payee / notes), take import identity + bank date, delete the import row. Exposed as `POST /api/transactions/match`.
+- **Match/merge (US-6.1):** Pair one `source: manual` + one `source: import` row; keep manual legs (categorization / entry payees / notes), take import identity + bank date, delete the import row. Exposed as `POST /api/transactions/match`.
 
 ## Asset valuation
 

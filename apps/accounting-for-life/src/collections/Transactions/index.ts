@@ -18,7 +18,7 @@ const Transactions: CollectionConfig = {
   },
   admin: {
     group: custom.adminGroups.ledger,
-    useAsTitle: 'payee',
+    useAsTitle: 'date',
     defaultColumns: ['date', 'type', 'status', 'budget', 'workspace'],
     description: custom.collections.transactions.description,
   },
@@ -39,13 +39,6 @@ const Transactions: CollectionConfig = {
         date: {
           pickerAppearance: 'dayAndTime',
         },
-      },
-    },
-    {
-      name: 'payee',
-      type: 'textarea',
-      admin: {
-        description: custom.fields.transactions.payeeDescription,
       },
     },
     {

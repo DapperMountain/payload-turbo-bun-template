@@ -140,8 +140,13 @@ export function fieldConditionToWhere(
   return { [field]: { [operator]: scalar } }
 }
 
+/** Fields resolved against `transaction-entries` instead of the transaction row. */
+export function isEntryFilterField(field: string): boolean {
+  return field.startsWith('entries.')
+}
+
 export function clauseToWhere(clause: FilterClause): Where | null {
-  if (clause.field.startsWith('entries.')) {
+  if (isEntryFilterField(clause.field)) {
     return null
   }
 
@@ -199,7 +204,7 @@ export function splitEntryClauses(clauses: FilterClause[]): {
   const entryClauses: FilterClause[] = []
 
   for (const clause of clauses) {
-    if (clause.field.startsWith('entries.')) {
+    if (isEntryFilterField(clause.field)) {
       entryClauses.push(clause)
     } else {
       headerClauses.push(clause)

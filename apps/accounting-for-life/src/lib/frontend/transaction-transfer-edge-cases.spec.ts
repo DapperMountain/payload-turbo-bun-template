@@ -99,7 +99,7 @@ const units: Unit[] = [
 ]
 
 describe('transfer edge cases — classification rules', () => {
-  it('keeps asymmetric XRP→XLM on the exchange form', () => {
+  it('uses payment layout for asymmetric XRP→XLM (YNAB single-line)', () => {
     const entries = [
       { account: 'xrp-wallet', amount: -100, category: null, fxRate: 0.5 },
       { account: 'xlm-wallet', amount: 200, category: null, fxRate: 0.25 },
@@ -114,7 +114,7 @@ describe('transfer edge cases — classification rules', () => {
         accounts,
         reportingCurrencyId: usd,
       }),
-    ).toBe('exchange')
+    ).toBe('payment')
     expect(
       shouldExpandTransactionLines({
         entries,
@@ -129,7 +129,7 @@ describe('transfer edge cases — classification rules', () => {
     expect(transferUnitsDiffer(form, accounts)).toBe(true)
   })
 
-  it('uses exchange layout for BTC→checking (not journal)', () => {
+  it('uses payment layout for BTC→checking (not journal or exchange)', () => {
     const entries = [
       { account: 'btc-wallet', amount: -0.01, category: null, fxRate: 50_000 },
       { account: 'checking', amount: 500, category: null, fxRate: 1 },
@@ -143,7 +143,7 @@ describe('transfer edge cases — classification rules', () => {
         accounts,
         reportingCurrencyId: usd,
       }),
-    ).toBe('exchange')
+    ).toBe('payment')
     expect(
       shouldExpandTransactionLines({
         entries,
@@ -170,7 +170,7 @@ describe('transfer edge cases — classification rules', () => {
     ).toBe(true)
   })
 
-  it('keeps asymmetric same-unit legs on the exchange form', () => {
+  it('uses payment layout for asymmetric same-unit legs (YNAB single-line)', () => {
     const entries = [
       { account: 'checking', amount: -100, category: null, fxRate: null },
       { account: 'savings', amount: 95, category: null, fxRate: null },
@@ -183,7 +183,7 @@ describe('transfer edge cases — classification rules', () => {
         accounts,
         reportingCurrencyId: usd,
       }),
-    ).toBe('exchange')
+    ).toBe('payment')
     expect(
       shouldExpandTransactionLines({
         entries,

@@ -16,9 +16,9 @@ function transferTransaction(): Transaction {
     id: 'tx-transfer',
     budget: 'budget-a',
     date: '2026-07-12T20:00:00.000Z',
-    payee: null,
     type: 'transfer',
     status: 'posted',
+    source: 'manual',
     entries: [
       {
         id: 'e1',
@@ -99,14 +99,14 @@ describe('register rows from transactions', () => {
     ).toBe(true)
   })
 
-  it('derives register payee from entry merchants before header', () => {
+  it('derives register payee from entry merchants', () => {
     const atm: Transaction = {
       id: 'tx-atm',
       budget: 'budget-a',
       date: '2026-08-01T16:00:00.000Z',
-      payee: null,
       type: 'transaction',
       status: 'posted',
+      source: 'manual',
       entries: [
         { id: 'e1', account: 'checking', amount: -105, sortOrder: 0 },
         { id: 'e2', account: 'cash', amount: 100, sortOrder: 1 },
@@ -129,7 +129,6 @@ describe('register rows from transactions', () => {
     const multi: Transaction = {
       ...atm,
       id: 'tx-multi',
-      payee: 'Header',
       entries: [
         { id: 'e1', account: 'checking', amount: -100, sortOrder: 0 },
         {
@@ -152,16 +151,15 @@ describe('register rows from transactions', () => {
     }
     expect(registerPayeeLabel(multi)).toBe('Store A · Store B')
 
-    const headerOnly: Transaction = {
+    const noMerchant: Transaction = {
       ...atm,
-      id: 'tx-header',
-      payee: 'Kraken',
+      id: 'tx-no-merchant',
       entries: [
         { id: 'e1', account: 'xrp', amount: -100, sortOrder: 0 },
         { id: 'e2', account: 'xlm', amount: 200, sortOrder: 1 },
       ],
     }
-    expect(registerPayeeLabel(headerOnly)).toBe('Kraken')
+    expect(registerPayeeLabel(noMerchant)).toBeNull()
   })
 
   it('shows the exchange header on multi-account swap+fee journals', () => {
@@ -169,9 +167,9 @@ describe('register rows from transactions', () => {
       id: 'tx-kraken',
       budget: 'budget-a',
       date: '2026-07-09T20:00:00.000Z',
-      payee: 'Kraken',
       type: 'transaction',
       status: 'posted',
+      source: 'manual',
       entries: [
         { id: 'e1', account: 'xrp', amount: -100, fxRate: 0.5, sortOrder: 0 },
         { id: 'e2', account: 'xlm', amount: 200, fxRate: 0.25, sortOrder: 1 },
@@ -207,9 +205,9 @@ describe('register rows from transactions', () => {
       id: 'tx-income',
       budget: 'budget-a',
       date: '2026-07-12T20:00:00.000Z',
-      payee: 'Arlo Jack',
       type: 'transaction',
       status: 'posted',
+      source: 'manual',
       entries: [
         { id: 'e1', account: 'checking', amount: 25, sortOrder: 0 },
         {
@@ -240,7 +238,6 @@ describe('register rows from transactions', () => {
       id: 'tx-income-scoped',
       budget: 'budget-a',
       date: '2026-07-12T20:00:00.000Z',
-      payee: 'Arlo Jack',
       type: 'transaction',
       status: 'posted',
       source: 'manual',

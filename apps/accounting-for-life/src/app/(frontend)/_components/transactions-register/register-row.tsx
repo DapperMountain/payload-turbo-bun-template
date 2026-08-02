@@ -319,13 +319,11 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
     row.status,
     transaction.id,
     transaction.updatedAt,
-    transaction.payee,
     transaction.notes,
     transaction.type,
   ])
 
   const saveField = (patch: {
-    payee?: string | null
     payeeValue?: string
     categoryId?: string | null
     accountId?: string
@@ -365,7 +363,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               accounts,
               budgetId: row.budgetId,
               categoryPurpose: categories.find((category) => category.id === category)?.purpose,
-              headerPayee: nextPayee,
+              merchantPayee: nextPayee,
             })
           }
         }
@@ -376,8 +374,8 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             setRowError(t('custom:frontend:transactions:editSplitsInline'))
             return
           }
-          const headerMerchant = merchantPayeeFromValue(payeeValue)
-          if (!headerMerchant) {
+          const merchant = merchantPayeeFromValue(payeeValue)
+          if (!merchant) {
             setRowError(t('custom:frontend:transactions:payeeRequired'))
             return
           }
@@ -387,7 +385,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             budgetId: row.budgetId,
             categoryPurpose: categories.find((category) => category.id === patch.categoryId)
               ?.purpose,
-            headerPayee: headerMerchant,
+            merchantPayee: merchant,
           })
         } else if (patch.accountId !== undefined || patch.amount !== undefined) {
           const storedLines = entriesFromTransaction(transaction)
@@ -426,28 +424,13 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               accounts,
               budgetId: row.budgetId,
               categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
-              headerPayee: merchantPayeeFromValue(payeeValue),
+              merchantPayee: merchantPayeeFromValue(payeeValue),
             })
           }
         }
 
-        const clearingTransferPayee =
-          isTransfer ||
-          (patch.payeeValue !== undefined && isPayeeTransferId(patch.payeeValue)) ||
-          (row.type === 'transfer' && Boolean(transaction.payee))
-
         const result = await updateTransactionAction({
           id: row.transactionId,
-          payee:
-            patch.payeeValue !== undefined
-              ? isPayeeTransferId(patch.payeeValue)
-                ? null
-                : patch.payeeValue || null
-              : clearingTransferPayee && entriesPayload
-                ? null
-                : patch.payee !== undefined
-                  ? patch.payee
-                  : undefined,
           status: patch.status,
           type:
             patch.payeeValue !== undefined &&
@@ -568,7 +551,18 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         // Split / journal rows: category label (if any) + expand via the split icon.
         if (isSplitTransaction && canInlineEditLines) {
           if (!row.categoryLabel) {
-            return withSplitIcon(null)
+            return withSplitIcon(
+              <button
+                className="h-7 max-w-[14rem] truncate text-left text-sm text-muted-foreground hover:underline"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  toggleSplitsExpanded()
+                }}
+                type="button"
+              >
+                {t('custom:frontend:transactions:categorySeeLines')}
+              </button>,
+            )
           }
 
           return withSplitIcon(
@@ -591,7 +585,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               appearance="plain"
               className="h-7 w-auto min-w-[6rem] max-w-[14rem]"
               disabled={isPending}
-              emptyLabel="—"
+              emptyLabel={t('custom:frontend:transactions:categoryNone')}
               emptyValue="__none__"
               onValueChange={(value) => {
                 const next = value === '__none__' ? '' : value
@@ -610,14 +604,16 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
         if (!row.categoryLabel && isSplitTransaction) {
           return withSplitIcon(
-            <span className="sr-only">
-              {t('custom:frontend:transactions:splitTransactionIcon')}
+            <span className="truncate text-sm text-muted-foreground">
+              {t('custom:frontend:transactions:categorySeeLines')}
             </span>,
           )
         }
 
         return withSplitIcon(
-          <span className="text-muted-foreground">{row.categoryLabel ?? '—'}</span>,
+          <span className="text-muted-foreground">
+            {row.categoryLabel ?? t('custom:frontend:transactions:categoryNone')}
+          </span>,
         )
 
       case 'account':
@@ -735,11 +731,16 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
           <div className="flex items-center justify-end gap-1">
             <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
               {hasNotes ? (
-                <StickyNote
+                <span
                   aria-label={notesText}
-                  className="size-3.5 text-muted-foreground"
+                  className="inline-flex"
                   title={notesText}
-                />
+                >
+                  <StickyNote
+                    aria-hidden
+                    className="size-3.5 text-muted-foreground"
+                  />
+                </span>
               ) : null}
             </span>
             {amountControl}

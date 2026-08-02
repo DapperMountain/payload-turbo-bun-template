@@ -38,6 +38,8 @@ export type PayeePickerProps = {
    */
   amountDirection?: AmountDirection | null
   payeeOptions?: string[]
+  /** Merchant-only mode (swap sides pick the account separately) when false. */
+  allowTransfers?: boolean
   value: string
   /** Live draft while typing in search (optional — use for form state). */
   onValueChange?: (value: string) => void
@@ -59,6 +61,7 @@ export function PayeePicker(props: PayeePickerProps) {
     transaction,
     amountDirection,
     payeeOptions = [],
+    allowTransfers = true,
     value,
     onValueChange,
     onCommit,
@@ -82,8 +85,11 @@ export function PayeePicker(props: PayeePickerProps) {
   )
 
   const transferOptions = useMemo(
-    () => buildPayeeTransferOptions(accounts, labels, budgetId, sourceAccountId),
-    [accounts, budgetId, labels, sourceAccountId],
+    () =>
+      allowTransfers
+        ? buildPayeeTransferOptions(accounts, labels, budgetId, sourceAccountId)
+        : [],
+    [accounts, allowTransfers, budgetId, labels, sourceAccountId],
   )
 
   const merchantOptions = useMemo(

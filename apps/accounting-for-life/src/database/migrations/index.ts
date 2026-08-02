@@ -35,6 +35,10 @@ import {
   down as downAccountIsSystemDefault,
   up as upAccountIsSystemDefault,
 } from './20260801_account_is_system_default'
+import {
+  down as downDropTransactionPayee,
+  up as upDropTransactionPayee,
+} from './20260802_drop_transaction_payee'
 
 export const migrations = [
   {
@@ -101,5 +105,10 @@ export const migrations = [
     down: downAccountIsSystemDefault,
     name: '20260801_account_is_system_default',
     up: upAccountIsSystemDefault,
+  },
+  {
+    down: downDropTransactionPayee,
+    name: '20260802_drop_transaction_payee',
+    up: upDropTransactionPayee,
   },
 ]

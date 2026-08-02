@@ -1,6 +1,6 @@
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
 import { isSystemPnlAccount } from '@/lib/frontend/system-pnl-accounts'
-import { transactionEntries } from '@/lib/frontend/transactions.display'
+import { merchantPayeesFromEntries, transactionEntries } from '@/lib/frontend/transactions.display'
 import { splitFormFromEntries } from '@/lib/frontend/transaction-splits'
 import type { AmountDirection } from '@/lib/frontend/transaction-amount-direction'
 import type { Account, Category, Transaction } from '@/types'
@@ -179,7 +179,7 @@ export type TransferPayeePresentation = TransferAccountPair & {
 export function resolveTransferPair(
   accounts: Account[],
   options: {
-    transaction?: Pick<Transaction, 'entries' | 'entryJoin' | 'type' | 'payee'> | null
+    transaction?: Pick<Transaction, 'entries' | 'entryJoin' | 'type'> | null
     payeeValue?: string
     paymentAccountId?: string | null
   },
@@ -260,24 +260,35 @@ export function transferPayeePresentation(
   return { source, destination, mode, isPayment }
 }
 
+/**
+ * Payee picker value for a stored transaction — derived from entries only.
+ * Prefers an entry merchant; otherwise synthesizes `__transfer__:dest` from the
+ * reverse-projected two-leg wallet book (works for `type: transfer` and for
+ * wallet↔wallet books still typed as `transaction`).
+ */
 export function payeeValueFromTransaction(transaction: Transaction): string {
-  if (transaction.type !== 'transfer') {
-    return transaction.payee ?? ''
-  }
+  const entries = transactionEntries(transaction)
+  const merchant = merchantPayeesFromEntries(entries)[0]
+  if (merchant) return merchant
 
-  const form = splitFormFromEntries(transactionEntries(transaction))
+  const form = splitFormFromEntries(entries)
   const transfer = form.splits.find((split) => isPayeeTransferId(split.payee))
-
-  if (transfer?.payee) {
-    return transfer.payee
-  }
-
-  return transaction.payee ?? ''
+  return transfer?.payee ?? ''
 }
 
 export function transferDestinationFromPayee(payeeValue: string): string | null {
   if (!isPayeeTransferId(payeeValue)) return null
   return payeeTransferAccountId(payeeValue)
+}
+
+/** True when payee is a transfer to the same account as the payment/source account. */
+export function isTransferToSameAccount(
+  paymentAccountId: string | null | undefined,
+  payeeValue: string,
+): boolean {
+  if (!paymentAccountId) return false
+  const destinationId = transferDestinationFromPayee(payeeValue)
+  return Boolean(destinationId && destinationId === paymentAccountId)
 }
 
 type PayeeSplitLike = { payee: string }

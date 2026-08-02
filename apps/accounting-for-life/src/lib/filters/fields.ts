@@ -60,7 +60,7 @@ export const transactionFilterFields: FilterFieldDefinition[] = [
     ],
   },
   {
-    id: 'payee',
+    id: 'entries.payee',
     labelKey: 'custom:frontend:filters:fields:payee',
     type: 'text',
   },

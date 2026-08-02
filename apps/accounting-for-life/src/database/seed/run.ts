@@ -18,7 +18,7 @@ const USAGE = `Usage: bun run db:seed <users|workspaces|budgets|categories|ledge
   categories       Seed category groups + categories for budgets missing them
   ledger           Units (USD/XRP/XLM/BTC/SEASHELLS), wallets, sample transfer + swap demos (Demo Household)
   all              users → workspaces → budgets → ledger → rewrite-posting (full dev dataset after db:push)
-  repair           Remove duplicate budgets / groups / categories from prior seed races
+  repair           Remove duplicate budgets / groups / categories / demo ledger samples
   rewrite-posting  Convert same-account category twins → cash + system P&L legs
 
 Examples:

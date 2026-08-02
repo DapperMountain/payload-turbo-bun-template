@@ -387,7 +387,7 @@ export function entriesToSwapLegs(
   )
 }
 
-/** Unique merchant payees on journal legs (for header sync / register). */
+/** Unique merchant payees on journal legs (dialog title / register label). */
 export function merchantPayeesFromSwapLegs(legs: SwapLegDraft[]): string[] {
   const names = new Set<string>()
   for (const leg of legs) {
@@ -397,46 +397,11 @@ export function merchantPayeesFromSwapLegs(legs: SwapLegDraft[]): string[] {
   return [...names]
 }
 
-/**
- * Soft header payee sync from journal/swap legs.
- * Multiple distinct merchants → clear the header (`null`). A merchant only on
- * fee/other lines is not promoted — return `undefined` so an existing exchange
- * header (e.g. Kraken) is left alone.
- */
-export function headerPayeeFromSwapLegs(
-  legs: SwapLegDraft[],
-  accounts?: Account[],
-): string | null | undefined {
-  const merchants = merchantPayeesFromSwapLegs(legs)
-  if (merchants.length > 1) return null
-  if (merchants.length === 0) return undefined
-
-  if (accounts) {
-    const pair = detectSwapPairFromLegs(legs, accounts)
-    if (pair && pair.otherIndexes.length > 0) {
-      const pairMerchants = new Set<string>()
-      for (const index of [pair.giveIndex, pair.receiveIndex]) {
-        const name = legs[index]?.payee.trim()
-        if (name) pairMerchants.add(name)
-      }
-      // Fee/other-line-only merchant — do not promote or clear the header.
-      if (pairMerchants.size === 0) return undefined
-    }
-  }
-
-  return merchants[0]!
-}
-
+/** Any merchant, category, or P&L leg makes the book a transaction; pure wallet legs transfer. */
 export function resolveTypeFromSwapLegs(
   legs: SwapLegDraft[],
   accounts: Account[],
-  /** Header payee — external names (DEX/exchange) force `transaction`, not `transfer`. */
-  payeeValue?: string | null,
 ): Extract<Transaction['type'], 'transaction' | 'transfer'> {
-  if (typeof payeeValue === 'string' && payeeValue.trim() !== '' && !isPayeeTransferId(payeeValue)) {
-    return 'transaction'
-  }
-
   for (const leg of legs) {
     if (leg.category || leg.payee.trim()) return 'transaction'
     const account = findAccount(accounts, leg.account)
@@ -614,9 +579,15 @@ export function detectSwapPairFromLegs(
   }
 }
 
-/** Two opposite-signed account legs with no categories — a wallet transfer (any units). */
+/**
+ * Two opposite-signed account legs with no categories and no merchants — a pure
+ * wallet transfer (any units). An entry merchant makes it a transaction (e.g. sell
+ * to a DEX), not a transfer for register/editor UX.
+ */
 export function isWalletTransferEntries(
-  entries: Array<Pick<TransactionEntry, 'account' | 'amount' | 'category' | 'fxRate'>>,
+  entries: Array<
+    Pick<TransactionEntry, 'account' | 'amount' | 'category' | 'fxRate' | 'payee'>
+  >,
 ): boolean {
   if (entries.length !== 2) return false
 
@@ -625,6 +596,12 @@ export function isWalletTransferEntries(
   if (!first || !second) return false
 
   if (getCollectionId(first.category) || getCollectionId(second.category)) return false
+
+  const merchantOnLeg = (payee: string | null | undefined) => {
+    const name = payee?.trim()
+    return Boolean(name && !isPayeeTransferId(name))
+  }
+  if (merchantOnLeg(first.payee) || merchantOnLeg(second.payee)) return false
 
   const accountA = getCollectionId(first.account)
   const accountB = getCollectionId(second.account)

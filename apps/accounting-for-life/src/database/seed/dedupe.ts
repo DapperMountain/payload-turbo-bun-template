@@ -2,6 +2,8 @@ import type { Payload } from 'payload'
 
 import { getCollectionId } from '@/utils'
 
+import { repairLedgerSampleDuplicates } from './ledger'
+
 async function deleteCategoriesForGroup(payload: Payload, groupId: string): Promise<void> {
   const categories = await payload.find({
     collection: 'categories',
@@ -151,7 +153,7 @@ export async function dedupeDuplicateCategoryCatalog(
 }
 
 /**
- * Repairs duplicate budgets and category catalogs across all workspaces.
+ * Repairs duplicate budgets, category catalogs, and demo ledger sample transactions.
  */
 export async function repairSeedDuplicates(payload: Payload): Promise<void> {
   await dedupeDuplicateBudgets(payload)
@@ -165,4 +167,6 @@ export async function repairSeedDuplicates(payload: Payload): Promise<void> {
   for (const budget of budgets.docs) {
     await dedupeDuplicateCategoryCatalog(payload, budget.id)
   }
+
+  await repairLedgerSampleDuplicates(payload)
 }

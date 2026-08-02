@@ -9,18 +9,11 @@ import {
 } from '@/lib/frontend/system-pnl-accounts'
 import { getCollectionId } from '@/utils'
 
-function headerMerchantPayee(payee: string | null | undefined): string | undefined {
-  const trimmed = payee?.trim()
-  if (!trimmed || trimmed.startsWith('__transfer__:')) return undefined
-  return trimmed
-}
-
 /**
  * Rewrites legacy same-account payment + categorized-offset twins into classical
- * cash/liability + system Income/Expense P&L legs, and copies header merchants onto
- * categorized legs that lack an entry payee.
+ * cash/liability + system Income/Expense P&L legs.
  *
- * Safe to re-run: already-classical rows only get payee backfills when needed.
+ * Safe to re-run: already-classical rows are left untouched.
  */
 export async function rewriteSameAccountTwinsToClassicalPnl(payload: Payload): Promise<number> {
   await seedSystemPnlAccountsForBudgets(payload)
@@ -95,7 +88,6 @@ export async function rewriteSameAccountTwinsToClassicalPnl(payload: Payload): P
 
       if (entries.docs.length < 2) continue
 
-      const headerMerchant = headerMerchantPayee(transaction.payee)
       const paymentTotal = entries.docs
         .filter((entry) => !getCollectionId(entry.category))
         .reduce((sum, entry) => sum + entry.amount, 0)
@@ -143,9 +135,7 @@ export async function rewriteSameAccountTwinsToClassicalPnl(payload: Payload): P
             })
           : accountId
 
-        const payee = existingPayee ?? headerMerchant
-
-        if (pnlAccountId !== accountId || payee !== existingPayee) {
+        if (pnlAccountId !== accountId) {
           changed = true
         }
 
@@ -153,7 +143,7 @@ export async function rewriteSameAccountTwinsToClassicalPnl(payload: Payload): P
           account: pnlAccountId,
           amount: entry.amount,
           category: categoryId,
-          payee,
+          payee: existingPayee,
           notes: entry.notes ?? undefined,
           sortOrder: entry.sortOrder,
           fxRate: entry.fxRate ?? undefined,
