@@ -49,13 +49,6 @@ const Transactions: CollectionConfig = {
       },
     },
     {
-      name: 'notes',
-      type: 'textarea',
-      admin: {
-        description: custom.fields.transactions.notesDescription,
-      },
-    },
-    {
       name: 'type',
       type: 'select',
       required: true,
@@ -66,6 +59,18 @@ const Transactions: CollectionConfig = {
         { label: custom.fields.transactions.type.adjustment, value: 'adjustment' },
         { label: custom.fields.transactions.type.opening_balance, value: 'opening_balance' },
       ],
+    },
+    {
+      name: 'economicKind',
+      type: 'select',
+      options: [
+        { label: custom.fields.transactions.economicKind.buy, value: 'buy' },
+        { label: custom.fields.transactions.economicKind.sell, value: 'sell' },
+        { label: custom.fields.transactions.economicKind.transfer, value: 'transfer' },
+      ],
+      admin: {
+        description: custom.fields.transactions.economicKindDescription,
+      },
     },
     {
       name: 'status',
@@ -107,6 +112,21 @@ const Transactions: CollectionConfig = {
       },
     },
     {
+      name: 'quoteUnit',
+      type: 'relationship',
+      relationTo: 'units',
+      admin: {
+        description: custom.fields.transactions.quoteUnitDescription,
+      },
+    },
+    {
+      name: 'quoteToReportingRate',
+      type: 'number',
+      admin: {
+        description: custom.fields.transactions.quoteToReportingRateDescription,
+      },
+    },
+    {
       name: 'entries',
       type: 'array',
       virtual: true,
@@ -132,6 +152,20 @@ const Transactions: CollectionConfig = {
           name: 'category',
           type: 'relationship',
           relationTo: 'categories',
+        },
+        {
+          name: 'payee',
+          type: 'text',
+          admin: {
+            description: custom.fields.transactionEntries.payeeDescription,
+          },
+        },
+        {
+          name: 'notes',
+          type: 'textarea',
+          admin: {
+            description: custom.fields.transactionEntries.notesDescription,
+          },
         },
         {
           name: 'sortOrder',

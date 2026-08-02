@@ -36,11 +36,25 @@ const TransactionEntries: CollectionConfig = {
       relationTo: 'categories',
     },
     {
+      name: 'payee',
+      type: 'text',
+      admin: {
+        description: custom.fields.transactionEntries.payeeDescription,
+      },
+    },
+    {
       name: 'amount',
       type: 'number',
       required: true,
       admin: {
         description: custom.fields.transactionEntries.amountDescription,
+      },
+    },
+    {
+      name: 'notes',
+      type: 'textarea',
+      admin: {
+        description: custom.fields.transactionEntries.notesDescription,
       },
     },
     {

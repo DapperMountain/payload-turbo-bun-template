@@ -1,7 +1,11 @@
 import type { Transaction } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
 
-import type { TransactionEntryInput } from './entries'
+import {
+  attachSingleNoteToEntries,
+  bubbledEntryNotes,
+  type TransactionEntryInput,
+} from './entries'
 
 export type MatchCandidate = Pick<
   Transaction,
@@ -10,7 +14,6 @@ export type MatchCandidate = Pick<
   | 'budget'
   | 'date'
   | 'payee'
-  | 'notes'
   | 'type'
   | 'status'
   | 'source'
@@ -77,7 +80,6 @@ export function resolveMatchPair(
 export type MatchMergePatch = {
   date?: string
   payee?: string | null
-  notes?: string | null
   source: 'manual' | 'import'
   status?: 'pending' | 'posted'
   externalId?: string | null
@@ -93,13 +95,15 @@ function entryInputsFromCandidate(transaction: MatchCandidate): TransactionEntry
     account: getCollectionId(line.account) ?? '',
     amount: line.amount,
     category: getCollectionId(line.category),
+    payee: line.payee ?? undefined,
+    notes: line.notes ?? undefined,
     sortOrder: line.sortOrder ?? index,
     fxRate: line.fxRate,
   }))
 }
 
 /**
- * Build the survivor update: prefer manual categorization/payee/notes; take import
+ * Build the survivor update: prefer manual categorization/payee/entry notes; take import
  * identity + bank date; adopt absorb legs only when keep is still pending.
  */
 export function buildMatchMergePatch(
@@ -108,8 +112,9 @@ export function buildMatchMergePatch(
 ): MatchMergePatch {
   const keepPayee = keep.payee?.trim() || null
   const absorbPayee = absorb.payee?.trim() || null
-  const keepNotes = keep.notes?.trim() || null
-  const absorbNotes = absorb.notes?.trim() || null
+  const keepNotes = bubbledEntryNotes(entryInputsFromCandidate(keep))
+  const absorbNotes = bubbledEntryNotes(entryInputsFromCandidate(absorb))
+  const preferredNotes = keepNotes ?? absorbNotes
 
   const patch: MatchMergePatch = {
     source: 'import',
@@ -117,13 +122,14 @@ export function buildMatchMergePatch(
     importBatch: keep.importBatch?.trim() || absorb.importBatch?.trim() || null,
     date: absorb.date,
     payee: keepPayee ?? absorbPayee,
-    notes: keepNotes ?? absorbNotes,
   }
 
   if (keep.status !== 'posted' && absorb.status === 'posted') {
     const lines = entryInputsFromCandidate(absorb)
     if (lines.length) {
-      patch.entries = lines
+      patch.entries = preferredNotes
+        ? attachSingleNoteToEntries(lines, preferredNotes)
+        : lines
       patch.status = 'posted'
     }
   }

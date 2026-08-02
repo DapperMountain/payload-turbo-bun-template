@@ -26,6 +26,7 @@ export async function writeTransactionEntries(
   })
 
   const reportingUnitId = getCollectionId(workspace.reportingCurrency)
+  const quoteUnitId = getCollectionId(doc.quoteUnit)
 
   for (const [index, line] of lines.entries()) {
     const account = await req.payload.findByID({
@@ -46,8 +47,13 @@ export async function writeTransactionEntries(
       amount: line.amount,
       unitId,
       reportingUnitId,
+      quoteUnitId,
       fxRate: line.fxRate,
+      quoteToReportingRate: doc.quoteToReportingRate,
     })
+
+    const notes = line.notes?.trim() || undefined
+    const payee = line.payee?.trim() || undefined
 
     await req.payload.create({
       collection: 'transaction-entries',
@@ -57,6 +63,8 @@ export async function writeTransactionEntries(
         account: line.account,
         category: line.category ?? undefined,
         amount: line.amount,
+        ...(payee ? { payee } : {}),
+        ...(notes ? { notes } : {}),
         unit: unitId,
         sortOrder: line.sortOrder ?? index,
         reportingAmount: fx.reportingAmount,

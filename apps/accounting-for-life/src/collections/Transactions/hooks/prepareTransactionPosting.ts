@@ -9,6 +9,8 @@ import type { Transaction } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
 
 import {
+  validateEntryCompleteness,
+  validateTransactionCounterparty,
   validateTransactionLinesBalance,
   validateTransferEntries,
 } from './validateTransactionLines'
@@ -113,6 +115,35 @@ async function resolveReportingUnitId(
   return getCollectionId(workspace.reportingCurrency)
 }
 
+async function resolveQuoteUnitId(
+  req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
+  workspaceId: string,
+  quoteUnitRaw: unknown,
+): Promise<string | null> {
+  const quoteUnitId =
+    typeof quoteUnitRaw === 'string'
+      ? quoteUnitRaw
+      : quoteUnitRaw && typeof quoteUnitRaw === 'object' && 'id' in quoteUnitRaw
+        ? String((quoteUnitRaw as { id: string }).id)
+        : null
+
+  if (!quoteUnitId) return null
+
+  const unit = await req.payload.findByID({
+    collection: 'units',
+    id: quoteUnitId,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  })
+
+  if (getCollectionId(unit.workspace) !== workspaceId) {
+    throw new Error('Quote unit must belong to the transaction workspace')
+  }
+
+  return quoteUnitId
+}
+
 function stashEntries(
   req: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['req'],
   context: Parameters<CollectionBeforeChangeHook<Transaction>>[0]['context'],
@@ -129,11 +160,21 @@ async function preparePostedEntries(
   type: string,
   workspaceId: string,
   budgetId: string,
+  quoteUnitId: string | null,
+  quoteToReportingRate: number | null | undefined,
+  headerPayee: string | null | undefined,
 ): Promise<void> {
   const unitByAccountId = await loadValidatedAccountUnits(req, lines, workspaceId, budgetId)
   const reportingUnitId = await resolveReportingUnitId(req, workspaceId)
 
-  validateTransactionLinesBalance(lines, { reportingUnitId, unitByAccountId })
+  validateEntryCompleteness(lines)
+  validateTransactionCounterparty(type, headerPayee, lines)
+  validateTransactionLinesBalance(lines, {
+    reportingUnitId,
+    quoteUnitId,
+    quoteToReportingRate,
+    unitByAccountId,
+  })
   validateTransferEntries(type, lines)
   await validateEntryCategories(req, lines, budgetId, workspaceId)
 }
@@ -180,7 +221,26 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
       throw new Error('Posted transactions require workspace and budget')
     }
 
-    await preparePostedEntries(req, lines, type, workspaceId as string, budgetId as string)
+    const quoteUnitRaw = data.quoteUnit !== undefined ? data.quoteUnit : originalDoc?.quoteUnit
+    const quoteUnitId = await resolveQuoteUnitId(req, workspaceId as string, quoteUnitRaw)
+    const quoteToReportingRate =
+      data.quoteToReportingRate !== undefined
+        ? data.quoteToReportingRate
+        : originalDoc?.quoteToReportingRate
+
+    const headerPayee =
+      data.payee !== undefined ? data.payee : originalDoc?.payee
+
+    await preparePostedEntries(
+      req,
+      lines,
+      type,
+      workspaceId as string,
+      budgetId as string,
+      quoteUnitId,
+      quoteToReportingRate,
+      headerPayee,
+    )
 
     stashEntries(req, context, 'replaceEntries', lines)
 
@@ -202,7 +262,19 @@ export const prepareTransactionPosting: CollectionBeforeChangeHook<Transaction> 
     throw new Error('Posted transactions require workspace and budget')
   }
 
-  await preparePostedEntries(req, lines, type, workspaceId, budgetId)
+  const quoteUnitId = await resolveQuoteUnitId(req, workspaceId, data.quoteUnit)
+  const quoteToReportingRate = data.quoteToReportingRate
+
+  await preparePostedEntries(
+    req,
+    lines,
+    type,
+    workspaceId,
+    budgetId,
+    quoteUnitId,
+    quoteToReportingRate,
+    data.payee,
+  )
 
   stashEntries(req, context, 'entries', lines)
 

@@ -1,7 +1,7 @@
 import type { PayloadRequest } from 'payload'
 
 import { transactionDatePart } from '@/lib/frontend/transaction-datetime'
-import type { Transaction } from '@/types'
+import type { Account, Transaction } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
 
 export type CreditCardFundingLine = {
@@ -43,6 +43,42 @@ export async function adjustCreditCardPaymentFunding(
   if (!Number.isFinite(year) || !Number.isFinite(month)) return
 
   const deltas = new Map<string, number>()
+  const accountCache = new Map<string, Account>()
+
+  async function loadAccount(accountId: string): Promise<Account> {
+    const cached = accountCache.get(accountId)
+    if (cached) return cached
+    const account = await req.payload.findByID({
+      collection: 'accounts',
+      id: accountId,
+      depth: 0,
+      overrideAccess: true,
+      req,
+    })
+    accountCache.set(accountId, account)
+    return account
+  }
+
+  /**
+   * Classical DE: category sits on the system expense account; the credit-card
+   * cash/liability leg is a sibling. Legacy twins put category on the card itself.
+   */
+  async function resolveCreditCardForFunding(line: CreditCardFundingLine) {
+    if (!line.account) return null
+
+    const direct = await loadAccount(line.account)
+    if (direct.subtype === 'credit_card') return direct
+
+    const lineSign = Math.sign(Number(line.amount) || 0)
+    for (const other of lines) {
+      if (!other.account || other.account === line.account) continue
+      if (Math.sign(Number(other.amount) || 0) === lineSign) continue
+      const sibling = await loadAccount(other.account)
+      if (sibling.subtype === 'credit_card') return sibling
+    }
+
+    return null
+  }
 
   for (const line of lines) {
     const categoryId = line.category ? String(line.category) : ''
@@ -50,19 +86,6 @@ export async function adjustCreditCardPaymentFunding(
 
     const magnitude = Math.abs(Number(line.amount) || 0)
     if (magnitude === 0) continue
-
-    const account = await req.payload.findByID({
-      collection: 'accounts',
-      id: line.account,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
-
-    if (account.subtype !== 'credit_card') continue
-
-    const paymentCategoryId = getCollectionId(account.category)
-    if (!paymentCategoryId || paymentCategoryId === categoryId) continue
 
     const spendCategory = await req.payload.findByID({
       collection: 'categories',
@@ -73,6 +96,12 @@ export async function adjustCreditCardPaymentFunding(
     })
 
     if (spendCategory.purpose !== 'spending') continue
+
+    const card = await resolveCreditCardForFunding(line)
+    if (!card) continue
+
+    const paymentCategoryId = getCollectionId(card.category)
+    if (!paymentCategoryId || paymentCategoryId === categoryId) continue
 
     deltas.set(
       paymentCategoryId,

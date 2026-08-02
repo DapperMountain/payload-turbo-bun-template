@@ -218,7 +218,7 @@ export interface Workspace {
   description: string;
   domain: string;
   /**
-   * Default unit for reportingAmount / FX snapshots on journal lines.
+   * Portfolio / budget numeraire. Default quote unit for transactions and reportingAmount snapshots.
    */
   reportingCurrency?: (string | null) | Unit;
   updatedAt: string;
@@ -346,6 +346,10 @@ export interface Account {
   category?: (string | null) | Category;
   isOnBudget?: boolean | null;
   /**
+   * Thin Income/Expense chart accounts used for classical double-entry P&L legs. Hidden from payment pickers.
+   */
+  isSystemDefault?: boolean | null;
+  /**
    * Who can see this account and transactions that only touch it. Budget admins always see every account.
    */
   visibility: 'all_members' | 'admins';
@@ -368,11 +372,11 @@ export interface Transaction {
    * Payee or short title shown in the register.
    */
   payee?: string | null;
-  /**
-   * Optional note shown as a note icon in the register when set.
-   */
-  notes?: string | null;
   type: 'transaction' | 'transfer' | 'adjustment' | 'opening_balance';
+  /**
+   * Optional confirmation when a cash↔holding move could be a buy, sell, or transfer. Leave empty to derive.
+   */
+  economicKind?: ('buy' | 'sell' | 'transfer') | null;
   status: 'pending' | 'posted';
   /**
    * How this transaction entered the ledger (manual entry vs institution sync/import).
@@ -387,6 +391,14 @@ export interface Transaction {
    */
   importBatch?: string | null;
   /**
+   * Valuation unit for rates and balance on this transaction. Defaults to the workspace reporting currency.
+   */
+  quoteUnit?: (string | null) | Unit;
+  /**
+   * Reporting units per 1 quote unit when the quote differs from the workspace reporting currency.
+   */
+  quoteToReportingRate?: number | null;
+  /**
    * Balanced legs to post on create/update (not stored on the transaction document). Omit for pending headers.
    */
   entries?:
@@ -397,9 +409,17 @@ export interface Transaction {
          */
         amount: number;
         category?: (string | null) | Category;
+        /**
+         * Optional merchant for this line (e.g. ATM operator on a fee). Transfers use the destination account instead.
+         */
+        payee?: string | null;
+        /**
+         * Optional note for this line. When only one entry has a note, it shows on the register row.
+         */
+        notes?: string | null;
         sortOrder?: number | null;
         /**
-         * Optional. Reporting units per 1 account unit when the account currency differs from the workspace reporting currency.
+         * Optional. Quote units per 1 account unit when the account unit differs from the transaction quote unit.
          */
         fxRate?: number | null;
         id?: string | null;
@@ -424,17 +444,25 @@ export interface TransactionEntry {
   account: string | Account;
   category?: (string | null) | Category;
   /**
+   * Optional merchant for this line (e.g. ATM operator on a fee). Transfers use the destination account instead.
+   */
+  payee?: string | null;
+  /**
    * Signed amount in the line unit (negative = credit, positive = debit).
    */
   amount: number;
+  /**
+   * Optional note for this line. When only one entry has a note, it shows on the register row.
+   */
+  notes?: string | null;
   unit: string | Unit;
   sortOrder?: number | null;
   /**
-   * Amount in workspace reporting currency when FX applies.
+   * Amount in workspace reporting currency (via quote × quote→reporting).
    */
   reportingAmount?: number | null;
   /**
-   * Exchange rate applied for reportingAmount (reporting units per 1 account unit).
+   * Rate to the transaction quote unit (quote units per 1 account unit). Snapshot at post time.
    */
   fxRate?: number | null;
   updatedAt: string;
@@ -907,6 +935,7 @@ export interface AccountsSelect<T extends boolean = true> {
   unit?: T;
   category?: T;
   isOnBudget?: T;
+  isSystemDefault?: T;
   visibility?: T;
   budget?: T;
   updatedAt?: T;
@@ -921,18 +950,22 @@ export interface TransactionsSelect<T extends boolean = true> {
   budget?: T;
   date?: T;
   payee?: T;
-  notes?: T;
   type?: T;
+  economicKind?: T;
   status?: T;
   source?: T;
   externalId?: T;
   importBatch?: T;
+  quoteUnit?: T;
+  quoteToReportingRate?: T;
   entries?:
     | T
     | {
         account?: T;
         amount?: T;
         category?: T;
+        payee?: T;
+        notes?: T;
         sortOrder?: T;
         fxRate?: T;
         id?: T;
@@ -950,7 +983,9 @@ export interface TransactionEntriesSelect<T extends boolean = true> {
   transaction?: T;
   account?: T;
   category?: T;
+  payee?: T;
   amount?: T;
+  notes?: T;
   unit?: T;
   sortOrder?: T;
   reportingAmount?: T;

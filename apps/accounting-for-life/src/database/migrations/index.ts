@@ -21,6 +21,20 @@ import {
   down as downMemoToPayee,
   up as upMemoToPayee,
 } from './20260715_rename_transaction_memo_to_payee'
+import { down as downEntryNotes, up as upEntryNotes } from './20260715_entry_notes'
+import {
+  down as downQuoteUnit,
+  up as upQuoteUnit,
+} from './20260715_transaction_quote_unit'
+import {
+  down as downEconomicKind,
+  up as upEconomicKind,
+} from './20260718_transaction_economic_kind'
+import { down as downEntryPayee, up as upEntryPayee } from './20260801_entry_payee'
+import {
+  down as downAccountIsSystemDefault,
+  up as upAccountIsSystemDefault,
+} from './20260801_account_is_system_default'
 
 export const migrations = [
   {
@@ -62,5 +76,30 @@ export const migrations = [
     down: downMemoToPayee,
     name: '20260715_rename_transaction_memo_to_payee',
     up: upMemoToPayee,
+  },
+  {
+    down: downEntryNotes,
+    name: '20260715_entry_notes',
+    up: upEntryNotes,
+  },
+  {
+    down: downQuoteUnit,
+    name: '20260715_transaction_quote_unit',
+    up: upQuoteUnit,
+  },
+  {
+    down: downEconomicKind,
+    name: '20260718_transaction_economic_kind',
+    up: upEconomicKind,
+  },
+  {
+    down: downEntryPayee,
+    name: '20260801_entry_payee',
+    up: upEntryPayee,
+  },
+  {
+    down: downAccountIsSystemDefault,
+    name: '20260801_account_is_system_default',
+    up: upAccountIsSystemDefault,
   },
 ]

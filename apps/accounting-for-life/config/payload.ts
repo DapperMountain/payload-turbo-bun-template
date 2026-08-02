@@ -22,7 +22,7 @@ import collections, {
 } from '@/collections'
 import { seed } from '@/database/seed'
 import endpoints from '@/endpoints'
-import { i18n, localization, custom } from '@/lang'
+import { custom, i18n, localization } from '@/lang'
 import type { Config } from '@/types'
 import { isAppUser, userIsSystemAdmin } from '@/utils'
 
@@ -35,7 +35,11 @@ const rootDir = path.resolve(path.dirname(filename), '..')
 
 export default buildConfig({
   serverURL: config.server.serverURL,
-  admin: { user: Users.slug, suppressHydrationWarning: true },
+  admin: {
+    user: Users.slug,
+    autoRefresh: true,
+    suppressHydrationWarning: true,
+  },
   bin: [
     {
       key: 'seed',

@@ -75,6 +75,17 @@ const Accounts: CollectionConfig = {
       defaultValue: true,
     },
     {
+      name: 'isSystemDefault',
+      type: 'checkbox',
+      label: 'System default',
+      defaultValue: false,
+      admin: {
+        description:
+          'Thin Income/Expense chart accounts used for classical double-entry P&L legs. Hidden from payment pickers.',
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'visibility',
       type: 'select',
       required: true,

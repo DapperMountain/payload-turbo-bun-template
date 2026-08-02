@@ -5,22 +5,26 @@ import { seedBudgets } from './budgets'
 import { seedCategories, seedCategoriesForAllBudgets } from './categories'
 import { repairSeedDuplicates } from './dedupe'
 import { seedLedger } from './ledger'
+import { rewriteSameAccountTwinsToClassicalPnl } from './rewrite-classical-posting'
+import { seedSystemPnlAccountsForAllBudgets } from './system-accounts'
 import { seedUsers } from './users'
 import { seedWorkspaces } from './workspaces'
 
-const USAGE = `Usage: bun run db:seed <users|workspaces|budgets|categories|ledger|all|repair> [--budget=<id>]
+const USAGE = `Usage: bun run db:seed <users|workspaces|budgets|categories|ledger|all|repair|rewrite-posting> [--budget=<id>]
 
-  users       Seed admin/user accounts (DATA_SEED_* vars in .env)
-  workspaces  Demo Household + Lake Cabin (localhost:3001, cabin.localhost) + link demo user
-  budgets     Sample budgets per workspace (Household + Vacation on demo; categories via hook)
-  categories  Seed category groups + categories for budgets missing them
-  ledger      USD unit, Checking + Savings accounts, and a sample transfer on Demo Household
-  all         users → workspaces → budgets → ledger (full dev dataset after db:push)
-  repair      Remove duplicate budgets / groups / categories from prior seed races
+  users            Seed admin/user accounts (DATA_SEED_* vars in .env)
+  workspaces       Demo Household + Lake Cabin (localhost:3001, cabin.localhost) + link demo user
+  budgets          Sample budgets per workspace (Household + Vacation on demo; categories via hook)
+  categories       Seed category groups + categories for budgets missing them
+  ledger           Units (USD/XRP/XLM/BTC/SEASHELLS), wallets, sample transfer + swap demos (Demo Household)
+  all              users → workspaces → budgets → ledger → rewrite-posting (full dev dataset after db:push)
+  repair           Remove duplicate budgets / groups / categories from prior seed races
+  rewrite-posting  Convert same-account category twins → cash + system P&L legs
 
 Examples:
   bun run db:seed all
   bun run db:seed repair
+  bun run db:seed rewrite-posting
   bun run db:seed workspaces
   bun run db:seed budgets
   bun run db:seed categories
@@ -76,15 +80,25 @@ export async function script(config: SanitizedConfig): Promise<void> {
       break
     case 'ledger':
       await seedLedger(payload, { force: true })
+      await seedSystemPnlAccountsForAllBudgets(payload)
+      await rewriteSameAccountTwinsToClassicalPnl(payload)
       break
     case 'all':
       await seedUsers(payload, { force: true })
       await seedWorkspaces(payload, { force: true })
       await seedBudgets(payload, { force: true })
       await seedLedger(payload, { force: true })
+      await seedSystemPnlAccountsForAllBudgets(payload)
+      await rewriteSameAccountTwinsToClassicalPnl(payload)
       break
     case 'repair':
       await repairSeedDuplicates(payload)
+      await seedSystemPnlAccountsForAllBudgets(payload)
+      await rewriteSameAccountTwinsToClassicalPnl(payload)
+      break
+    case 'rewrite-posting':
+      await seedSystemPnlAccountsForAllBudgets(payload)
+      await rewriteSameAccountTwinsToClassicalPnl(payload)
       break
     default:
       console.error(`Unknown seeder "${seederName}".\n\n${USAGE}`)

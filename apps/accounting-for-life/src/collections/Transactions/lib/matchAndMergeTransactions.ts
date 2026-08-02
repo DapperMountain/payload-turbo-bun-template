@@ -69,7 +69,6 @@ export async function matchAndMergeTransactions(
     data: {
       date: patch.date,
       payee: patch.payee,
-      notes: patch.notes,
       source: patch.source,
       externalId: patch.externalId,
       importBatch: patch.importBatch,

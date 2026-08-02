@@ -58,6 +58,20 @@ describe('budgets collection', () => {
     expect(paychecks?.purpose).toBe('income')
   })
 
+  it('seeds system Income/Expense chart accounts', async () => {
+    const accounts = await payload.find({
+      collection: 'accounts',
+      where: {
+        and: [{ budget: { equals: budgetId } }, { isSystemDefault: { equals: true } }],
+      },
+      pagination: false,
+    })
+
+    expect(accounts.totalDocs).toBe(2)
+    const names = accounts.docs.map((doc) => doc.name).sort()
+    expect(names).toEqual(['Budget expenses', 'Budget income'])
+  })
+
   it('reads the budget back', async () => {
     const doc = await findResourceByKey<Budget>(payload, 'budgets', 'name', 'Test Budget')
     expect(doc.id).toBe(budgetId)

@@ -11,13 +11,12 @@ const base = {
   budget: 'budget-1',
   date: '2026-07-01T12:00:00.000Z',
   payee: null as string | null,
-  notes: null as string | null,
   type: 'transaction' as const,
   status: 'pending' as const,
   source: 'manual' as const,
   externalId: null as string | null,
   importBatch: null as string | null,
-  entries: undefined,
+  entries: undefined as undefined,
 }
 
 describe('matchTransactions', () => {
@@ -52,7 +51,14 @@ describe('matchTransactions', () => {
     expect(patch.payee).toBe('Coffee')
     expect(patch.status).toBe('posted')
     expect(patch.entries).toEqual([
-      { account: 'acct', amount: -5, category: undefined, sortOrder: 0, fxRate: undefined },
+      {
+        account: 'acct',
+        amount: -5,
+        category: undefined,
+        notes: undefined,
+        sortOrder: 0,
+        fxRate: undefined,
+      },
     ])
   })
 
