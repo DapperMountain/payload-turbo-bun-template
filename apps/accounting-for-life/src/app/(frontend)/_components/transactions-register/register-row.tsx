@@ -1,10 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { Fragment, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react'
 import { Checkbox } from '@dappermountain/ui/components/checkbox'
 import { TableCell, TableRow } from '@dappermountain/ui/components/table'
-import { ChevronRight, StickyNote } from '@dappermountain/ui/icons'
+import { ChevronDown, ChevronRight, Split, StickyNote } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
 import { updateTransactionAction } from '@/app/(frontend)/actions/transactions'
@@ -12,30 +12,42 @@ import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
 import { PayeePicker } from '@/app/(frontend)/_components/payee-picker'
 import { TransactionStatusDot } from '@/app/(frontend)/_components/transaction-status-badge'
-import { TransactionSplitsPopover } from '@/app/(frontend)/_components/transaction-splits-popover'
 import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
+import { RegisterSplitPanel } from '@/app/(frontend)/_components/transactions-register/register-split-panel'
 import {
   defaultCategoryIdFromPickerOptions,
   findAccount,
-  interpolateTemplate,
   isPayeeTransferId,
-  isTransferFromPayee,
   payeeValueFromTransaction,
   resolveTransactionTypeFromPayee,
   resolveTransferPair,
+  toPayeeTransferId,
   transferDestinationFromPayee,
   transferPayeePresentation,
   transferSkipsCategory,
 } from '@/lib/frontend/transaction-payee'
+import {
+  detectSwapPairFromLegs,
+  entriesToSwapLegs,
+  isWalletTransferEntries,
+} from '@/lib/frontend/transaction-swap'
 import type { RegisterColumnId } from '@/app/(frontend)/_components/transactions-register/register-config'
 import { REGISTER_COLUMN_CLASS } from '@/app/(frontend)/_components/transactions-register/register-config'
 import {
   hasEditableSplits,
+  merchantPayeeFromValue,
   newTransferSplitDraft,
   normalizeSplitFormFromEntries,
   splitFormFromEntries,
+  splitIsTransfer,
   splitsToEntries,
+  transferUnitsDiffer,
 } from '@/lib/frontend/transaction-splits'
+import {
+  formatUnitAmount,
+  resolveUnitForAccount,
+  type UnitFormatInput,
+} from '@/lib/frontend/format-unit-amount'
 import {
   formatAmountMagnitudeForEdit,
   registerAmountDisplay,
@@ -45,19 +57,20 @@ import {
 import type { TransactionRegisterRow } from '@/lib/frontend/transactions.display'
 import {
   entriesFromTransaction,
+  hasMultipleEntryPayees,
+  isMultiAccountJournal,
   transactionEntries,
-} from '@/lib/frontend/transactions.display'
-import {
   updatePrimaryAccountInLines,
   updatePrimaryAmountInLines,
 } from '@/lib/frontend/transactions.display'
+import { EconomicKindBadge } from '@/app/(frontend)/_components/economic-kind-badge'
+import {
+  deriveEconomicKind,
+  economicKindOverrideFromTransaction,
+} from '@/lib/frontend/transaction-economic-kind'
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
-import type { Account, Transaction } from '@/types'
+import type { Account, Category, Transaction, Unit } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
-
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount)
-}
 
 function primaryCategoryId(transaction: Transaction): string {
   const cat = transactionEntries(transaction).find((entry) => entry.category)?.category
@@ -68,9 +81,15 @@ function primaryCategoryId(transaction: Transaction): string {
 function RegisterAmountText(props: {
   amount: number
   account: Account | undefined
+  unitsById?: Record<string, UnitFormatInput>
   className?: string
 }) {
-  const display = registerAmountDisplay(props.amount, props.account)
+  const display = registerAmountDisplay(
+    props.amount,
+    props.account,
+    undefined,
+    props.unitsById,
+  )
   return (
     <span
       className={cn(
@@ -94,8 +113,16 @@ export type TransactionsRegisterRowProps = {
   accountOptions: RelationshipFilterOption[]
   categoryOptions: RelationshipFilterOption[]
   accounts: Account[]
+  categories: Category[]
+  reportingCurrencyId: string | null
+  units: Unit[]
+  unitsById: Record<string, UnitFormatInput>
+  /** When set (account register), running balances use this account’s unit. */
+  balanceAccountId?: string | null
   formatAccountGroup: (group: string) => string
   payeeOptions: string[]
+  /** Total table columns for expand-row colspan. */
+  columnCount: number
   onOpenDetail: (id: string, view?: 'standard' | 'split') => void
   onToggleSelected: (id: string, checked: boolean) => void
 }
@@ -110,8 +137,14 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
     accountOptions,
     categoryOptions,
     accounts,
+    categories,
+    reportingCurrencyId,
+    units,
+    unitsById,
+    balanceAccountId,
     formatAccountGroup,
     payeeOptions,
+    columnCount,
     onOpenDetail,
     onToggleSelected,
   } = props
@@ -120,20 +153,28 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   const [isPending, startTransition] = useTransition()
   const [rowError, setRowError] = useState<string | null>(null)
   const [editingAmount, setEditingAmount] = useState(false)
+  const [splitsExpanded, setSplitsExpanded] = useState(false)
 
   const [payeeValue, setPayeeValue] = useState(() => payeeValueFromTransaction(transaction))
   const [categoryId, setCategoryId] = useState(primaryCategoryId(transaction))
   const [accountId, setAccountId] = useState(row.primaryAccountId)
-  const [amountDraft, setAmountDraft] = useState(() => formatAmountMagnitudeForEdit(row.amount))
+  const [amountDraft, setAmountDraft] = useState(() =>
+    formatAmountMagnitudeForEdit(row.amount, findAccount(accounts, row.primaryAccountId), unitsById),
+  )
 
   const resolvedPaymentAccount = useMemo(
     () => findAccount(accounts, accountId),
     [accountId, accounts],
   )
 
+  const balanceAccount = useMemo(
+    () => (balanceAccountId ? findAccount(accounts, balanceAccountId) : resolvedPaymentAccount),
+    [accounts, balanceAccountId, resolvedPaymentAccount],
+  )
+
   const amountDisplay = useMemo(
-    () => registerAmountDisplay(row.amount, resolvedPaymentAccount),
-    [resolvedPaymentAccount, row.amount],
+    () => registerAmountDisplay(row.amount, resolvedPaymentAccount, undefined, unitsById),
+    [resolvedPaymentAccount, row.amount, unitsById],
   )
 
   const notesText = row.notes?.trim() ?? ''
@@ -143,32 +184,119 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   const canInlineEdit = !bulkMode
   const canInlineEditLines =
     !bulkMode && (row.status === 'posted' || row.status === 'pending')
-  const splitForm = normalizeSplitFormFromEntries(transactionEntries(transaction))
-  const isTransfer = isTransferFromPayee(payeeValue, splitForm.splits)
+  const entryLines = transactionEntries(transaction)
+  const splitForm = normalizeSplitFormFromEntries(entryLines)
+  // Do not infer transfer from reverse-projected allocate splits — multi-leg journals
+  // (e.g. Kraken swap + fee) invent `__transfer__` rows and drop fee categories.
+  const isTransfer =
+    transaction.type === 'transfer' ||
+    isPayeeTransferId(payeeValue) ||
+    isWalletTransferEntries(entryLines)
+  const crossUnitTransfer = isTransfer && transferUnitsDiffer(splitForm, accounts)
   const categoryDisabled = isTransfer && transferSkipsCategory()
-  const showSplitEditor = canInlineEditLines && !isTransfer && hasEditableSplits(splitForm)
+  // Allocate popover is for same-account category splits only — not journals whose
+  // reverse projection invents transfer rows (swap + fee, etc.).
+  const isJournalRow = !isTransfer && isMultiAccountJournal(entryLines)
+  const isMultiPayeeRow = hasMultipleEntryPayees(transaction)
+  const showSplitEditor =
+    canInlineEditLines &&
+    !isTransfer &&
+    !isJournalRow &&
+    hasEditableSplits(splitForm) &&
+    splitForm.splits.every((split) => !splitIsTransfer(split))
+  const isSplitTransaction =
+    !isTransfer && (hasEditableSplits(splitForm) || entryLines.length > 2)
+  // Split transactions edit payee per line in detail / allocate — not a single header cell.
+  const payeeReadOnly = isJournalRow || isMultiPayeeRow || isSplitTransaction
+
+  const toggleSplitsExpanded = () => {
+    setSplitsExpanded((open) => !open)
+  }
+
+  const withSplitIcon = (content: ReactNode) => (
+    <div className="flex min-w-0 items-center gap-1.5">
+      {isSplitTransaction ? (
+        <Split
+          aria-hidden
+          className="size-3.5 shrink-0 text-muted-foreground"
+          title={t('custom:frontend:transactions:splitTransactionIcon')}
+        />
+      ) : null}
+      <div className="min-w-0 flex-1">{content}</div>
+    </div>
+  )
+
+  const economic = useMemo(() => {
+    const lines = transactionEntries(transaction)
+    return deriveEconomicKind({
+      entries: lines,
+      accounts,
+      categories,
+      reportingCurrencyId,
+      viewpointAccountId: balanceAccountId || row.primaryAccountId,
+      viewpointAmount: row.amount,
+      override: economicKindOverrideFromTransaction(transaction),
+      transactionType: transaction.type,
+    })
+  }, [
+    accounts,
+    balanceAccountId,
+    categories,
+    reportingCurrencyId,
+    row.amount,
+    row.primaryAccountId,
+    transaction,
+  ])
 
   const transferPresentation = useMemo(() => {
-    if (!isTransfer) return null
-    const pair = resolveTransferPair(accounts, {
-      transaction,
-      payeeValue,
-      paymentAccountId: accountId,
-    })
-    if (!pair) return null
     const viewingId = row.primaryAccountId || accountId
     const paymentAccount = findAccount(accounts, viewingId)
-    return transferPayeePresentation(
-      pair,
-      viewingId,
-      directionFromSignedAmount(row.amount, paymentAccount),
-    )
+
+    if (isTransfer) {
+      const pair = resolveTransferPair(accounts, {
+        transaction,
+        payeeValue,
+        paymentAccountId: accountId,
+      })
+      if (!pair) return null
+      return transferPayeePresentation(
+        pair,
+        viewingId,
+        directionFromSignedAmount(row.amount, paymentAccount),
+      )
+    }
+
+    // Multi-account swap (+ fees): show give → receive, not a single fee/DEX name.
+    if (isJournalRow && !row.payee) {
+      const legs = entriesToSwapLegs(entryLines)
+      const swapPair = detectSwapPairFromLegs(legs, accounts)
+      if (!swapPair) return null
+      const giveId = legs[swapPair.giveIndex]?.account
+      const receiveId = legs[swapPair.receiveIndex]?.account
+      if (!giveId || !receiveId) return null
+      const pair = resolveTransferPair(accounts, {
+        transaction,
+        payeeValue: toPayeeTransferId(receiveId),
+        paymentAccountId: giveId,
+      })
+      if (!pair) return null
+      return transferPayeePresentation(
+        pair,
+        viewingId || giveId,
+        directionFromSignedAmount(row.amount, paymentAccount),
+      )
+    }
+
+    return null
   }, [
     accountId,
     accounts,
+    entryLines,
+    isJournalRow,
     isTransfer,
     payeeValue,
     row.amount,
+    row.payee,
     row.primaryAccountId,
     transaction,
   ])
@@ -177,7 +305,9 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
     setPayeeValue(payeeValueFromTransaction(transaction))
     setCategoryId(primaryCategoryId(transaction))
     setAccountId(row.primaryAccountId)
-    setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
+    setAmountDraft(
+      formatAmountMagnitudeForEdit(row.amount, findAccount(accounts, row.primaryAccountId), unitsById),
+    )
     setEditingAmount(false)
     setRowError(null)
   }, [
@@ -225,8 +355,17 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             const normalized = normalizeSplitFormFromEntries(entries)
             const category =
               categoryId || defaultCategoryIdFromPickerOptions(categoryOptions)
+            const nextPayee = merchantPayeeFromValue(patch.payeeValue)
+            if (!nextPayee) {
+              setRowError(t('custom:frontend:transactions:payeeRequired'))
+              return
+            }
             entriesPayload = splitsToEntries(normalized, {
               singleCategoryId: category,
+              accounts,
+              budgetId: row.budgetId,
+              categoryPurpose: categories.find((category) => category.id === category)?.purpose,
+              headerPayee: nextPayee,
             })
           }
         }
@@ -237,12 +376,27 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             setRowError(t('custom:frontend:transactions:editSplitsInline'))
             return
           }
+          const headerMerchant = merchantPayeeFromValue(payeeValue)
+          if (!headerMerchant) {
+            setRowError(t('custom:frontend:transactions:payeeRequired'))
+            return
+          }
           entriesPayload = splitsToEntries(normalized, {
             singleCategoryId: patch.categoryId,
+            accounts,
+            budgetId: row.budgetId,
+            categoryPurpose: categories.find((category) => category.id === patch.categoryId)
+              ?.purpose,
+            headerPayee: headerMerchant,
           })
         } else if (patch.accountId !== undefined || patch.amount !== undefined) {
           const storedLines = entriesFromTransaction(transaction)
           const isMultiLegTransfer = row.type === 'transfer' && storedLines.length >= 2
+
+          if (isMultiLegTransfer && transferUnitsDiffer(form, accounts)) {
+            setRowError(t('custom:frontend:transactions:editCrossUnitTransferInline'))
+            return
+          }
 
           if (isMultiLegTransfer) {
             let next = storedLines
@@ -262,11 +416,25 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               form = { ...form, totalAmount: String(patch.amount) }
             }
 
+            const singleCategory = form.splits.length ? null : categoryId || null
+            if (singleCategory && !isTransfer && !merchantPayeeFromValue(payeeValue)) {
+              setRowError(t('custom:frontend:transactions:payeeRequired'))
+              return
+            }
             entriesPayload = splitsToEntries(form, {
-              singleCategoryId: form.splits.length ? null : categoryId || null,
+              singleCategoryId: singleCategory,
+              accounts,
+              budgetId: row.budgetId,
+              categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
+              headerPayee: merchantPayeeFromValue(payeeValue),
             })
           }
         }
+
+        const clearingTransferPayee =
+          isTransfer ||
+          (patch.payeeValue !== undefined && isPayeeTransferId(patch.payeeValue)) ||
+          (row.type === 'transfer' && Boolean(transaction.payee))
 
         const result = await updateTransactionAction({
           id: row.transactionId,
@@ -275,9 +443,11 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               ? isPayeeTransferId(patch.payeeValue)
                 ? null
                 : patch.payeeValue || null
-              : patch.payee !== undefined
-                ? patch.payee
-                : undefined,
+              : clearingTransferPayee && entriesPayload
+                ? null
+                : patch.payee !== undefined
+                  ? patch.payee
+                  : undefined,
           status: patch.status,
           type:
             patch.payeeValue !== undefined &&
@@ -302,7 +472,9 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   const commitAmountDraft = () => {
     const magnitude = Math.abs(Number(amountDraft))
     if (!Number.isFinite(magnitude)) {
-      setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
+      setAmountDraft(
+      formatAmountMagnitudeForEdit(row.amount, findAccount(accounts, row.primaryAccountId), unitsById),
+    )
       setEditingAmount(false)
       return
     }
@@ -316,52 +488,69 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
 
   const renderCell = (columnId: RegisterColumnId) => {
     switch (columnId) {
-      case 'payee':
-        if (canInlineEdit) {
-          return (
-            <PayeePicker
-              accounts={accounts}
-              amountDirection={directionFromSignedAmount(row.amount, resolvedPaymentAccount)}
-              appearance="plain"
-              budgetId={row.budgetId}
-              className="h-7 min-w-[8rem]"
-              disabled={isPending}
-              onCommit={(value) => {
-                setPayeeValue(value)
-                if (
-                  !isPayeeTransferId(value) &&
-                  (row.type === 'transfer' || isPayeeTransferId(payeeValue))
-                ) {
-                  setCategoryId(
-                    (current) => current || defaultCategoryIdFromPickerOptions(categoryOptions),
-                  )
-                }
-                const initial = payeeValueFromTransaction(transaction)
-                if (value !== initial) {
-                  saveField({ payeeValue: value })
-                }
-              }}
-              payeeOptions={payeeOptions}
-              sourceAccountId={accountId}
-              transaction={transaction}
-              value={payeeValue}
-            />
-          )
-        }
-
-        return transferPresentation ? (
+      case 'payee': {
+        // Journals / multi-payee splits aren't a single header edit — open detail.
+        const payeeControl = payeeReadOnly ? (
+          <button
+            className="h-7 min-w-[8rem] truncate text-left text-sm font-medium hover:underline"
+            onClick={() => onOpenDetail(row.transactionId)}
+            type="button"
+          >
+            {transferPresentation ? (
+              <TransferPayeeLabel className="font-medium" presentation={transferPresentation} />
+            ) : (
+              row.payee || t('custom:frontend:transactions:untitled')
+            )}
+          </button>
+        ) : canInlineEdit ? (
+          <PayeePicker
+            accounts={accounts}
+            amountDirection={directionFromSignedAmount(row.amount, resolvedPaymentAccount)}
+            appearance="plain"
+            budgetId={row.budgetId}
+            className="h-7 min-w-[8rem]"
+            disabled={isPending}
+            onCommit={(value) => {
+              setPayeeValue(value)
+              if (
+                !isPayeeTransferId(value) &&
+                (row.type === 'transfer' || isPayeeTransferId(payeeValue))
+              ) {
+                setCategoryId(
+                  (current) => current || defaultCategoryIdFromPickerOptions(categoryOptions),
+                )
+              }
+              const initial = payeeValueFromTransaction(transaction)
+              if (value !== initial) {
+                saveField({ payeeValue: value })
+              }
+            }}
+            payeeOptions={payeeOptions}
+            sourceAccountId={accountId}
+            transaction={transaction}
+            value={payeeValue}
+          />
+        ) : transferPresentation ? (
           <TransferPayeeLabel className="font-medium" presentation={transferPresentation} />
         ) : (
-          <span
-            className="truncate font-medium"
-            title={row.payee || t('custom:frontend:transactions:untitled')}
-          >
+          <span className="font-medium">
             {row.payee || t('custom:frontend:transactions:untitled')}
           </span>
         )
+
+        return (
+          <div className="flex min-w-0 items-center gap-2">
+            <EconomicKindBadge
+              ambiguous={economic.confidence === 'ambiguous'}
+              kind={economic.kind}
+            />
+            <div className="min-w-0 flex-1">{payeeControl}</div>
+          </div>
+        )
+      }
       case 'category':
         if (categoryDisabled) {
-          return (
+          return withSplitIcon(
             <GroupedPicker
               appearance="plain"
               className="h-7 w-auto min-w-[6rem] max-w-[14rem]"
@@ -372,31 +561,32 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               options={[]}
               placeholder={t('custom:frontend:transactions:categoryNotNeeded')}
               value="__none__"
-            />
+            />,
           )
         }
 
-        if (showSplitEditor) {
-          return (
-            <TransactionSplitsPopover
-              accounts={accounts}
-              categoryOptions={categoryOptions}
-              label={
-                row.categoryLabel ??
-                interpolateTemplate(t('custom:frontend:transactions:splitCount'), {
-                  count: String(splitForm.splits.length),
-                })
-              }
-              onOpenDetail={() => onOpenDetail(row.transactionId, 'split')}
-              onSaved={() => router.refresh()}
-              payeeOptions={payeeOptions}
-              transaction={transaction}
-            />
+        // Split / journal rows: category label (if any) + expand via the split icon.
+        if (isSplitTransaction && canInlineEditLines) {
+          if (!row.categoryLabel) {
+            return withSplitIcon(null)
+          }
+
+          return withSplitIcon(
+            <button
+              className="h-7 max-w-[14rem] truncate text-left text-sm hover:underline"
+              onClick={(event) => {
+                event.stopPropagation()
+                toggleSplitsExpanded()
+              }}
+              type="button"
+            >
+              {row.categoryLabel}
+            </button>,
           )
         }
 
         if (canInlineEditLines && !isTransfer) {
-          return (
+          return withSplitIcon(
             <GroupedPicker
               appearance="plain"
               className="h-7 w-auto min-w-[6rem] max-w-[14rem]"
@@ -414,16 +604,24 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
               placeholder={t('custom:frontend:filters:fields:category')}
               searchPlaceholder={t('custom:frontend:filters:searchCategories')}
               value={categoryId || '__none__'}
-            />
+            />,
           )
         }
 
-        return (
-          <span className="text-muted-foreground">{row.categoryLabel ?? '—'}</span>
+        if (!row.categoryLabel && isSplitTransaction) {
+          return withSplitIcon(
+            <span className="sr-only">
+              {t('custom:frontend:transactions:splitTransactionIcon')}
+            </span>,
+          )
+        }
+
+        return withSplitIcon(
+          <span className="text-muted-foreground">{row.categoryLabel ?? '—'}</span>,
         )
 
       case 'account':
-        if (canInlineEditLines && accountOptions.length) {
+        if (canInlineEditLines && accountOptions.length && !crossUnitTransfer) {
           return (
             <GroupedPicker
               appearance="plain"
@@ -460,6 +658,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         }
 
       case 'amount': {
+        const canEditAmountInline = canInlineEditLines && !crossUnitTransfer
         const amountControl = (
           <div
             className={cn(
@@ -468,7 +667,7 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
             )}
             onClick={(event) => event.stopPropagation()}
           >
-            {canInlineEditLines && editingAmount ? (
+            {canEditAmountInline && editingAmount ? (
               <>
                 {amountDisplay.isCredit ? (
                   <span
@@ -492,7 +691,9 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') event.currentTarget.blur()
                     if (event.key === 'Escape') {
-                      setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
+                      setAmountDraft(
+      formatAmountMagnitudeForEdit(row.amount, findAccount(accounts, row.primaryAccountId), unitsById),
+    )
                       setEditingAmount(false)
                     }
                   }}
@@ -500,21 +701,31 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
                   value={amountDraft}
                 />
               </>
-            ) : canInlineEditLines ? (
+            ) : canEditAmountInline ? (
               <button
                 className="h-full w-full px-1 text-right hover:bg-muted/50"
                 disabled={isPending}
                 onClick={() => {
-                  setAmountDraft(formatAmountMagnitudeForEdit(row.amount))
+                  setAmountDraft(
+      formatAmountMagnitudeForEdit(row.amount, findAccount(accounts, row.primaryAccountId), unitsById),
+    )
                   setEditingAmount(true)
                 }}
                 type="button"
               >
-                <RegisterAmountText amount={row.amount} account={resolvedPaymentAccount} />
+                <RegisterAmountText
+                  account={resolvedPaymentAccount}
+                  amount={row.amount}
+                  unitsById={unitsById}
+                />
               </button>
             ) : (
               <div className="px-1">
-                <RegisterAmountText amount={row.amount} account={resolvedPaymentAccount} />
+                <RegisterAmountText
+                  account={resolvedPaymentAccount}
+                  amount={row.amount}
+                  unitsById={unitsById}
+                />
               </div>
             )}
           </div>
@@ -540,7 +751,12 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
         return row.runningBalance == null ? (
           <span className="text-muted-foreground">—</span>
         ) : (
-          <span className="tabular-nums">{formatMoney(row.runningBalance)}</span>
+          <span className="tabular-nums">
+            {formatUnitAmount(
+              row.runningBalance,
+              resolveUnitForAccount(balanceAccount, unitsById),
+            )}
+          </span>
         )
 
       default:
@@ -549,48 +765,92 @@ export function TransactionsRegisterRowInline(props: TransactionsRegisterRowProp
   }
 
   return (
-    <TableRow className={cn(bulkMode && 'cursor-default', rowError && 'bg-destructive/5')}>
-      {bulkMode ? (
-        <TableCell onClick={(event) => event.stopPropagation()}>
-          <Checkbox
-            checked={selected}
-            onCheckedChange={(checked) => onToggleSelected(row.id, checked === true)}
-          />
-        </TableCell>
-      ) : null}
-
-      <TableCell className="w-6 px-1">
-        <div className="flex h-7 items-center justify-center">
-          <TransactionStatusDot status={row.status} />
-        </div>
-      </TableCell>
-
-      {columnOrder.map((columnId) => (
-        <TableCell
-          className={REGISTER_COLUMN_CLASS[columnId]}
-          key={columnId}
-          onClick={(event) => {
-            if (canInlineEdit) {
-              event.stopPropagation()
-            }
-          }}
-        >
-          {renderCell(columnId)}
-        </TableCell>
-      ))}
-
-      <TableCell className="w-10">
-        {!bulkMode ? (
-          <button
-            className="flex size-8 items-center justify-center rounded-md hover:bg-muted"
-            onClick={() => onOpenDetail(row.transactionId)}
-            type="button"
-          >
-            <ChevronRight className="size-4 text-muted-foreground" />
-          </button>
+    <Fragment>
+      <TableRow className={cn(bulkMode && 'cursor-default', rowError && 'bg-destructive/5')}>
+        {bulkMode ? (
+          <TableCell onClick={(event) => event.stopPropagation()}>
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(checked) => onToggleSelected(row.id, checked === true)}
+            />
+          </TableCell>
         ) : null}
-        {rowError ? <p className="text-xs text-destructive">{rowError}</p> : null}
-      </TableCell>
-    </TableRow>
+
+        <TableCell className="w-8 px-0">
+          {isSplitTransaction && canInlineEditLines ? (
+            <button
+              aria-expanded={splitsExpanded}
+              aria-label={
+                splitsExpanded
+                  ? t('custom:frontend:transactions:collapseSplits')
+                  : t('custom:frontend:transactions:expandSplits')
+              }
+              className="flex size-8 items-center justify-center rounded-md hover:bg-muted"
+              onClick={(event) => {
+                event.stopPropagation()
+                toggleSplitsExpanded()
+              }}
+              type="button"
+            >
+              <ChevronDown
+                className={cn(
+                  'size-4 text-muted-foreground transition-transform',
+                  splitsExpanded && 'rotate-180',
+                )}
+              />
+            </button>
+          ) : null}
+        </TableCell>
+
+        <TableCell className="w-6 px-1">
+          <div className="flex h-7 items-center justify-center">
+            <TransactionStatusDot status={row.status} />
+          </div>
+        </TableCell>
+
+        {columnOrder.map((columnId) => (
+          <TableCell
+            className={REGISTER_COLUMN_CLASS[columnId]}
+            key={columnId}
+            onClick={(event) => {
+              if (canInlineEdit) {
+                event.stopPropagation()
+              }
+            }}
+          >
+            {renderCell(columnId)}
+          </TableCell>
+        ))}
+
+        <TableCell className="w-10">
+          {!bulkMode ? (
+            <button
+              className="flex size-8 items-center justify-center rounded-md hover:bg-muted"
+              onClick={() => onOpenDetail(row.transactionId)}
+              type="button"
+            >
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </button>
+          ) : null}
+          {rowError ? <p className="text-xs text-destructive">{rowError}</p> : null}
+        </TableCell>
+      </TableRow>
+
+      {splitsExpanded && isSplitTransaction && canInlineEditLines ? (
+        <TableRow className="bg-muted/10 hover:bg-muted/10">
+          <TableCell className="py-3" colSpan={columnCount}>
+            <RegisterSplitPanel
+              accounts={accounts}
+              categoryOptions={categoryOptions}
+              mode={isJournalRow || !showSplitEditor ? 'journal' : 'allocate'}
+              onOpenDetail={() => onOpenDetail(row.transactionId)}
+              payeeOptions={payeeOptions}
+              transaction={transaction}
+              units={units}
+            />
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </Fragment>
   )
 }

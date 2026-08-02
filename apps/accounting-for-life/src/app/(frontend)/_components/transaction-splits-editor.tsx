@@ -13,6 +13,7 @@ import {
   collapseToSingleCategory,
   isMultiSplitTransaction,
   newSplitDraft,
+  newTransferSplitDraft,
   removeSplitDraft,
   splitAllocationRemaining,
   splitAmountFromPercent,
@@ -22,11 +23,21 @@ import {
   type SplitDraft,
   type TransactionSplitFormState,
 } from '@/lib/frontend/transaction-splits'
+import {
+  formatUnitAmount,
+  resolveUnitForAccount,
+  unitsByIdFromDocs,
+} from '@/lib/frontend/format-unit-amount'
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
-import { interpolateTemplate } from '@/lib/frontend/transaction-payee'
-import type { Account } from '@/types'
+import {
+  findAccount,
+  interpolateTemplate,
+  isPayeeTransferId,
+} from '@/lib/frontend/transaction-payee'
+import type { Account, Unit } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
 
+/** Allocate one payment total across category / transfer rows (inline register popover). */
 export type TransactionSplitsEditorProps = {
   state: TransactionSplitFormState
   onChange: (state: TransactionSplitFormState) => void
@@ -37,13 +48,10 @@ export type TransactionSplitsEditorProps = {
   disabled?: boolean
   onCollapsedToRegular?: (categoryId: string) => void
   preferredCategoryId?: string
+  units?: Unit[]
 }
 
 type SplitAllocationMode = 'amount' | 'percent'
-
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount)
-}
 
 export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
   const {
@@ -56,6 +64,7 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
     disabled,
     onCollapsedToRegular,
     preferredCategoryId = '',
+    units = [],
   } = props
   const { t } = useAppTranslation()
   const [allocationMode, setAllocationMode] = useState<SplitAllocationMode>('amount')
@@ -64,6 +73,12 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
   const balanced = Math.abs(remaining) < 1e-9
   const showCollapse = isMultiSplitTransaction(state.splits)
   const totalMagnitude = transactionTotalMagnitude(state.totalAmount)
+  const unitsById = unitsByIdFromDocs(units)
+  const paymentUnit = resolveUnitForAccount(
+    findAccount(accounts, state.paymentAccount),
+    unitsById,
+  )
+  const formatPaymentAmount = (amount: number) => formatUnitAmount(amount, paymentUnit)
 
   const updateSplit = (index: number, patch: Partial<SplitDraft>) => {
     onChange({
@@ -78,6 +93,13 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
     onChange({
       ...state,
       splits: [...state.splits, newSplitDraft()],
+    })
+  }
+
+  const addTransferSplit = () => {
+    onChange({
+      ...state,
+      splits: [...state.splits, newTransferSplitDraft()],
     })
   }
 
@@ -101,9 +123,11 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
       </p>
 
       <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm">
-        <span className="text-muted-foreground">{t('custom:frontend:transactions:transactionTotal')}</span>
+        <span className="text-muted-foreground">
+          {t('custom:frontend:transactions:transactionTotal')}
+        </span>
         <span className="font-medium tabular-nums">
-          {formatMoney(Number(state.totalAmount) || 0)}
+          {formatPaymentAmount(Number(state.totalAmount) || 0)}
         </span>
       </div>
 
@@ -114,9 +138,9 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
 
         <div className="flex flex-wrap items-center gap-2">
           <div
+            aria-label={t('custom:frontend:transactions:splitAllocationMode')}
             className="inline-flex rounded-md border bg-muted/30 p-0.5"
             role="group"
-            aria-label={t('custom:frontend:transactions:splitAllocationMode')}
           >
             {(['amount', 'percent'] as const).map((mode) => (
               <button
@@ -146,7 +170,7 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
           >
             {balanced
               ? t('custom:frontend:transactions:balanced')
-              : `${t('custom:frontend:transactions:leftToAllocate')} ${formatMoney(remaining)}`}
+              : `${t('custom:frontend:transactions:leftToAllocate')} ${formatPaymentAmount(remaining)}`}
           </span>
         </div>
       </div>
@@ -183,21 +207,20 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
               accounts={accounts}
               budgetId={budgetId}
               disabled={disabled}
-              onCommit={(payee) => {
-                const patch: Partial<SplitDraft> = { payee }
-                if (splitIsTransfer({ ...split, payee })) {
-                  patch.category = ''
-                }
-                updateSplit(index, patch)
-              }}
-              onValueChange={(payee) => {
-                const patch: Partial<SplitDraft> = { payee }
-                if (splitIsTransfer({ ...split, payee })) {
-                  patch.category = ''
-                }
-                updateSplit(index, patch)
-              }}
+              onCommit={(payee) =>
+                updateSplit(index, {
+                  payee,
+                  ...(isPayeeTransferId(payee) ? { category: '' } : {}),
+                })
+              }
+              onValueChange={(payee) =>
+                updateSplit(index, {
+                  payee,
+                  ...(isPayeeTransferId(payee) ? { category: '' } : {}),
+                })
+              }
               payeeOptions={payeeOptions}
+              placeholder={t('custom:frontend:transactions:payeePlaceholder')}
               sourceAccountId={state.paymentAccount}
               value={split.payee}
             />
@@ -215,17 +238,7 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
                 value={split.category}
               />
             </div>
-          ) : (
-            <div className="grid gap-2">
-              <Label>{t('custom:frontend:filters:fields:category')}</Label>
-              <div
-                aria-disabled
-                className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
-              >
-                {t('custom:frontend:transactions:categoryNotNeeded')}
-              </div>
-            </div>
-          )}
+          ) : null}
 
           <div className="grid gap-2">
             <Label>
@@ -260,13 +273,33 @@ export function TransactionSplitsEditor(props: TransactionSplitsEditorProps) {
               />
             )}
           </div>
+
+          <div className="grid gap-2">
+            <Label>{t('custom:fields:transactions:entryNotes')}</Label>
+            <Input
+              disabled={disabled}
+              onChange={(event) => updateSplit(index, { notes: event.target.value })}
+              placeholder={t('custom:fields:transactions:entryNotesPlaceholder')}
+              value={split.notes}
+            />
+          </div>
         </div>
       ))}
 
       <div className="flex flex-wrap gap-2">
         <Button disabled={disabled} onClick={addSplit} size="sm" type="button" variant="outline">
           <Plus className="size-4" />
-          {t('custom:frontend:transactions:addSplit')}
+          {t('custom:frontend:transactions:addCategorySplit')}
+        </Button>
+        <Button
+          disabled={disabled}
+          onClick={addTransferSplit}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Plus className="size-4" />
+          {t('custom:frontend:transactions:addTransferSplit')}
         </Button>
 
         {showCollapse ? (

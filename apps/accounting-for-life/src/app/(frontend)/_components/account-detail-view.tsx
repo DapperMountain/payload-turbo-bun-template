@@ -31,11 +31,12 @@ import { Button } from '@dappermountain/ui/components/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@dappermountain/ui/components/card'
 import { ChevronLeft } from '@dappermountain/ui/icons'
 
+import {
+  formatUnitAmount,
+  resolveUnitForAccount,
+  unitsByIdFromDocs,
+} from '@/lib/frontend/format-unit-amount'
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
-
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount)
-}
 
 export type AccountDetailViewProps = {
   account: Account
@@ -50,6 +51,7 @@ export type AccountDetailViewProps = {
   payeeOptionsByBudget: Record<string, string[]>
   registerGroups: ReturnType<typeof groupTransactionsByDate>
   reportingCurrencyId: string | null
+  units: import('@/types').Unit[]
   transactionCount: number
   transactions: import('@/types').Transaction[]
 }
@@ -84,7 +86,7 @@ export async function AccountDetailViewLoader(props: {
 
   const budgetId = accountBudgetId(account)
 
-  const [txResult, accounts, budgets, categories, balanceSnapshot, payeeOptionsByBudget, workspace] =
+  const [txResult, accounts, budgets, categories, balanceSnapshot, payeeOptionsByBudget, workspace, units] =
     await Promise.all([
     findFilteredTransactions(payload, {
       user: props.user,
@@ -133,6 +135,15 @@ export async function AccountDetailViewLoader(props: {
       user: props.user,
       overrideAccess: false,
     }),
+    payload.find({
+      collection: 'units',
+      where: { workspace: { equals: props.workspaceId } },
+      limit: 100,
+      depth: 0,
+      sort: 'code',
+      user: props.user,
+      overrideAccess: false,
+    }),
   ])
 
   const budgetList = budgets.docs.map((b) => ({ id: b.id, name: b.name }))
@@ -177,6 +188,7 @@ export async function AccountDetailViewLoader(props: {
           ? (getCollectionId(workspace.reportingCurrency) ?? null)
           : null
       }
+      units={units.docs}
       transactionCount={balanceSnapshot.transactionCount}
       transactions={txResult.docs}
     />
@@ -199,8 +211,11 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
     groupedCategoryOptions,
     payeeOptionsByBudget,
     reportingCurrencyId,
+    units,
   } = props
   const { t } = await getRequestI18n()
+  const unitsById = unitsByIdFromDocs(units)
+  const accountUnit = resolveUnitForAccount(account, unitsById)
 
   const budgetId = accountBudgetId(account)
   const accountFilterOptions = buildGroupedAccountOptions(accounts, budgetId ?? undefined)
@@ -255,6 +270,7 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
           defaultPaymentAccountId={account.id}
           payeeOptions={budgetId ? (payeeOptionsByBudget[budgetId] ?? []) : []}
           reportingCurrencyId={reportingCurrencyId}
+          units={units}
         />
       </div>
 
@@ -268,16 +284,20 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
             />
           </Suspense>
 
-          <TransactionsRegister
-            accountLabels={accountLabels}
-            accounts={accounts}
-            categories={categories}
-            hiddenColumns={['account']}
-            payeeOptionsByBudget={payeeOptionsByBudget}
-            registerGroups={registerGroups}
-            reportingCurrencyId={reportingCurrencyId}
-            transactions={transactions}
-          />
+          <Suspense fallback={null}>
+            <TransactionsRegister
+              accountLabels={accountLabels}
+              accounts={accounts}
+              balanceAccountId={account.id}
+              categories={categories}
+              hiddenColumns={['account']}
+              payeeOptionsByBudget={payeeOptionsByBudget}
+              registerGroups={registerGroups}
+              reportingCurrencyId={reportingCurrencyId}
+              transactions={transactions}
+              units={units}
+            />
+          </Suspense>
         </div>
 
         <Card>
@@ -287,7 +307,9 @@ export async function AccountDetailView(props: AccountDetailViewProps) {
           <CardContent className="space-y-3 text-sm">
             <div>
               <p className="text-muted-foreground">{t('custom:frontend:accounts:balance')}</p>
-              <p className="text-2xl font-semibold tabular-nums">{formatMoney(balance)}</p>
+              <p className="text-2xl font-semibold tabular-nums">
+                {formatUnitAmount(balance, accountUnit)}
+              </p>
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground">{t('custom:frontend:accounts:accountType')}</span>

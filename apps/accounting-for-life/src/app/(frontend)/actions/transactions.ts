@@ -21,17 +21,22 @@ export type CreateTransactionInput = {
   date: string
   payee?: string
   type: Transaction['type']
+  economicKind?: Transaction['economicKind']
   entries?: TransactionEntryInput[]
+  quoteUnit?: string | null
+  quoteToReportingRate?: number | null
 }
 
 export type UpdateTransactionInput = {
   id: string
   date?: string
   payee?: string | null
-  notes?: string | null
   status?: Transaction['status']
   type?: Transaction['type']
+  economicKind?: Transaction['economicKind']
   entries?: TransactionEntryInput[]
+  quoteUnit?: string | null
+  quoteToReportingRate?: number | null
 }
 
 export type BulkTransactionHeaderPatch = {
@@ -82,7 +87,12 @@ export async function createTransactionAction(
         date: input.date,
         payee: input.payee,
         type: input.type,
+        ...(input.economicKind !== undefined ? { economicKind: input.economicKind } : {}),
         entries: input.entries,
+        ...(input.quoteUnit !== undefined ? { quoteUnit: input.quoteUnit } : {}),
+        ...(input.quoteToReportingRate !== undefined
+          ? { quoteToReportingRate: input.quoteToReportingRate }
+          : {}),
       },
       user,
       overrideAccess: false,
@@ -133,17 +143,16 @@ export async function updateTransactionAction(
 
     if (input.date !== undefined) data.date = input.date
     if (input.payee !== undefined) data.payee = input.payee
-    if (input.notes !== undefined) data.notes = input.notes
     if (input.status !== undefined) data.status = input.status
     if (input.type !== undefined) data.type = input.type
+    if (input.economicKind !== undefined) data.economicKind = input.economicKind
+    if (input.quoteUnit !== undefined) data.quoteUnit = input.quoteUnit
+    if (input.quoteToReportingRate !== undefined) {
+      data.quoteToReportingRate = input.quoteToReportingRate
+    }
 
     if (input.entries) {
       data.entries = input.entries
-    } else if (
-      existing.status === 'posted' &&
-      (input.date !== undefined || input.payee !== undefined || input.notes !== undefined)
-    ) {
-      // header-only edit on posted tx — no entry rewrite
     }
 
     await payload.update({
@@ -154,24 +163,6 @@ export async function updateTransactionAction(
       overrideAccess: false,
       depth: 0,
     })
-
-    if (input.notes !== undefined) {
-      const verified = await payload.findByID({
-        collection: 'transactions',
-        id: input.id,
-        depth: 0,
-        user,
-        overrideAccess: false,
-      })
-
-      if ((verified.notes ?? null) !== (input.notes ?? null)) {
-        return {
-          ok: false,
-          error:
-            'Notes were not saved. Restart the app container so Payload reloads the notes field, then try again.',
-        }
-      }
-    }
 
     revalidatePaths([...affectedAccountIds])
     return { ok: true }
@@ -272,6 +263,7 @@ export async function bulkSetTransactionCategoryAction(input: {
           entriesFromTransaction(transaction),
           transaction.type,
           input.categoryId,
+          { payee: transaction.payee },
         )
 
         await payload.update({

@@ -17,7 +17,7 @@ import { findFilteredTransactions } from '@/lib/frontend/transaction-query.serve
 import { findPayeesByBudget } from '@/lib/frontend/transaction-payees.server'
 import { buildGroupedAccountOptions } from '@/lib/frontend/transaction-picker-options'
 import { groupTransactionsByDate } from '@/lib/frontend/transactions.server'
-import type { Account, Category, User } from '@/types'
+import type { Account, Category, Unit, User } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
 import { getRequestI18n } from '@/utils/i18n.server'
 
@@ -35,6 +35,7 @@ export type TransactionsViewProps = {
   payeeOptionsByBudget: Record<string, string[]>
   registerGroups: ReturnType<typeof groupTransactionsByDate>
   reportingCurrencyId: string | null
+  units: Unit[]
   transactions: import('@/types').Transaction[]
 }
 
@@ -48,7 +49,7 @@ export async function TransactionsViewLoader(props: {
   const clauses = parseFiltersParam(props.filtersRaw)
   const activeBudgetId = activeBudgetIdFromClauses(clauses)
 
-  const [txResult, accounts, budgets, categories, payeeOptionsByBudget, workspace] =
+  const [txResult, accounts, budgets, categories, payeeOptionsByBudget, workspace, units] =
     await Promise.all([
     findFilteredTransactions(payload, {
       user: props.user,
@@ -92,6 +93,15 @@ export async function TransactionsViewLoader(props: {
       user: props.user,
       overrideAccess: false,
     }),
+    payload.find({
+      collection: 'units',
+      where: { workspace: { equals: props.workspaceId } },
+      limit: 100,
+      depth: 0,
+      sort: 'code',
+      user: props.user,
+      overrideAccess: false,
+    }),
   ])
 
   const budgetList = budgets.docs.map((b) => ({ id: b.id, name: b.name }))
@@ -130,6 +140,7 @@ export async function TransactionsViewLoader(props: {
           ? (getCollectionId(workspace.reportingCurrency) ?? null)
           : null
       }
+      units={units.docs}
       transactions={txResult.docs}
     />
   )
@@ -149,6 +160,7 @@ export async function TransactionsView(props: TransactionsViewProps) {
     groupedCategoryOptions,
     payeeOptionsByBudget,
     reportingCurrencyId,
+    units,
   } = props
   const { t } = await getRequestI18n()
 
@@ -183,6 +195,7 @@ export async function TransactionsView(props: TransactionsViewProps) {
           categories={categories}
           payeeOptions={activeBudgetId ? (payeeOptionsByBudget[activeBudgetId] ?? []) : []}
           reportingCurrencyId={reportingCurrencyId}
+          units={units}
         />
       </div>
 
@@ -194,16 +207,19 @@ export async function TransactionsView(props: TransactionsViewProps) {
         />
       </Suspense>
 
-      <TransactionsRegister
-        accountLabels={accountLabels}
-        accounts={accounts}
-        categories={categories}
-        hiddenColumns={['balance']}
-        payeeOptionsByBudget={payeeOptionsByBudget}
-        registerGroups={registerGroups}
-        reportingCurrencyId={reportingCurrencyId}
-        transactions={transactions}
-      />
+      <Suspense fallback={null}>
+        <TransactionsRegister
+          accountLabels={accountLabels}
+          accounts={accounts}
+          categories={categories}
+          hiddenColumns={['balance']}
+          payeeOptionsByBudget={payeeOptionsByBudget}
+          registerGroups={registerGroups}
+          reportingCurrencyId={reportingCurrencyId}
+          transactions={transactions}
+          units={units}
+        />
+      </Suspense>
     </div>
   )
 }

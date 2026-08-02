@@ -1,4 +1,5 @@
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
+import { isSystemPnlAccount } from '@/lib/frontend/system-pnl-accounts'
 import { transactionEntries } from '@/lib/frontend/transactions.display'
 import { splitFormFromEntries } from '@/lib/frontend/transaction-splits'
 import type { AmountDirection } from '@/lib/frontend/transaction-amount-direction'
@@ -201,11 +202,21 @@ export function resolveTransferPair(
     sourceId =
       options.paymentAccountId && options.paymentAccountId !== resolvedDestinationId
         ? options.paymentAccountId
-        : (lineAccountIds.find((id) => id !== resolvedDestinationId) ?? null)
+        : (lineAccountIds.find((id) => {
+            if (id === resolvedDestinationId) return false
+            // Skip system Income/Expense chart accounts — not user-facing transfer sides.
+            return !isSystemPnlAccount(findAccount(accounts, id))
+          }) ?? null)
   } else if (lineAccountIds.length >= 2) {
     const lines = transactionEntries(options.transaction as Transaction)
-    const outflow = lines.find((entry) => entry.amount < 0)
-    const inflow = lines.find((entry) => entry.amount > 0)
+    const outflow = lines.find(
+      (entry) =>
+        entry.amount < 0 && !isSystemPnlAccount(findAccount(accounts, getCollectionId(entry.account) ?? '')),
+    )
+    const inflow = lines.find(
+      (entry) =>
+        entry.amount > 0 && !isSystemPnlAccount(findAccount(accounts, getCollectionId(entry.account) ?? '')),
+    )
     sourceId = getCollectionId(outflow?.account) ?? lineAccountIds[0] ?? null
     resolvedDestinationId = getCollectionId(inflow?.account) ?? lineAccountIds[1] ?? null
   }
@@ -217,6 +228,7 @@ export function resolveTransferPair(
   const source = findAccount(accounts, sourceId)
   const destination = findAccount(accounts, resolvedDestinationId)
   if (!source || !destination) return null
+  if (isSystemPnlAccount(source) || isSystemPnlAccount(destination)) return null
 
   return { source, destination }
 }
@@ -270,13 +282,18 @@ export function transferDestinationFromPayee(payeeValue: string): string | null 
 
 type PayeeSplitLike = { payee: string }
 
-/** Whether the current payee / split rows represent a transfer (not persisted transaction.type). */
+/**
+ * Whether the current payee / split rows represent a pure transfer.
+ * Mixed category + transfer allocate rows stay a normal transaction — journals that
+ * reverse-project wallet legs as `__transfer__` splits must not flip the whole row.
+ */
 export function isTransferFromPayee(
   payeeValue: string,
   splits: PayeeSplitLike[] = [],
 ): boolean {
   if (isPayeeTransferId(payeeValue)) return true
-  return splits.some((split) => isPayeeTransferId(split.payee))
+  if (splits.length === 0) return false
+  return splits.every((split) => isPayeeTransferId(split.payee))
 }
 
 export function resolveTransactionTypeFromPayee(

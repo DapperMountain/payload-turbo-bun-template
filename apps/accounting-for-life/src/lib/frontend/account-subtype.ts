@@ -50,3 +50,15 @@ export function subtypeAfterClassificationChange(
 
   return defaultSubtypeForClassification(classification)
 }
+
+/** Checking / savings / cash — settlement side of buys and sells. */
+export function isCashLikeAccount(account: Account | undefined): boolean {
+  if (!account || account.classification !== 'asset') return false
+  return account.subtype === 'checking' || account.subtype === 'savings' || account.subtype === 'cash'
+}
+
+/** Investment / crypto holding accounts. */
+export function isHoldingAccount(account: Account | undefined): boolean {
+  if (!account || account.classification !== 'asset') return false
+  return account.subtype === 'holding'
+}

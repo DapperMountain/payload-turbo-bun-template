@@ -27,6 +27,7 @@ export {
   Receipt,
   Scale,
   ShoppingBag,
+  Split,
   StickyNote,
   Trash2,
   TrendingUp,

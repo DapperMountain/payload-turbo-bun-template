@@ -24,19 +24,26 @@ describe('budget ready-to-assign signing', () => {
 })
 
 describe('applyCategoryToEntries', () => {
-  it('puts the category on the offset leg, not the payment leg', () => {
+  it('puts the category on the P&L leg, not the payment leg', () => {
     const lines = applyCategoryToEntries(
       [
         { account: 'checking', amount: 35, sortOrder: 0 },
-        { account: 'checking', amount: -35, sortOrder: 1 },
+        { account: 'budget-income', amount: -35, sortOrder: 1 },
       ],
       'transaction',
       'other-income',
+      { payee: 'Arlo Jack' },
     )
 
     expect(lines).toEqual([
       { account: 'checking', amount: 35, sortOrder: 0 },
-      { account: 'checking', amount: -35, category: 'other-income', sortOrder: 1 },
+      {
+        account: 'budget-income',
+        amount: -35,
+        category: 'other-income',
+        payee: 'Arlo Jack',
+        sortOrder: 1,
+      },
     ])
   })
 })

@@ -11,8 +11,8 @@ import {
   workspaceLabel,
 } from '@/lib/frontend/workspace.server'
 
-export default async function AppLayout(props: { children: ReactNode }) {
-  const { children } = props
+export default async function AppLayout(props: { children: ReactNode; modal: ReactNode }) {
+  const { children, modal } = props
   const { user, headers } = await requireAppUser()
   const payloadConfig = await config
   const workspace = await resolveActiveWorkspace(user, headers)
@@ -35,6 +35,7 @@ export default async function AppLayout(props: { children: ReactNode }) {
       workspaces={workspaces.map((w) => ({ id: w.id, name: workspaceLabel(w) }))}
     >
       {children}
+      {modal}
     </AppShell>
   )
 }

@@ -1,5 +1,6 @@
 import type { Account, Category } from '@/types'
 import { getCollectionId } from '@/utils/getCollectionId'
+import { isSystemPnlAccount } from '@/lib/frontend/system-pnl-accounts'
 
 import type { RelationshipFilterOption } from '@/lib/filters/relationship-options'
 
@@ -31,10 +32,13 @@ function categoryGroupSortKey(category: Category): [number, number, string] {
 export function buildGroupedAccountOptions(
   accounts: Account[],
   budgetId?: string,
+  options?: { includeSystemPnl?: boolean },
 ): RelationshipFilterOption[] {
-  const filtered = budgetId
+  const includeSystemPnl = options?.includeSystemPnl ?? false
+  const filtered = (budgetId
     ? accounts.filter((account) => getCollectionId(account.budget) === budgetId)
     : accounts
+  ).filter((account) => includeSystemPnl || !isSystemPnlAccount(account))
 
   const result: RelationshipFilterOption[] = []
 

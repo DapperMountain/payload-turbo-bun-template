@@ -1,11 +1,13 @@
 import type { Account, Category, Transaction, TransactionEntry } from '@/types'
 import {
   applyCategoryToEntries,
+  bubbledEntryNotes,
   storedDocsFromJoin,
   type TransactionEntryInput,
   type TransactionEntryView,
 } from '@/collections/Transactions/lib/entries'
 import { getCollectionId } from '@/utils/getCollectionId'
+import { isPayeeTransferId } from '@/lib/frontend/transaction-payee'
 import { sortTransactionDateTime, transactionDatePart } from '@/lib/frontend/transaction-datetime'
 import { attachNewestFirstRunningBalances } from '@/lib/ledger/account-balance'
 
@@ -44,7 +46,10 @@ export function entriesFromTransaction(transaction: Transaction): TransactionEnt
     account: getCollectionId(entry.account) ?? '',
     amount: entry.amount,
     category: getCollectionId(entry.category),
+    payee: entry.payee?.trim() || undefined,
+    notes: entry.notes ?? undefined,
     sortOrder: entry.sortOrder ?? index,
+    fxRate: entry.fxRate,
   }))
 }
 
@@ -53,7 +58,10 @@ export function entryInputsFromDocs(entries: TransactionEntry[]): TransactionEnt
     account: getCollectionId(entry.account)!,
     amount: entry.amount,
     category: getCollectionId(entry.category),
+    payee: entry.payee?.trim() || undefined,
     sortOrder: entry.sortOrder ?? index,
+    notes: entry.notes ?? undefined,
+    fxRate: entry.fxRate,
   }))
 }
 
@@ -70,7 +78,10 @@ export function transactionEntries(transaction: Transaction): TransactionEntry[]
       account: line.account,
       amount: line.amount,
       category: line.category ?? undefined,
+      payee: line.payee?.trim() || undefined,
+      notes: line.notes ?? undefined,
       sortOrder: line.sortOrder ?? index,
+      fxRate: line.fxRate,
       unit: '',
       updatedAt: '',
       createdAt: '',
@@ -81,11 +92,31 @@ export function transactionEntries(transaction: Transaction): TransactionEntry[]
   return stored
 }
 
+/** Multi-account N-leg books (swap + fee, baskets) — not a same-account allocate split. */
+export function isMultiAccountJournal(
+  entries: Array<Pick<TransactionEntry, 'account'>>,
+): boolean {
+  if (entries.length <= 2) return false
+  const accountIds = new Set(
+    entries
+      .map((entry) => getCollectionId(entry.account))
+      .filter((id): id is string => Boolean(id)),
+  )
+  return accountIds.size > 1
+}
+
 export function registerCategoryLabel(
   transaction: Transaction,
   labels: TransactionDisplayLabels,
 ): string | null {
   const lines = transactionEntries(transaction)
+
+  // Multi-account journals (swap + fee, baskets, …) may categorize one leg only —
+  // that fee/category is not the row's category in the register.
+  if (isMultiAccountJournal(lines)) {
+    return null
+  }
+
   const names = [
     ...new Set(
       lines
@@ -99,6 +130,43 @@ export function registerCategoryLabel(
   if (names.length > 2) return `${names[0]} · +${names.length - 1}`
 
   return null
+}
+
+/** Unique merchant payees stored on entry lines (not transfer destinations). */
+export function merchantPayeesFromEntries(
+  entries: Array<Pick<TransactionEntry, 'payee'>>,
+): string[] {
+  const names = new Set<string>()
+  for (const entry of entries) {
+    const name = entry.payee?.trim()
+    if (name && !isPayeeTransferId(name)) names.add(name)
+  }
+  return [...names]
+}
+
+/**
+ * Register payee column: prefer entry merchant payees, then header merchant,
+ * else null (transfer presentation / untitled).
+ *
+ * Multi-merchant allocate/journal rows join names (`A · B`). Exchange / swap+fee
+ * books still show a single counterparty when the header or one entry merchant
+ * is set (e.g. Kraken) — blanking those rows made swaps look untitled.
+ */
+export function registerPayeeLabel(transaction: Transaction): string | null {
+  const lines = transactionEntries(transaction)
+  const fromEntries = merchantPayeesFromEntries(lines)
+
+  if (fromEntries.length === 1) return fromEntries[0]!
+  if (fromEntries.length === 2) return fromEntries.join(' · ')
+  if (fromEntries.length > 2) return `${fromEntries[0]} · +${fromEntries.length - 1}`
+
+  const header = transaction.payee?.trim()
+  if (header && !isPayeeTransferId(header)) return header
+  return null
+}
+
+export function hasMultipleEntryPayees(transaction: Transaction): boolean {
+  return merchantPayeesFromEntries(transactionEntries(transaction)).length > 1
 }
 
 export type SplitLineDraft = {
@@ -146,8 +214,9 @@ export function applyCategoryToLines(
   lines: TransactionEntryInput[],
   type: Transaction['type'],
   categoryId: string | null,
+  options?: { payee?: string | null },
 ): TransactionEntryInput[] {
-  return applyCategoryToEntries(lines, type, categoryId)
+  return applyCategoryToEntries(lines, type, categoryId, options)
 }
 
 export type TransactionRegisterRow = {
@@ -189,11 +258,42 @@ export type RegisterRowsOptions = {
   accountId?: string | null
 }
 
-export function primaryEntryIndex(entries: TransactionEntry[]): number {
+function accountClassification(
+  entry: TransactionEntry,
+  accountsById?: Map<string, Account['classification']>,
+): Account['classification'] | null {
+  const accountId = getCollectionId(entry.account)
+  if (!accountId) return null
+  if (accountsById?.has(accountId)) return accountsById.get(accountId) ?? null
+  if (typeof entry.account === 'object' && entry.account && 'classification' in entry.account) {
+    return (entry.account as Account).classification
+  }
+  return null
+}
+
+function isBalanceSheetClassification(
+  classification: Account['classification'] | null,
+): boolean {
+  return classification === 'asset' || classification === 'liability' || classification === 'equity'
+}
+
+export function primaryEntryIndex(
+  entries: TransactionEntry[],
+  accounts?: Account[],
+): number {
   if (!entries.length) return 0
 
-  // Prefer the payment/cash leg (no category) so register amount matches account effect
-  // (inflows positive, outflows negative) — not the opposite-signed category offset.
+  const accountsById = accounts
+    ? new Map(accounts.map((account) => [account.id, account.classification]))
+    : undefined
+
+  // Prefer asset/liability cash legs over income/expense P&L legs.
+  const balanceSheetIdx = entries.findIndex((entry) =>
+    isBalanceSheetClassification(accountClassification(entry, accountsById)),
+  )
+  if (balanceSheetIdx >= 0) return balanceSheetIdx
+
+  // Prefer the uncategorized payment leg over a categorized P&L tag leg.
   const cashIdx = entries.findIndex((entry) => !entry.category)
   if (cashIdx >= 0) return cashIdx
 
@@ -210,16 +310,17 @@ export function primaryEntryIndex(entries: TransactionEntry[]): number {
   return best
 }
 
-/** Prefer the cash (uncategorized) leg when an account appears on multiple legs. */
+/** Prefer the cash (uncategorized / balance-sheet) leg when an account appears on multiple legs. */
 export function entryIndexForAccount(
   entries: TransactionEntry[],
   accountId: string,
+  accounts?: Account[],
 ): number {
   const matches = entries
     .map((entry, index) => ({ entry, index }))
     .filter(({ entry }) => getCollectionId(entry.account) === accountId)
 
-  if (!matches.length) return primaryEntryIndex(entries)
+  if (!matches.length) return primaryEntryIndex(entries, accounts)
 
   const cash = matches.find(({ entry }) => !entry.category)
   if (cash) return cash.index
@@ -286,13 +387,19 @@ export function registerRowFromEntry(
       ? categoryDisplayName(entry?.category, labels.categories)
       : registerCategoryLabel(transaction, labels)
 
+  const primaryIdx = primaryEntryIndex(lines)
+  const ownNotes = entry?.notes?.trim() || null
+  const bubbled = bubbledEntryNotes(lines)
+  const notes =
+    ownNotes ?? (entryIndex === primaryIdx ? bubbled : null)
+
   return {
     id: registerRowKey(transaction.id, entryIndex),
     transactionId: transaction.id,
     entryIndex,
     date: transaction.date ?? null,
-    payee: transaction.payee ?? null,
-    notes: transaction.notes ?? null,
+    payee: registerPayeeLabel(transaction),
+    notes,
     type: transaction.type,
     status: transaction.status,
     budgetId: getCollectionId(transaction.budget) ?? '',
@@ -318,8 +425,8 @@ export function registerRowsFromTransaction(
         transactionId: transaction.id,
         entryIndex: 0,
         date: transaction.date ?? null,
-        payee: transaction.payee ?? null,
-        notes: transaction.notes ?? null,
+        payee: registerPayeeLabel(transaction),
+        notes: null,
         type: transaction.type,
         status: transaction.status,
         budgetId: getCollectionId(transaction.budget) ?? '',
@@ -337,10 +444,8 @@ export function registerRowsFromTransaction(
     return [registerRowFromEntry(transaction, lines, entryIndex, labels)]
   }
 
-  if (transaction.type === 'transfer' && lines.length >= 2) {
-    return lines.map((_, index) => registerRowFromEntry(transaction, lines, index, labels))
-  }
-
+  // One header → one register row. Extra legs are splits (open detail / allocate),
+  // not duplicate rows for the other side of a transfer.
   const primaryIndex = primaryEntryIndex(lines)
   return [registerRowFromEntry(transaction, lines, primaryIndex, labels)]
 }

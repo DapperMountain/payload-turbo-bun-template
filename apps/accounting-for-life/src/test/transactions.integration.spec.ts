@@ -1,6 +1,12 @@
 import { beforeAll, describe, expect, it } from 'bun:test'
 
 import { matchAndMergeTransactions } from '@/collections/Transactions/lib/matchAndMergeTransactions'
+import {
+  buildSimpleFormPosting,
+  shouldExpandTransactionLines,
+} from '@/lib/frontend/transaction-assistance'
+import { isWalletTransferEntries } from '@/lib/frontend/transaction-swap'
+import { transactionEntries } from '@/lib/frontend/transactions.display'
 import type { Account, Unit, User } from '@/types'
 import { getCollectionId } from '@/utils'
 import { loginAs, payload, seedAccessFixtures, type AccessFixtures } from '@/test'
@@ -11,6 +17,8 @@ describe('transactions integration', () => {
   let usd: Unit
   let checkingA: Account
   let checkingB: Account
+  let budgetExpenses: Account
+  let budgetIncome: Account
 
   beforeAll(async () => {
     fx = await seedAccessFixtures(payload)
@@ -58,6 +66,36 @@ describe('transactions integration', () => {
         subtype: 'checking',
         unit: usd.id,
         isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    budgetExpenses = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Budget expenses',
+        classification: 'expense',
+        subtype: 'other',
+        unit: usd.id,
+        isOnBudget: true,
+        isSystemDefault: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    budgetIncome = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Budget income',
+        classification: 'income',
+        subtype: 'other',
+        unit: usd.id,
+        isOnBudget: true,
+        isSystemDefault: true,
         budget: fx.budgetA.id,
         workspace: fx.workspaceA.id,
       },
@@ -217,9 +255,15 @@ describe('transactions integration', () => {
           workspace: fx.workspaceA.id,
           budget: fx.budgetA.id,
           date: '2026-07-12',
+          payee: 'Wrong-budget category',
           type: 'transaction',
           entries: [
-            { account: checkingA.id, amount: -10, category: otherBudgetCategory.id },
+            {
+              account: checkingA.id,
+              amount: -10,
+              category: otherBudgetCategory.id,
+              payee: 'Wrong-budget category',
+            },
             { account: checkingB.id, amount: 10 },
           ],
         },
@@ -292,7 +336,13 @@ describe('transactions integration', () => {
         type: 'transaction',
         entries: [
           { account: checkingA.id, amount: -40, sortOrder: 0 },
-          { account: checkingA.id, amount: 40, category: expenseCategory.id, sortOrder: 1 },
+          {
+            account: budgetExpenses.id,
+            amount: 40,
+            category: expenseCategory.id,
+            payee: 'Grocery run',
+            sortOrder: 1,
+          },
         ],
       },
     })
@@ -307,7 +357,13 @@ describe('transactions integration', () => {
         // Flip payment/category signs — income category legs must be credits.
         entries: [
           { account: checkingA.id, amount: 40, sortOrder: 0 },
-          { account: checkingA.id, amount: -40, category: incomeCategory.id, sortOrder: 1 },
+          {
+            account: budgetIncome.id,
+            amount: -40,
+            category: incomeCategory.id,
+            payee: 'Updated payee',
+            sortOrder: 1,
+          },
         ],
       },
     })
@@ -326,7 +382,7 @@ describe('transactions integration', () => {
     expect(getCollectionId(categorized?.category)).toBe(incomeCategory.id)
   })
 
-  it('persists notes when updating a posted transaction with entries', async () => {
+  it('persists entry notes when updating a posted transaction with entries', async () => {
     const expenseGroup = await payload.create({
       collection: 'category-groups',
       data: {
@@ -365,36 +421,46 @@ describe('transactions integration', () => {
         type: 'transaction',
         entries: [
           { account: checkingA.id, amount: -6, sortOrder: 0 },
-          { account: checkingA.id, amount: 6, category: expenseCategory.id, sortOrder: 1 },
+          {
+            account: budgetExpenses.id,
+            amount: 6,
+            category: expenseCategory.id,
+            payee: 'Coffee',
+            sortOrder: 1,
+          },
         ],
       },
     })
 
-    const updated = await payload.update({
+    await payload.update({
       collection: 'transactions',
       id: transaction.id,
       user: member,
       overrideAccess: false,
       data: {
-        notes: 'Paid with checking',
         entries: [
           { account: checkingA.id, amount: -6, sortOrder: 0 },
-          { account: checkingA.id, amount: 6, category: expenseCategory.id, sortOrder: 1 },
+          {
+            account: budgetExpenses.id,
+            amount: 6,
+            category: expenseCategory.id,
+            payee: 'Coffee',
+            notes: 'Paid with checking',
+            sortOrder: 1,
+          },
         ],
       },
     })
 
-    expect(updated.notes).toBe('Paid with checking')
-
-    const refetch = await payload.findByID({
-      collection: 'transactions',
-      id: transaction.id,
-      depth: 0,
-      user: member,
-      overrideAccess: false,
+    const legs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: transaction.id } },
+      sort: 'sortOrder',
+      overrideAccess: true,
     })
 
-    expect(refetch.notes).toBe('Paid with checking')
+    const noted = legs.docs.find((entry) => entry.notes?.trim())
+    expect(noted?.notes).toBe('Paid with checking')
   })
 
   it('allows workspace members to mark transactions pending in bulk', async () => {
@@ -568,9 +634,16 @@ describe('transactions integration', () => {
         budget: fx.budgetA.id,
         date: `${year}-07-15`,
         type: 'transaction',
+        payee: 'Market',
         entries: [
           { account: card.id, amount: 50, sortOrder: 0 },
-          { account: card.id, amount: -50, category: groceries.id, sortOrder: 1 },
+          {
+            account: budgetExpenses.id,
+            amount: -50,
+            category: groceries.id,
+            payee: 'Market',
+            sortOrder: 1,
+          },
         ],
       },
     })
@@ -600,7 +673,13 @@ describe('transactions integration', () => {
       data: {
         entries: [
           { account: card.id, amount: 30, sortOrder: 0 },
-          { account: card.id, amount: -30, category: groceries.id, sortOrder: 1 },
+          {
+            account: budgetExpenses.id,
+            amount: -30,
+            category: groceries.id,
+            payee: 'Market',
+            sortOrder: 1,
+          },
         ],
       },
     })
@@ -872,7 +951,7 @@ describe('transactions integration', () => {
           ],
         },
       }),
-    ).rejects.toThrow(/reporting amounts must sum to zero/)
+    ).rejects.toThrow(/quote amounts must sum to zero/)
 
     const transaction = await payload.create({
       collection: 'transactions',
@@ -906,6 +985,105 @@ describe('transactions integration', () => {
     const btcLeg = legs.docs.find((leg) => getCollectionId(leg.account) === btcWallet.id)
     expect(btcLeg?.fxRate).toBe(50_000)
     expect(btcLeg?.reportingAmount).toBe(-500)
+  })
+
+  it('posts a mixed-unit journal with quote ≠ reporting currency', async () => {
+    const eur = await payload.create({
+      collection: 'units',
+      data: {
+        code: 'EURQ',
+        name: 'Euro Quote',
+        kind: 'fiat',
+        decimalPlaces: 2,
+        symbol: '€',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    const eurChecking = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'EUR Quote Checking',
+        classification: 'asset',
+        subtype: 'checking',
+        unit: eur.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    // Quote ≠ reporting without quoteToReportingRate: still posts (quote balance
+    // enforced); reportingAmount stays deferred until a rate is supplied.
+    const deferred = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        payee: 'Deferred quote→reporting',
+        type: 'transfer',
+        quoteUnit: eur.id,
+        entries: [
+          { account: eurChecking.id, amount: -10 },
+          { account: checkingA.id, amount: 12, fxRate: 10 / 12 },
+        ],
+      },
+    })
+
+    expect(getCollectionId(deferred.quoteUnit)).toBe(eur.id)
+    expect(deferred.quoteToReportingRate).toBeNull()
+
+    const deferredLegs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: deferred.id } },
+      overrideAccess: true,
+    })
+    expect(deferredLegs.docs.every((leg) => leg.reportingAmount == null)).toBe(true)
+
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-12',
+        payee: 'EUR quote to USD reporting',
+        type: 'transfer',
+        quoteUnit: eur.id,
+        quoteToReportingRate: 1.1,
+        entries: [
+          { account: eurChecking.id, amount: -10 },
+          { account: checkingA.id, amount: 12, fxRate: 10 / 12 },
+        ],
+      },
+    })
+
+    expect(getCollectionId(transaction.quoteUnit)).toBe(eur.id)
+    expect(transaction.quoteToReportingRate).toBe(1.1)
+
+    const legs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: transaction.id } },
+      sort: 'sortOrder',
+      overrideAccess: true,
+    })
+
+    const eurLeg = legs.docs.find((leg) => getCollectionId(leg.account) === eurChecking.id)
+    const usdLeg = legs.docs.find((leg) => getCollectionId(leg.account) === checkingA.id)
+
+    expect(eurLeg?.fxRate).toBe(1)
+    expect(eurLeg?.reportingAmount).toBe(-11)
+    expect(usdLeg?.fxRate).toBeCloseTo(10 / 12)
+    expect(usdLeg?.reportingAmount).toBeCloseTo(11)
+
+    const reportingTotal = legs.docs.reduce((sum, leg) => sum + (leg.reportingAmount ?? 0), 0)
+    expect(Math.abs(reportingTotal)).toBeLessThan(1e-9)
   })
 
   it('rejects duplicate externalId within a workspace (US-6.2)', async () => {
@@ -965,10 +1143,13 @@ describe('transactions integration', () => {
         budget: fx.budgetA.id,
         date: '2026-07-10',
         payee: 'Starbucks',
-        notes: 'Team coffee',
         type: 'transaction',
         source: 'manual',
         status: 'pending',
+        entries: [
+          { account: checkingA.id, amount: -12.5, notes: 'Team coffee' },
+          { account: checkingB.id, amount: 12.5 },
+        ],
       },
     })
 
@@ -1013,7 +1194,6 @@ describe('transactions integration', () => {
     expect(kept.externalId).toBe('plaid:match-200')
     expect(kept.importBatch).toBe('batch-match')
     expect(kept.payee).toBe('Starbucks')
-    expect(kept.notes).toBe('Team coffee')
     expect(kept.status).toBe('posted')
     expect(kept.date).toContain('2026-07-11')
 
@@ -1031,5 +1211,331 @@ describe('transactions integration', () => {
       overrideAccess: true,
     })
     expect(legs.totalDocs).toBe(2)
+    expect(legs.docs.some((entry) => entry.notes === 'Team coffee')).toBe(true)
+  })
+})
+
+describe('transactions integration — weird transfer edge cases', () => {
+  let fx: AccessFixtures
+  let member: User
+  let usd: Unit
+  let xrp: Unit
+  let xlm: Unit
+  let btc: Unit
+  let checking: Account
+  let xrpWallet: Account
+  let xlmWallet: Account
+  let btcWallet: Account
+  let feeExpense: Account
+  let accounts: Account[]
+
+  beforeAll(async () => {
+    fx = await seedAccessFixtures(payload)
+    member = await loginAs(payload, fx.emails.workspaceAMember)
+
+    usd = await payload.create({
+      collection: 'units',
+      data: {
+        code: 'USD-EDGE',
+        name: 'US Dollar Edge',
+        kind: 'fiat',
+        decimalPlaces: 2,
+        symbol: '$',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    await payload.update({
+      collection: 'workspaces',
+      id: fx.workspaceA.id,
+      data: { reportingCurrency: usd.id },
+      overrideAccess: true,
+    })
+
+    xrp = await payload.create({
+      collection: 'units',
+      data: {
+        code: 'XRP-EDGE',
+        name: 'XRP Edge',
+        kind: 'crypto',
+        decimalPlaces: 6,
+        symbol: 'XRP',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    xlm = await payload.create({
+      collection: 'units',
+      data: {
+        code: 'XLM-EDGE',
+        name: 'XLM Edge',
+        kind: 'crypto',
+        decimalPlaces: 7,
+        symbol: 'XLM',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    btc = await payload.create({
+      collection: 'units',
+      data: {
+        code: 'BTC-EDGE',
+        name: 'BTC Edge',
+        kind: 'crypto',
+        decimalPlaces: 8,
+        symbol: '₿',
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    checking = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Edge Checking',
+        classification: 'asset',
+        subtype: 'checking',
+        unit: usd.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    xrpWallet = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Edge XRP',
+        classification: 'asset',
+        subtype: 'holding',
+        unit: xrp.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    xlmWallet = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Edge XLM',
+        classification: 'asset',
+        subtype: 'holding',
+        unit: xlm.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    btcWallet = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Edge BTC',
+        classification: 'asset',
+        subtype: 'holding',
+        unit: btc.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    feeExpense = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Edge Fees',
+        classification: 'expense',
+        subtype: 'other',
+        unit: usd.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    accounts = [checking, xrpWallet, xlmWallet, btcWallet, feeExpense]
+  })
+
+  it('posts asymmetric XRP→XLM with deferred reporting and keeps simple-form rules', async () => {
+    const posting = buildSimpleFormPosting({
+      splitState: {
+        paymentAccount: xrpWallet.id,
+        totalAmount: '-100',
+        splits: [
+          {
+            key: 't1',
+            payee: `__transfer__:${xlmWallet.id}`,
+            category: '',
+            amount: '200',
+            notes: '',
+          },
+        ],
+      },
+      payeeValue: `__transfer__:${xlmWallet.id}`,
+      isTransfer: true,
+      accounts,
+      reportingCurrencyId: usd.id,
+    })
+
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-18',
+        payee: null,
+        type: 'transfer',
+        quoteUnit: posting.quoteUnit,
+        quoteToReportingRate: posting.quoteToReportingRate,
+        entries: posting.lines,
+      },
+    })
+
+    expect(transaction.type).toBe('transfer')
+    expect(getCollectionId(transaction.quoteUnit)).toBe(xrp.id)
+    expect(transaction.quoteToReportingRate).toBeNull()
+
+    const loaded = await payload.findByID({
+      collection: 'transactions',
+      id: transaction.id,
+      depth: 1,
+      overrideAccess: true,
+    })
+    const lines = transactionEntries(loaded)
+
+    expect(isWalletTransferEntries(lines)).toBe(true)
+    expect(
+      shouldExpandTransactionLines({
+        entries: lines,
+        accounts,
+        reportingCurrencyId: usd.id,
+      }),
+    ).toBe(false)
+
+    const legs = await payload.find({
+      collection: 'transaction-entries',
+      where: { transaction: { equals: transaction.id } },
+      overrideAccess: true,
+    })
+    expect(legs.docs.some((leg) => leg.reportingAmount == null)).toBe(true)
+  })
+
+  it('posts BTC→USD “sell” as transfer-shaped and keeps exchange layout in the UI rules', async () => {
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-18',
+        payee: 'Looks like a sell',
+        type: 'transfer',
+        entries: [
+          { account: btcWallet.id, amount: -0.01, fxRate: 50_000 },
+          { account: checking.id, amount: 500 },
+        ],
+      },
+    })
+
+    const loaded = await payload.findByID({
+      collection: 'transactions',
+      id: transaction.id,
+      depth: 1,
+      overrideAccess: true,
+    })
+    const lines = transactionEntries(loaded)
+
+    expect(isWalletTransferEntries(lines)).toBe(true)
+    expect(
+      shouldExpandTransactionLines({
+        entries: lines,
+        accounts,
+        reportingCurrencyId: usd.id,
+      }),
+    ).toBe(false)
+  })
+
+  it('rejects unbalanced same-unit “transfer” (−100 / +95)', async () => {
+    const savings = await payload.create({
+      collection: 'accounts',
+      data: {
+        name: 'Edge Savings',
+        classification: 'asset',
+        subtype: 'savings',
+        unit: usd.id,
+        isOnBudget: true,
+        budget: fx.budgetA.id,
+        workspace: fx.workspaceA.id,
+      },
+      overrideAccess: true,
+    })
+
+    await expect(
+      payload.create({
+        collection: 'transactions',
+        user: member,
+        overrideAccess: false,
+        data: {
+          workspace: fx.workspaceA.id,
+          budget: fx.budgetA.id,
+          date: '2026-07-18',
+          payee: 'Asymmetric USD',
+          type: 'transfer',
+          entries: [
+            { account: checking.id, amount: -100 },
+            { account: savings.id, amount: 95 },
+          ],
+        },
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('posts sell+fee (3 legs) and UI rules expand it', async () => {
+    const transaction = await payload.create({
+      collection: 'transactions',
+      user: member,
+      overrideAccess: false,
+      data: {
+        workspace: fx.workspaceA.id,
+        budget: fx.budgetA.id,
+        date: '2026-07-18',
+        payee: 'Sell with fee',
+        type: 'transaction',
+        entries: [
+          { account: btcWallet.id, amount: -0.02, fxRate: 50_000 },
+          { account: checking.id, amount: 990 },
+          { account: feeExpense.id, amount: 10 },
+        ],
+      },
+    })
+
+    const loaded = await payload.findByID({
+      collection: 'transactions',
+      id: transaction.id,
+      depth: 1,
+      overrideAccess: true,
+    })
+    const lines = transactionEntries(loaded)
+
+    expect(isWalletTransferEntries(lines)).toBe(false)
+    expect(
+      shouldExpandTransactionLines({
+        entries: lines,
+        accounts,
+        reportingCurrencyId: usd.id,
+      }),
+    ).toBe(true)
   })
 })

@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@dappermountain/ui/components/dialog'
+import { Input } from '@dappermountain/ui/components/input'
 import { Label } from '@dappermountain/ui/components/label'
 import {
   Select,
@@ -20,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@dappermountain/ui/components/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@dappermountain/ui/components/tabs'
 import { Plus } from '@dappermountain/ui/icons'
 import { cn } from '@dappermountain/ui/lib/utils'
 
@@ -42,23 +42,35 @@ import {
   defaultCategoryIdForPayee,
   isPayeeTransferId,
   isTransferFromPayee,
+  toPayeeTransferId,
   transferDestinationFromPayee,
-  transferSkipsCategory,
 } from '@/lib/frontend/transaction-payee'
 import {
   parseSignedAmountString,
   paymentAccountFromList,
 } from '@/lib/frontend/transaction-amount-direction'
+import { EconomicKindBadge } from '@/app/(frontend)/_components/economic-kind-badge'
 import {
-  applyStandardViewCollapse,
-  buildEntriesForSave,
+  buildSimpleFormPosting,
+  journalLegsToEntryLike,
+  seedJournalLegsFromSimpleForm,
+  splitStateToJournalLegs,
+  type TransactionEditorLayout,
+} from '@/lib/frontend/transaction-assistance'
+import {
+  deriveEconomicKind,
+  type EconomicKindOverride,
+} from '@/lib/frontend/transaction-economic-kind'
+import {
+  allocateSplitsHaveCounterparties,
+  headerPayeeFromAllocateSplits,
+  merchantPayeeFromValue,
   newTransferSplitDraft,
   resolvePostingCategoryId,
-  seedSplitsForView,
+  seedAllocateSplitsFromSimpleForm,
   shouldPostFromSplitRows,
   splitIsTransfer,
   splitStateAfterCategoryChange,
-  syncSingleTransferSplitAmount,
   allSplitsAreTransfers,
   transactionTotalMagnitude,
   type TransactionDialogView,
@@ -66,8 +78,11 @@ import {
 } from '@/lib/frontend/transaction-splits'
 import {
   defaultSwapLegsForBudget,
+  headerPayeeFromSwapLegs,
   resolveTypeFromSwapLegs,
+  swapLegsHaveCounterparties,
   swapLegsToEntries,
+  transactionQuotePayloadFromLegs,
   type SwapLegDraft,
 } from '@/lib/frontend/transaction-swap'
 import { nowTransactionDateTime, normalizeTransactionDateTime } from '@/lib/frontend/transaction-datetime'
@@ -76,7 +91,7 @@ import {
   buildGroupedAccountOptions,
   buildGroupedCategoryOptionsByGroup,
 } from '@/lib/frontend/transaction-picker-options'
-import type { Account, Category, Transaction } from '@/types'
+import type { Account, Category, Transaction, Unit } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
 
 export type TransactionFormDialogProps = {
@@ -86,10 +101,7 @@ export type TransactionFormDialogProps = {
   payeeOptions?: string[]
   defaultPaymentAccountId?: string | null
   reportingCurrencyId: string | null
-}
-
-function swapLegsNeedDefaultSeed(legs: SwapLegDraft[]): boolean {
-  return legs.length < 2 || legs.every((leg) => !leg.amount)
+  units: Unit[]
 }
 
 function defaultSplitState(
@@ -102,7 +114,6 @@ function defaultSplitState(
     paymentAccountId && accountIds.includes(paymentAccountId)
       ? paymentAccountId
       : (accountIds[0] ?? '')
-  const other = accountIds[1] ?? payment
 
   return {
     paymentAccount: payment,
@@ -131,19 +142,22 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     payeeOptions = [],
     defaultPaymentAccountId,
     reportingCurrencyId,
+    units,
   } = props
   const { t } = useAppTranslation()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const [activeView, setActiveView] = useState<TransactionDialogView>('standard')
+  const [layout, setLayout] = useState<TransactionEditorLayout>('payment')
+  const [paymentView, setPaymentView] = useState<TransactionDialogView>('standard')
 
   const [date, setDate] = useState(() => nowTransactionDateTime())
   const [payeeValue, setPayeeValue] = useState('')
   const [type, setType] = useState<Transaction['type']>('transaction')
   const [status, setStatus] = useState<TransactionStatus>('posted')
   const [categoryId, setCategoryId] = useState('')
+  const [notes, setNotes] = useState('')
   const [splitState, setSplitState] = useState<TransactionSplitFormState>(() =>
     budgetId
       ? defaultSplitState(accounts, budgetId, defaultPaymentAccountId)
@@ -152,6 +166,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
   const [swapLegs, setSwapLegs] = useState<SwapLegDraft[]>(() =>
     budgetId ? defaultSwapLegsForBudget(accounts, budgetId) : [],
   )
+  const [economicKind, setEconomicKind] = useState<EconomicKindOverride | null>(null)
 
   const accountOptions = useMemo(
     () => buildGroupedAccountOptions(accounts, budgetId ?? undefined),
@@ -166,13 +181,82 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
   const formatAccountGroup = (group: string) =>
     t(accountClassificationGroupKey(group) as 'custom:fields:accounts:classification:asset')
 
-  const isTransfer = isTransferFromPayee(payeeValue, splitState.splits)
-  const hasCategorySplits = splitState.splits.some((split) => !splitIsTransfer(split))
-  const categoryDisabled = isTransfer && transferSkipsCategory()
+  const isAccountTransferPayee = isPayeeTransferId(payeeValue)
+  const exchangeType = resolveTypeFromSwapLegs(swapLegs, accounts)
+  const isTransfer =
+    layout === 'exchange'
+      ? exchangeType === 'transfer'
+      : isTransferFromPayee(payeeValue, splitState.splits)
+  const paymentAccount = paymentAccountFromList(accounts, splitState.paymentAccount)
+  const transferDestinationId =
+    transferDestinationFromPayee(payeeValue) ??
+    (splitState.splits[0] && splitIsTransfer(splitState.splits[0])
+      ? transferDestinationFromPayee(splitState.splits[0].payee)
+      : null)
+  const postFromSplits = shouldPostFromSplitRows(splitState, {
+    view: paymentView,
+    isTransfer,
+  })
+  const showAllocateEditor = layout === 'payment' && paymentView === 'split'
   const amountDirection = parseSignedAmountString(
     splitState.totalAmount,
-    paymentAccountFromList(accounts, splitState.paymentAccount),
+    paymentAccount,
   ).direction
+
+  const economic = useMemo(() => {
+    let entries: Array<{ account: string; amount: number; category: string | null }> = []
+    try {
+      if (layout === 'journal' || layout === 'exchange') {
+        entries = swapLegs
+          .filter((leg) => leg.account && leg.amount !== '')
+          .map((leg) => ({
+            account: leg.account,
+            amount: Number(leg.amount) || 0,
+            category: leg.category || null,
+          }))
+      } else {
+        entries = journalLegsToEntryLike(
+          splitStateToJournalLegs({
+            splitState,
+            categoryId,
+            categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
+            payeeValue,
+            isTransfer,
+            notes: notes || undefined,
+          }),
+        ).map((entry) => ({
+          account: typeof entry.account === 'string' ? entry.account : '',
+          amount: entry.amount,
+          category: typeof entry.category === 'string' ? entry.category : null,
+        }))
+      }
+    } catch {
+      entries = []
+    }
+
+    return deriveEconomicKind({
+      entries,
+      accounts,
+      categories,
+      reportingCurrencyId,
+      override: economicKind,
+      transactionType: layout === 'journal' || layout === 'exchange' ? exchangeType : type,
+    })
+  }, [
+    accounts,
+    categories,
+    categoryId,
+    economicKind,
+    exchangeType,
+    isTransfer,
+    layout,
+    notes,
+    payeeValue,
+    reportingCurrencyId,
+    splitState,
+    swapLegs,
+    type,
+  ])
 
   const applyPayeeCommit = (next: string) => {
     setPayeeValue(next)
@@ -181,28 +265,54 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     if (destination) {
       setType('transfer')
       setCategoryId('')
-      setSplitState((prev) => ({
-        ...prev,
+      const nextSplitState = {
+        ...splitState,
         splits: [
           newTransferSplitDraft(
             destination,
-            prev.splits[0] && splitIsTransfer(prev.splits[0])
-              ? prev.splits[0].amount
-              : String(transactionTotalMagnitude(prev.totalAmount) || ''),
+            splitState.splits[0] && splitIsTransfer(splitState.splits[0])
+              ? splitState.splits[0].amount
+              : String(transactionTotalMagnitude(splitState.totalAmount) || ''),
           ),
         ],
-      }))
+      }
+      setSplitState(nextSplitState)
+      setSwapLegs(
+        seedJournalLegsFromSimpleForm({
+          splitState: nextSplitState,
+          payeeValue: toPayeeTransferId(destination),
+          isTransfer: true,
+          notes: notes || undefined,
+          accounts,
+          budgetId,
+        }),
+      )
+      setLayout('exchange')
       return
     }
 
     if (type === 'transfer' || isPayeeTransferId(payeeValue)) {
       setType('transaction')
       setSplitState((prev) => ({ ...prev, splits: [] }))
+      setLayout('payment')
       if (budgetId) {
         setCategoryId((current) => current || defaultCategoryIdForPayee(categories, budgetId))
       }
     }
   }
+
+  // Keep type in sync with exchange legs / account transfer payee.
+  useEffect(() => {
+    if (layout === 'exchange') {
+      if (exchangeType !== type && (exchangeType === 'transfer' || type === 'transfer')) {
+        setType(exchangeType)
+      }
+      return
+    }
+    if (isAccountTransferPayee && type !== 'transfer') {
+      setType('transfer')
+    }
+  }, [exchangeType, isAccountTransferPayee, layout, type])
 
   useEffect(() => {
     if (!budgetId) return
@@ -218,27 +328,42 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     })
   }, [accounts, budgetId, defaultPaymentAccountId])
 
-  const handleViewChange = (view: TransactionDialogView) => {
-    if (view === 'split') {
-      setSplitState((prev) =>
-        seedSplitsForView(prev, { categoryId, payeeValue, isTransfer }),
+  const openAllocateSplits = () => {
+    const merchant =
+      !isPayeeTransferId(payeeValue) && payeeValue.trim() ? payeeValue.trim() : ''
+    setSplitState((prev) =>
+      seedAllocateSplitsFromSimpleForm({
+        state: prev,
+        payee: merchant,
+        categoryId,
+        notes: notes.trim() || '',
+      }),
+    )
+    setPaymentView('split')
+    setError(null)
+  }
+
+  const openJournal = () => {
+    if (layout !== 'exchange') {
+      const destination = transferDestinationId
+      setSwapLegs(
+        seedJournalLegsFromSimpleForm({
+          splitState,
+          categoryId: layout === 'payment' && !showAllocateEditor ? categoryId : '',
+          categoryPurpose:
+            layout === 'payment' && !showAllocateEditor
+              ? categories.find((category) => category.id === categoryId)?.purpose
+              : null,
+          payeeValue: destination ? toPayeeTransferId(destination) : payeeValue,
+          isTransfer,
+          notes: notes || undefined,
+          accounts,
+          budgetId,
+        }),
       )
-    } else if (view === 'swap') {
-      if (budgetId && swapLegsNeedDefaultSeed(swapLegs)) {
-        setSwapLegs(defaultSwapLegsForBudget(accounts, budgetId))
-      }
-    } else {
-      const patch = applyStandardViewCollapse(splitState, categoryId)
-      if (patch.categoryId) {
-        setCategoryId(patch.categoryId)
-      }
-      if (patch.transferPayee) {
-        setPayeeValue(patch.transferPayee)
-        setType('transfer')
-      }
-      setSplitState(patch.splitState)
     }
-    setActiveView(view)
+    setLayout('journal')
+    setError(null)
   }
 
   const reset = () => {
@@ -247,7 +372,10 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     setType('transaction')
     setStatus('posted')
     setCategoryId('')
-    setActiveView('standard')
+    setNotes('')
+    setLayout('payment')
+    setPaymentView('standard')
+    setEconomicKind(null)
     setSplitState(
       budgetId
         ? defaultSplitState(accounts, budgetId, defaultPaymentAccountId)
@@ -263,8 +391,21 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
 
     if (next === 'transfer') {
       if (!budgetId) return
-      setPayeeValue('')
-      setSplitState(defaultTransferState(accounts, budgetId))
+      const transferState = defaultTransferState(accounts, budgetId)
+      setLayout('exchange')
+      setSplitState(transferState)
+      const dest = transferState.splits[0]
+      const accountId = dest ? transferDestinationFromPayee(dest.payee) : null
+      setPayeeValue(accountId ? toPayeeTransferId(accountId) : '')
+      setSwapLegs(
+        seedJournalLegsFromSimpleForm({
+          splitState: transferState,
+          payeeValue: accountId ? toPayeeTransferId(accountId) : '',
+          isTransfer: true,
+          accounts,
+          budgetId,
+        }),
+      )
       return
     }
 
@@ -272,6 +413,7 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       setPayeeValue('')
     }
 
+    setLayout('payment')
     if (!budgetId) return
     setSplitState(defaultSplitState(accounts, budgetId, defaultPaymentAccountId))
   }
@@ -283,45 +425,99 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
     }
 
     const asPending = status === 'pending'
-    const isSwap = activeView === 'swap'
 
     if (
       !asPending &&
-      !isSwap &&
+      layout === 'payment' &&
       !isTransfer &&
-      !shouldPostFromSplitRows(splitState, { view: activeView, isTransfer }) &&
+      !shouldPostFromSplitRows(splitState, { view: paymentView, isTransfer }) &&
       !resolvePostingCategoryId(splitState, categoryId)
     ) {
       setError(t('custom:frontend:transactions:categoryNeedsSplits'))
       return
     }
 
-    const resolvedType = isSwap
-      ? resolveTypeFromSwapLegs(swapLegs, accounts)
-      : isPayeeTransferId(payeeValue) || allSplitsAreTransfers(splitState.splits)
-        ? 'transfer'
-        : type
-    const resolvedPayee =
-      isPayeeTransferId(payeeValue) || (!isSwap && resolvedType === 'transfer')
+    const postingAsTransfer =
+      isTransfer ||
+      isPayeeTransferId(payeeValue) ||
+      allSplitsAreTransfers(splitState.splits)
+
+    if (!asPending && layout === 'payment' && !postingAsTransfer) {
+      if (shouldPostFromSplitRows(splitState, { view: paymentView, isTransfer: false })) {
+        if (!allocateSplitsHaveCounterparties(splitState.splits)) {
+          setError(t('custom:frontend:transactions:payeeRequiredOnSplits'))
+          return
+        }
+      } else if (!merchantPayeeFromValue(payeeValue)) {
+        setError(t('custom:frontend:transactions:payeeRequired'))
+        return
+      }
+    }
+
+    if (
+      !asPending &&
+      (layout === 'journal' || layout === 'exchange') &&
+      !(layout === 'exchange' && exchangeType === 'transfer')
+    ) {
+      if (!swapLegsHaveCounterparties(swapLegs)) {
+        setError(t('custom:frontend:transactions:payeeRequiredOnSplits'))
+        return
+      }
+    }
+
+    const resolvedType =
+      layout === 'journal' || layout === 'exchange'
+        ? resolveTypeFromSwapLegs(swapLegs, accounts, payeeValue)
+        : isPayeeTransferId(payeeValue) || allSplitsAreTransfers(splitState.splits)
+          ? 'transfer'
+          : type
+    let resolvedPayee: string | null | undefined =
+      isAccountTransferPayee || (layout === 'exchange' && exchangeType === 'transfer')
         ? undefined
         : payeeValue || undefined
 
+    const syncedHeaderPayee =
+      layout === 'journal' || layout === 'exchange'
+        ? headerPayeeFromSwapLegs(swapLegs, accounts)
+        : layout === 'payment' &&
+            shouldPostFromSplitRows(splitState, { view: paymentView, isTransfer: false })
+          ? headerPayeeFromAllocateSplits(splitState.splits)
+          : undefined
+    if (syncedHeaderPayee !== undefined) {
+      resolvedPayee = syncedHeaderPayee
+    }
+
     setError(null)
 
-    let entries: ReturnType<typeof buildEntriesForSave> | undefined
+    let entries: ReturnType<typeof buildSimpleFormPosting>['lines'] | undefined
+    let quoteFields: { quoteUnit: string | null; quoteToReportingRate: number | null } = {
+      quoteUnit: null,
+      quoteToReportingRate: null,
+    }
 
     if (!asPending) {
       try {
-        entries = isSwap
-          ? swapLegsToEntries(swapLegs, accounts, reportingCurrencyId)
-          : buildEntriesForSave({
-              splitState,
-              categoryId,
-              categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
-              payeeValue,
-              activeView,
-              isTransfer: resolvedType === 'transfer' || isTransfer,
-            })
+        if (layout === 'journal' || layout === 'exchange') {
+          entries = swapLegsToEntries(swapLegs, accounts, reportingCurrencyId)
+          quoteFields = transactionQuotePayloadFromLegs(swapLegs, accounts, reportingCurrencyId)
+        } else {
+          const posting = buildSimpleFormPosting({
+            splitState,
+            categoryId,
+            categoryPurpose: categories.find((category) => category.id === categoryId)?.purpose,
+            payeeValue,
+            isTransfer: resolvedType === 'transfer' || isTransfer,
+            activeView: paymentView,
+            notes: notes || undefined,
+            accounts,
+            reportingCurrencyId,
+          })
+          entries = posting.lines
+          quoteFields = {
+            quoteUnit: posting.quoteUnit,
+            quoteToReportingRate: posting.quoteToReportingRate,
+          }
+        }
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Failed to post transaction')
         return
@@ -332,9 +528,17 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       const result = await createTransactionAction({
         budget: budgetId,
         date: normalizeTransactionDateTime(date),
-        payee: resolvedPayee,
+        payee: resolvedPayee ?? undefined,
         type: resolvedType,
+        economicKind:
+          economic.confidence === 'ambiguous'
+            ? economicKind ??
+              (economic.kind === 'buy' || economic.kind === 'sell' || economic.kind === 'transfer'
+                ? economic.kind
+                : null)
+            : null,
         entries,
+        ...quoteFields,
       })
 
       if (!result.ok) {
@@ -359,14 +563,18 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
       <DialogContent
         className={cn(
           'flex max-h-[90vh] flex-col gap-4 overflow-hidden',
-          activeView === 'swap' ? 'sm:max-w-2xl' : 'sm:max-w-lg',
+          layout === 'journal' ? 'sm:max-w-2xl' : 'sm:max-w-lg',
         )}
       >
         <DialogHeader>
           <DialogTitle>{t('custom:frontend:transactions:createTitle')}</DialogTitle>
           <DialogDescription asChild>
             <div className="flex items-center justify-between gap-3">
-              <span>{t('custom:collections:transactions:description')}</span>
+              <span>
+                {layout === 'exchange'
+                  ? t('custom:frontend:transactions:exchangeHint')
+                  : t('custom:frontend:transactions:editorHint')}
+              </span>
               <TransactionStatusChip
                 disabled={isPending}
                 onStatusChange={setStatus}
@@ -377,158 +585,240 @@ export function TransactionFormDialog(props: TransactionFormDialogProps) {
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <Tabs onValueChange={(value) => handleViewChange(value as TransactionDialogView)} value={activeView}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="standard">{t('custom:frontend:transactions:tabStandard')}</TabsTrigger>
-              <TabsTrigger value="split">{t('custom:frontend:transactions:tabSplit')}</TabsTrigger>
-              <TabsTrigger value="swap">{t('custom:frontend:transactions:tabSwap')}</TabsTrigger>
-            </TabsList>
+          <div className="grid gap-4">
+            <TransactionDialogDateField id="tx-date" onChange={setDate} value={date} />
 
-            <TabsContent className="grid gap-4 pt-4" value="standard">
-              <TransactionDialogDateField
-                id="tx-date"
-                onChange={setDate}
-                value={date}
-              />
-              <TransactionDialogAccountField
-                accountOptions={accountOptions}
-                formatAccountGroup={formatAccountGroup}
-                onChange={(value) =>
-                  setSplitState((prev) => ({ ...prev, paymentAccount: value }))
-                }
-                value={splitState.paymentAccount}
-              />
-              <div className="grid gap-2">
-                <Label htmlFor="tx-payee">{t('custom:frontend:filters:fields:payee')}</Label>
-                <PayeePicker
-                  accounts={accounts}
-                  amountDirection={amountDirection}
-                  budgetId={budgetId ?? undefined}
-                  id="tx-payee"
-                  onCommit={applyPayeeCommit}
-                  onValueChange={setPayeeValue}
-                  payeeOptions={payeeOptions}
-                  sourceAccountId={splitState.paymentAccount}
-                  value={payeeValue}
+            {layout === 'payment' ? (
+              <>
+                <TransactionDialogAccountField
+                  accountOptions={accountOptions}
+                  formatAccountGroup={formatAccountGroup}
+                  onChange={(value) =>
+                    setSplitState((prev) => ({ ...prev, paymentAccount: value }))
+                  }
+                  value={splitState.paymentAccount}
                 />
-              </div>
-
-              <div className="grid gap-2">
-                <Label>{t('custom:frontend:transactions:typeLabel')}</Label>
-                <Select onValueChange={(value) => handleTypeChange(value as Transaction['type'])} value={type}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(['transaction', 'adjustment', 'opening_balance'] as const).map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {t(`custom:fields:transactions:type:${value}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <TransactionAmountField
-                accounts={accounts}
-                onValueChange={(next) =>
-                  setSplitState((prev) =>
-                    syncSingleTransferSplitAmount({ ...prev, totalAmount: next }),
-                  )
-                }
-                paymentAccountId={splitState.paymentAccount}
-                value={splitState.totalAmount}
-              />
-
-              {!isTransfer && !hasCategorySplits ? (
-                <div className="grid gap-2">
-                  <Label>{t('custom:frontend:filters:fields:category')}</Label>
-                  <GroupedPicker
-                    onValueChange={(next) => {
-                      setCategoryId(next)
-                      setSplitState((prev) => splitStateAfterCategoryChange(prev, next, categories))
-                    }}
-                    options={categoryOptions}
-                    placeholder={t('custom:frontend:filters:selectValue')}
-                    searchPlaceholder={t('custom:frontend:filters:searchCategories')}
-                    value={categoryId}
-                  />
-                </div>
-              ) : null}
-
-              {categoryDisabled ? (
-                <div className="grid gap-2">
-                  <Label>{t('custom:frontend:filters:fields:category')}</Label>
-                  <div
-                    aria-disabled
-                    className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
-                  >
-                    {t('custom:frontend:transactions:categoryNotNeeded')}
+                {!showAllocateEditor ? (
+                  <div className="grid gap-2">
+                    <Label htmlFor="tx-payee">{t('custom:frontend:filters:fields:payee')}</Label>
+                    <PayeePicker
+                      accounts={accounts}
+                      amountDirection={amountDirection}
+                      budgetId={budgetId ?? undefined}
+                      id="tx-payee"
+                      onCommit={applyPayeeCommit}
+                      onValueChange={setPayeeValue}
+                      payeeOptions={payeeOptions}
+                      sourceAccountId={splitState.paymentAccount}
+                      value={payeeValue}
+                    />
                   </div>
+                ) : null}
+
+                <div className="grid gap-2">
+                  <Label>{t('custom:frontend:transactions:typeLabel')}</Label>
+                  <Select
+                    onValueChange={(value) => handleTypeChange(value as Transaction['type'])}
+                    value={isTransfer ? 'transfer' : type}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(
+                        [
+                          'transaction',
+                          'transfer',
+                          'adjustment',
+                          'opening_balance',
+                        ] as const
+                      ).map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {t(`custom:fields:transactions:type:${value}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : null}
-            </TabsContent>
 
-            <TabsContent className="grid gap-4 pt-4" value="split">
-              <TransactionDialogDateField
-                id="tx-date-split"
-                onChange={setDate}
-                value={date}
-              />
-              <TransactionDialogAccountField
-                accountOptions={accountOptions}
-                formatAccountGroup={formatAccountGroup}
-                onChange={(value) =>
-                  setSplitState((prev) => ({ ...prev, paymentAccount: value }))
-                }
-                value={splitState.paymentAccount}
-              />
-              <TransactionSplitsEditor
-                accounts={accounts}
-                budgetId={budgetId ?? undefined}
-                categoryOptions={categoryOptions}
-                onChange={setSplitState}
-                onCollapsedToRegular={(nextCategory) => {
-                  if (nextCategory) setCategoryId(nextCategory)
-                  setActiveView('standard')
-                }}
-                payeeOptions={payeeOptions}
-                preferredCategoryId={categoryId}
-                state={splitState}
-              />
-            </TabsContent>
-
-            <TabsContent className="grid gap-4 pt-4" value="swap">
-              <TransactionDialogDateField
-                id="tx-date-swap"
-                onChange={setDate}
-                value={date}
-              />
-              <div className="grid gap-2">
-                <Label htmlFor="tx-payee-swap">{t('custom:frontend:filters:fields:payee')}</Label>
-                <PayeePicker
+                <TransactionAmountField
                   accounts={accounts}
-                  amountDirection={amountDirection}
-                  budgetId={budgetId ?? undefined}
-                  id="tx-payee-swap"
-                  onCommit={setPayeeValue}
-                  onValueChange={setPayeeValue}
-                  payeeOptions={payeeOptions}
-                  sourceAccountId=""
-                  value={payeeValue}
+                  disabled={showAllocateEditor}
+                  onValueChange={(next) =>
+                    setSplitState((prev) => ({ ...prev, totalAmount: next }))
+                  }
+                  paymentAccountId={splitState.paymentAccount}
+                  value={splitState.totalAmount}
                 />
-              </div>
-              <TransactionSwapEditor
-                accountOptions={accountOptions}
-                accounts={accounts}
-                categoryOptions={categoryOptions}
-                formatAccountGroup={formatAccountGroup}
-                legs={swapLegs}
-                onChange={setSwapLegs}
-                reportingCurrencyId={reportingCurrencyId}
-              />
-            </TabsContent>
-          </Tabs>
+
+                {economic.kind !== 'other' ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{t('custom:frontend:transactions:economicKindLabel')}</span>
+                    <EconomicKindBadge kind={economic.kind} />
+                  </div>
+                ) : null}
+
+                {!isTransfer && !showAllocateEditor ? (
+                  <div className="grid gap-2">
+                    <Label>{t('custom:frontend:filters:fields:category')}</Label>
+                    <GroupedPicker
+                      onValueChange={(next) => {
+                        setCategoryId(next)
+                        setSplitState((prev) => splitStateAfterCategoryChange(prev, next, categories))
+                      }}
+                      options={categoryOptions}
+                      placeholder={t('custom:frontend:filters:selectValue')}
+                      searchPlaceholder={t('custom:frontend:filters:searchCategories')}
+                      value={categoryId}
+                    />
+                  </div>
+                ) : null}
+
+                {showAllocateEditor ? (
+                  <TransactionSplitsEditor
+                    accounts={accounts}
+                    budgetId={budgetId ?? undefined}
+                    categoryOptions={categoryOptions}
+                    onChange={setSplitState}
+                    onCollapsedToRegular={(nextCategoryId) => {
+                      setCategoryId(nextCategoryId)
+                      setPaymentView('standard')
+                    }}
+                    payeeOptions={payeeOptions}
+                    preferredCategoryId={categoryId}
+                    state={splitState}
+                    units={units}
+                  />
+                ) : (
+                  <div className="grid gap-2">
+                    <Label htmlFor="tx-notes">{t('custom:fields:transactions:entryNotes')}</Label>
+                    <Input
+                      id="tx-notes"
+                      onChange={(event) => setNotes(event.target.value)}
+                      placeholder={t('custom:fields:transactions:entryNotesPlaceholder')}
+                      value={notes}
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {!showAllocateEditor ? (
+                    <Button onClick={openAllocateSplits} size="sm" type="button" variant="outline">
+                      <Plus className="size-4" />
+                      {t('custom:frontend:transactions:addLine')}
+                    </Button>
+                  ) : null}
+                  <Button onClick={openJournal} size="sm" type="button" variant="outline">
+                    {t('custom:frontend:transactions:editAsJournal')}
+                  </Button>
+                </div>
+              </>
+            ) : null}
+
+            {layout === 'exchange' || layout === 'journal' ? (
+              <>
+                {layout === 'exchange' ? (
+                  <div className="grid gap-2">
+                    <Label>{t('custom:frontend:transactions:typeLabel')}</Label>
+                    <Select
+                      onValueChange={(value) => handleTypeChange(value as Transaction['type'])}
+                      value={exchangeType === 'transfer' ? 'transfer' : type}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(
+                          [
+                            'transaction',
+                            'transfer',
+                            'adjustment',
+                            'opening_balance',
+                          ] as const
+                        ).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {t(`custom:fields:transactions:type:${value}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                {!(layout === 'exchange' && exchangeType === 'transfer') ? (
+                  <div className="grid gap-2">
+                    <Label htmlFor="tx-swap-payee">
+                      {t('custom:frontend:filters:fields:payee')}
+                    </Label>
+                    <PayeePicker
+                      accounts={accounts}
+                      budgetId={budgetId ?? undefined}
+                      id="tx-swap-payee"
+                      onCommit={setPayeeValue}
+                      onValueChange={setPayeeValue}
+                      payeeOptions={payeeOptions}
+                      placeholder={t('custom:frontend:transactions:payeePlaceholder')}
+                      value={payeeValue}
+                    />
+                  </div>
+                ) : null}
+
+                <TransactionSwapEditor
+                  accountOptions={accountOptions}
+                  accounts={accounts}
+                  budgetId={budgetId ?? undefined}
+                  categoryOptions={categoryOptions}
+                  formatAccountGroup={formatAccountGroup}
+                  legs={swapLegs}
+                  onChange={setSwapLegs}
+                  payeeOptions={payeeOptions}
+                  reportingCurrencyId={reportingCurrencyId}
+                  units={units}
+                />
+
+                {layout === 'exchange' &&
+                economic.confidence === 'ambiguous' &&
+                economic.choices ? (
+                  <div className="grid gap-2">
+                    <Label className="flex items-center gap-2">
+                      {t('custom:frontend:transactions:economicKindLabel')}
+                      <EconomicKindBadge ambiguous kind={economic.kind} />
+                    </Label>
+                    <Select
+                      onValueChange={(value) => setEconomicKind(value as EconomicKindOverride)}
+                      value={
+                        economicKind ??
+                        (economic.kind === 'buy' ||
+                        economic.kind === 'sell' ||
+                        economic.kind === 'transfer'
+                          ? economic.kind
+                          : 'sell')
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {economic.choices.map((choice) => (
+                          <SelectItem key={choice} value={choice}>
+                            {t(`custom:frontend:transactions:economicKind:${choice}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {t('custom:frontend:transactions:economicKindHint')}
+                    </p>
+                  </div>
+                ) : layout === 'exchange' && economic.kind !== 'other' ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{t('custom:frontend:transactions:economicKindLabel')}</span>
+                    <EconomicKindBadge kind={economic.kind} />
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </div>
 
           {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
         </div>

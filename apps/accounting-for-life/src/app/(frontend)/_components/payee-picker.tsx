@@ -9,6 +9,7 @@ import { cn } from '@dappermountain/ui/lib/utils'
 
 import { AccountLabel } from '@/app/(frontend)/_components/account-label'
 import { TransferPayeeLabel } from '@/app/(frontend)/_components/transfer-payee-label'
+import { isSystemPnlAccount } from '@/lib/frontend/system-pnl-accounts'
 import {
   buildPayeeMerchantOptions,
   buildPayeeTransferOptions,
@@ -146,6 +147,20 @@ export function PayeePicker(props: PayeePickerProps) {
   const merchantLabel =
     !isPayeeTransferId(value) && value.trim() ? value : null
 
+  // Swap/journal legs encode the leg's own account as `__transfer__:id` with the
+  // same id as sourceAccountId — resolveTransferPair then returns null. Still show
+  // a Transfer: Account label so the trigger is not an empty placeholder.
+  // System Income/Expense chart accounts stay internal — never label them as transfers.
+  const transferAccountFallback = useMemo(() => {
+    if (!isPayeeTransferId(value) || transferPresentation) return null
+    const account = findAccount(accounts, payeeTransferAccountId(value))
+    if (!account || isSystemPnlAccount(account)) return null
+    return labels.transferTo(account.name)
+  }, [accounts, labels, transferPresentation, value])
+
+  const triggerLabel = transferPresentation ? null : (merchantLabel ?? transferAccountFallback)
+  const showPlaceholder = !transferPresentation && !triggerLabel
+
   return (
     <Popover
       modal={false}
@@ -172,13 +187,13 @@ export function PayeePicker(props: PayeePickerProps) {
           <span
             className={cn(
               'min-w-0 truncate text-left',
-              !transferPresentation && !merchantLabel && 'text-muted-foreground',
+              showPlaceholder && 'text-muted-foreground',
             )}
           >
             {transferPresentation ? (
               <TransferPayeeLabel className="min-w-0" presentation={transferPresentation} />
             ) : (
-              (merchantLabel ?? triggerPlaceholder)
+              (triggerLabel ?? triggerPlaceholder)
             )}
           </span>
           <ChevronDown className="size-4 shrink-0 opacity-50" />

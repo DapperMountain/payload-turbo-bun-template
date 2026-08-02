@@ -37,15 +37,17 @@ export type TransactionDialogAccountFieldProps = {
   onChange: (accountId: string) => void
   formatAccountGroup?: (group: string) => string
   disabled?: boolean
+  /** Override the default “Account” label (e.g. Give / Receive). */
+  label?: string
 }
 
 export function TransactionDialogAccountField(props: TransactionDialogAccountFieldProps) {
-  const { accountOptions, value, onChange, formatAccountGroup, disabled } = props
+  const { accountOptions, value, onChange, formatAccountGroup, disabled, label } = props
   const { t } = useAppTranslation()
 
   return (
     <div className="grid gap-2">
-      <Label>{t('custom:collections:accounts:singular')}</Label>
+      <Label>{label ?? t('custom:collections:accounts:singular')}</Label>
       <GroupedPicker
         disabled={disabled}
         formatGroup={formatAccountGroup}

@@ -67,12 +67,19 @@ const visa: Account = {
 }
 
 describe('transaction payee helpers', () => {
-  it('detects transfers from payee id or transfer splits only', () => {
+  it('detects transfers from payee id or pure transfer splits only', () => {
     expect(isTransferFromPayee(toPayeeTransferId('savings'), [])).toBe(true)
     expect(isTransferFromPayee('Walmart', [])).toBe(false)
     expect(
       isTransferFromPayee('Walmart', [{ payee: toPayeeTransferId('savings') }]),
     ).toBe(true)
+    expect(
+      isTransferFromPayee('Kraken', [
+        { payee: '' },
+        { payee: toPayeeTransferId('xrp') },
+        { payee: toPayeeTransferId('xlm') },
+      ]),
+    ).toBe(false)
   })
 
   it('resolves transaction type from current payee state', () => {

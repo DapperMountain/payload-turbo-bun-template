@@ -1,3 +1,9 @@
+import {
+  formatUnitAmount,
+  formatUnitAmountMagnitudeForEdit,
+  resolveUnitForAccount,
+  type UnitFormatInput,
+} from '@/lib/frontend/format-unit-amount'
 import { findAccount, isCreditCardAccount } from '@/lib/frontend/transaction-payee'
 import type { Account } from '@/types'
 
@@ -49,9 +55,16 @@ export function magnitudeFromSignedAmount(amount: number): number {
   return Math.abs(Number(amount) || 0)
 }
 
-/** Absolute amount string for inline edit inputs — keeps trailing cents zeros. */
-export function formatAmountMagnitudeForEdit(amount: number): string {
-  return magnitudeFromSignedAmount(amount).toFixed(2)
+/** Absolute amount string for inline edit inputs — respects account unit decimals when known. */
+export function formatAmountMagnitudeForEdit(
+  amount: number,
+  paymentAccount?: Account,
+  unitsById?: Record<string, UnitFormatInput>,
+): string {
+  return formatUnitAmountMagnitudeForEdit(
+    amount,
+    resolveUnitForAccount(paymentAccount, unitsById),
+  )
 }
 
 export function parseSignedAmountString(
@@ -89,7 +102,7 @@ export function paymentAccountFromList(
   return findAccount(accounts, accountId)
 }
 
-/** Monarch-style register amount: absolute currency; inflows get a non-editable `+`. */
+/** Monarch-style register amount: absolute unit amount; inflows get a non-editable `+`. */
 export type RegisterAmountDisplay = {
   absoluteText: string
   isCredit: boolean
@@ -100,12 +113,13 @@ export function registerAmountDisplay(
   amount: number,
   paymentAccount: Account | undefined,
   locale?: string,
+  unitsById?: Record<string, UnitFormatInput>,
 ): RegisterAmountDisplay {
   const absolute = Math.abs(Number(amount) || 0)
-  const absoluteText = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'USD',
-  }).format(absolute)
+  const absoluteText = formatUnitAmount(absolute, resolveUnitForAccount(paymentAccount, unitsById), {
+    locale,
+    absolute: true,
+  })
   const isCredit =
     absolute > 0 && directionFromSignedAmount(amount, paymentAccount) === 'inflow'
 

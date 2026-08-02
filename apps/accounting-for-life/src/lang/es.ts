@@ -106,24 +106,57 @@ export default {
         tabDetails: 'Detalles',
         tabSplits: 'Partidas',
         tabStandard: 'Estándar',
-        tabSplit: 'Dividir',
-        tabSwap: 'Intercambio',
+        tabSplit: 'Partidas',
+        tabSwap: 'Partidas',
+        editorHint:
+          'Cuenta, beneficiario e importe — añada una línea para comisiones, categorías extra u otras carteras.',
+        modeHintSimple: 'Una cuenta, beneficiario e importe — gasto diario o transferencia.',
+        modeHintSplit:
+          'Varias líneas de cuenta que deben equilibrarse. Añada una línea por cada movimiento, categoría o comisión.',
+        modeHintAllocate: 'Reparta un total entre categorías o destinos.',
+        modeHintJournal:
+          'Varias líneas de cuenta que deben equilibrarse en la moneda de cotización.',
+        modeCannotAllocate:
+          'Esta transacción necesita varias líneas / FX — use Añadir línea.',
+        modeCannotSimplify:
+          'Esta transacción tiene varias líneas que no se pueden contraer a un solo pago.',
+        splitAdvanced: 'Opciones avanzadas',
+        splitAdvancedHint:
+          'Importes con signo y tipos de cambio para unidades mixtas y comisiones.',
+        splitAdvancedDescription:
+          'Cada línea es una cuenta y un importe con signo en la unidad de esa cuenta. Las unidades mixtas se equilibran con los importes — no hace falta un precio en USD para registrar el movimiento.',
+        quoteUnitLabel: 'Valorar saldos en',
+        quoteUnitHint:
+          'Normalmente la moneda de informe. Cámbiela solo si quiere equilibrar este desglose en otra unidad.',
+        quoteUnitReportingSuffix: 'informe',
+        quoteToReportingRateLabel: '{reportingCode} por 1 {quoteCode}',
+        splitAmountSigned: 'Importe (con signo)',
+        splitQuoteBalance: 'Saldo en {quoteCode}: {amount}',
+        splitNativeBalance: 'Saldo: {amount}',
+        reportingDeferredHint:
+          'El valor en USD se completará cuando haya un tipo de mercado — no es necesario para guardar.',
+        splitReportingBalance: 'Saldo de informe: {amount}',
+        splitReportingBalanceSecondary: 'Informe ({reportingCode}): {amount}',
+        splitUseAllocate: 'Asignar un pago',
+        splitUseJournal: 'Editar partidas con signo',
         swapDescription:
-          'Asiento multilínea para intercambios, trueques y comisiones. Importes con signo; equilibra en moneda de informe.',
+          'Cada línea es un movimiento de cuenta con importe con signo. Las líneas deben equilibrarse en la moneda de cotización.',
         swapLeg: 'Partida {index}',
         swapAmount: 'Importe (con signo)',
-        swapFxRate: 'Tipo de cambio (informe por 1)',
-        swapReporting: 'Importe de informe',
+        swapFxRate: '{quoteCode} por 1 {accountUnitCode}',
+        swapQuoteAmount: 'En unidad de saldo ({quoteCode})',
+        swapReporting: 'Importe en cotización',
+        swapQuotePreview: '{quoteCode}: {amount}',
         swapReportingPreview: 'Informe: {amount}',
-        addSwapLeg: 'Añadir partida',
-        removeSwapLeg: 'Quitar partida',
-        swapBalance: 'Saldo de informe: {amount}',
-        swapUnbalanced: 'Las partidas deben equilibrarse en la moneda de informe',
+        addSwapLeg: 'Añadir línea',
+        removeSwapLeg: 'Quitar línea',
+        swapBalance: 'Saldo de cotización: {amount}',
+        swapUnbalanced: 'Las líneas deben equilibrarse en la moneda de cotización',
         typeLabel: 'Tipo',
         statusLabel: 'Estado',
-        splits: 'Partidas',
+        splits: 'Líneas',
         line: 'Línea',
-        addLine: 'Añadir partida',
+        addLine: 'Añadir línea',
         amountPlaceholder: 'Importe (con signo)',
         amountMagnitudePlaceholder: '0,00',
         amountDebit: 'Débito',
@@ -142,6 +175,44 @@ export default {
         editMultiple: 'Editar varias',
         doneSelecting: 'Listo',
         amountColumn: 'Importe',
+        transferAmountLeaving: 'Importe que sale',
+        transferAmountReceived: 'Importe que llega',
+        transferImpliedRate: 'Tipo implícito: {rate}',
+        transferReportingDeferred: 'Valor en moneda de informe aún no definido.',
+        editCrossUnitTransferInline:
+          'Abra la transacción para editar importes en distintas monedas.',
+        exchangeLabel: 'Intercambio',
+        exchangeHint:
+          'Entregue un activo y reciba otro — el beneficiario puede ser otra cuenta o un exchange.',
+        exchangeGiveAccount: 'Entrega',
+        exchangeReceiveAccount: 'Recibe',
+        editAsJournal: 'Editar como diario',
+        swapPairTitle: 'Intercambio',
+        swapPairHint: 'Estas dos líneas son el trueque — lo que entrega y lo que recibe.',
+        swapPairNote: 'Nota',
+        swapPairNotePlaceholder: 'Nota para este intercambio…',
+        swapPairFlip: 'Invertir lados',
+        swapRemoveGroup: 'Quitar intercambio',
+        swapExtraTitle: 'Otras líneas',
+        swapExtraHint: 'Las partidas adicionales van aparte del intercambio (categorías, ajustes, etc.).',
+        swapExtraLine: 'Partida {index}',
+        swapAddExtraLine: 'Añadir línea',
+        addEntry: 'Añadir',
+        addEntryLine: 'Línea',
+        addEntrySwap: 'Intercambio (entrega y recibe)',
+        economicKindLabel: 'Actividad',
+        economicKindHint:
+          'Este movimiento efectivo ↔ holding podría ser compra, venta o transferencia.',
+        economicKind: {
+          transfer: 'Transferencia',
+          withdraw: 'Retiro',
+          deposit: 'Depósito',
+          buy: 'Compra',
+          sell: 'Venta',
+          spend: 'Gasto',
+          earn: 'Ingreso',
+          other: 'Otro',
+        },
         balanceColumn: 'Saldo',
         setCategory: 'Elegir categoría…',
         applyCategory: 'Aplicar categoría',
@@ -160,11 +231,14 @@ export default {
         untitled: 'Sin título',
         splitTransaction: 'Dividir transacción',
         splitDescription:
-          'Asigne el total entre partidas. Elija beneficiario y categoría para gastos, o una cuenta de transferencia para mover dinero.',
+          'Asigne el total entre partidas. Cada partida de gasto puede tener su propio beneficiario y categoría; las de transferencia mueven dinero a otra cuenta.',
         splitAction: 'Dividir',
         editSplits: 'Editar divisiones',
         splitCount: '{count} divisiones',
         splitLine: 'Partida {index}',
+        splitTransactionIcon: 'Transacción dividida',
+        expandSplits: 'Mostrar partidas',
+        collapseSplits: 'Ocultar partidas',
         editSplitsInline: 'Use el editor de divisiones para esta transacción.',
         payeePlaceholder: 'Beneficiario o cuenta de transferencia…',
         searchPayees: 'Buscar beneficiarios…',
@@ -208,6 +282,9 @@ export default {
         dragColumn: 'Arrastrar para reordenar columna',
         categoryNeedsSplits:
           'Añada partidas en la pestaña Divisiones antes de asignar una categoría.',
+        payeeRequired: 'Indique un beneficiario o cuenta de transferencia antes de registrar',
+        payeeRequiredOnSplits: 'Cada partida necesita un beneficiario o cuenta de transferencia',
+        payeeRequiredOnCategorizedLine: 'Cada partida con categoría necesita un beneficiario',
       },
       forms: {
         save: 'Guardar',
@@ -330,7 +407,7 @@ export default {
       },
       workspaces: {
         reportingCurrencyDescription:
-          'Unidad por defecto para reportingAmount / instantáneas FX en partidas del diario.',
+          'Numerario de cartera / presupuesto. Unidad de cotización por defecto e instantáneas de reportingAmount.',
       },
       accounts: {
         categoryDescription: 'Sobre de pago solo para cuentas de tarjeta de crédito.',
@@ -361,17 +438,30 @@ export default {
         entriesDescription:
           'Partidas equilibradas al crear/actualizar (no se guardan en el documento de transacción). Omita para transacciones pendientes.',
         entryAmountDescription: 'Importe con signo (negativo = crédito, positivo = débito).',
+        quoteUnitDescription:
+          'Unidad de valoración para tipos y saldo de esta transacción. Por defecto, la moneda de informe del espacio.',
+        quoteToReportingRateDescription:
+          'Unidades de informe por 1 unidad de cotización cuando la cotización difiere de la moneda de informe.',
         entryFxRateDescription:
-          'Opcional. Unidades de informe por 1 unidad de la cuenta cuando la moneda difiere de la de informe del espacio.',
+          'Opcional. Unidades de cotización por 1 unidad de la cuenta cuando difiere de la unidad de cotización de la transacción.',
         payeeDescription: 'Beneficiario o título corto en el registro.',
-        notesDescription: 'Nota opcional; se muestra como icono en el registro cuando está definida.',
+        notesDescription: 'Obsoleto — las notas viven en las partidas.',
         notes: 'Notas',
+        entryNotes: 'Nota',
+        entryNotesPlaceholder: 'Nota para esta partida…',
         type: {
           transaction: 'Transacción',
           transfer: 'Transferencia',
           adjustment: 'Ajuste',
           opening_balance: 'Saldo inicial',
         },
+        economicKind: {
+          buy: 'Compra',
+          sell: 'Venta',
+          transfer: 'Transferencia',
+        },
+        economicKindDescription:
+          'Confirmación opcional cuando un movimiento efectivo↔holding podría ser compra, venta o transferencia. Vacío = derivar.',
         status: {
           pending: 'Pendiente',
           posted: 'Publicada',
@@ -388,9 +478,14 @@ export default {
       },
       transactionEntries: {
         amountDescription: 'Importe con signo en la unidad de la partida (negativo = crédito, positivo = débito).',
-        reportingAmountDescription: 'Importe en la moneda de informe del espacio cuando aplica FX.',
+        payeeDescription:
+          'Beneficiario opcional de esta partida (p. ej. el operador del cajero en una comisión). Las transferencias usan la cuenta de destino.',
+        notesDescription:
+          'Nota opcional de esta partida. Si solo una partida tiene nota, se muestra en el registro.',
+        reportingAmountDescription:
+          'Importe en la moneda de informe del espacio (vía cotización × cotización→informe).',
         fxRateDescription:
-          'Tipo de cambio aplicado a reportingAmount (unidades de informe por 1 unidad de la cuenta).',
+          'Tipo hacia la unidad de cotización de la transacción (unidades de cotización por 1 unidad de la cuenta). Instantánea al contabilizar.',
       },
       categoryGroups: {
         kind: {

@@ -13,6 +13,7 @@ import { TransactionSplitsEditor } from '@/app/(frontend)/_components/transactio
 import {
   buildEntriesForSave,
   hasEditableSplits,
+  headerPayeeFromAllocateSplits,
   isSplitFormBalanced,
   normalizeSplitFormFromEntries,
   serializeSplitForm,
@@ -75,10 +76,14 @@ export function TransactionSplitsPopover(props: TransactionSplitsPopoverProps) {
           categoryId: normalized.displayCategoryId,
           activeView: 'split',
           isTransfer: transaction.type === 'transfer',
+          accounts,
+          budgetId,
         })
+        const syncedPayee = headerPayeeFromAllocateSplits(splitState.splits)
         const result = await updateTransactionAction({
           id: transaction.id,
           entries,
+          ...(syncedPayee !== undefined ? { payee: syncedPayee } : {}),
         })
 
         if (!result.ok) {

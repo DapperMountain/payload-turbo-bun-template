@@ -141,6 +141,7 @@ export function TransactionsRegisterHeaderRow(props: RegisterHeaderRowProps) {
         </TableHead>
       ) : null}
 
+      <TableHead className="w-8 px-0" />
       <TableHead className="w-6 px-1" />
 
       {columnOrder.map((columnId) => (

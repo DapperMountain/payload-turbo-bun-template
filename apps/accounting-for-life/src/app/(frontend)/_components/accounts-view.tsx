@@ -8,8 +8,13 @@ import { PayloadFilterBar } from '@/app/(frontend)/_components/payload-filter-ba
 import { accountFilterFields } from '@/lib/filters/fields'
 import { parseFiltersParam } from '@/lib/filters/parse'
 import { sumPostedBalancesByAccount } from '@/lib/frontend/account-transactions.server'
+import {
+  formatUnitAmount,
+  resolveUnitForAccount,
+  unitsByIdFromDocs,
+} from '@/lib/frontend/format-unit-amount'
 import { findFilteredAccounts } from '@/lib/frontend/transaction-query.server'
-import type { Account, User } from '@/types'
+import type { Account, Unit, User } from '@/types'
 import { getRequestI18n } from '@/utils/i18n.server'
 import {
   Table,
@@ -21,15 +26,11 @@ import {
 } from '@dappermountain/ui/components/table'
 import { ChevronRight } from '@dappermountain/ui/icons'
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount)
-}
-
 export type AccountsViewProps = {
   accounts: Account[]
   balancesByAccountId: Record<string, number>
   budgets: { id: string; name: string }[]
-  units: { id: string; label: string }[]
+  units: Unit[]
 }
 
 export async function AccountsViewLoader(props: {
@@ -74,7 +75,7 @@ export async function AccountsViewLoader(props: {
       accounts={result.docs}
       balancesByAccountId={Object.fromEntries(balances)}
       budgets={budgets.docs.map((b) => ({ id: b.id, name: b.name }))}
-      units={units.docs.map((u) => ({ id: u.id, label: `${u.code} — ${u.name}` }))}
+      units={units.docs}
     />
   )
 }
@@ -82,6 +83,11 @@ export async function AccountsViewLoader(props: {
 export async function AccountsView(props: AccountsViewProps) {
   const { accounts, balancesByAccountId, budgets, units } = props
   const { t } = await getRequestI18n()
+  const unitsById = unitsByIdFromDocs(units)
+  const unitPickerOptions = units.map((unit) => ({
+    id: unit.id,
+    label: `${unit.code} — ${unit.name}`,
+  }))
 
   const relationshipOptions = {
     budget: budgets.map((b) => ({ id: b.id, label: b.name })),
@@ -94,7 +100,7 @@ export async function AccountsView(props: AccountsViewProps) {
           <h1 className="text-2xl font-semibold tracking-tight">{t('custom:collections:accounts:plural')}</h1>
           <p className="text-sm text-muted-foreground">{t('custom:collections:accounts:description')}</p>
         </div>
-        <AccountFormDialog budgets={budgets} units={units} />
+        <AccountFormDialog budgets={budgets} units={unitPickerOptions} />
       </div>
 
       <Suspense fallback={null}>
@@ -134,7 +140,10 @@ export async function AccountsView(props: AccountsViewProps) {
                     {typeof account.budget === 'object' && account.budget ? account.budget.name : '—'}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatMoney(balancesByAccountId[account.id] ?? 0)}
+                    {formatUnitAmount(
+                      balancesByAccountId[account.id] ?? 0,
+                      resolveUnitForAccount(account, unitsById),
+                    )}
                   </TableCell>
                   <TableCell className="w-10">
                     <Link

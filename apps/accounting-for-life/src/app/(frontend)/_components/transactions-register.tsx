@@ -22,7 +22,6 @@ import {
 } from '@/app/(frontend)/actions/transactions'
 import { GroupedPicker } from '@/app/(frontend)/_components/grouped-picker'
 import { TransactionDateTimePicker } from '@/app/(frontend)/_components/transaction-datetime-picker'
-import { TransactionDetailDialog } from '@/app/(frontend)/_components/transaction-detail-dialog'
 import { sortRegisterRows } from '@/app/(frontend)/_components/transactions-register/register-config'
 import {
   TransactionsRegisterHeaderRow,
@@ -30,7 +29,7 @@ import {
 } from '@/app/(frontend)/_components/transactions-register/register-header'
 import { TransactionsRegisterRowInline } from '@/app/(frontend)/_components/transactions-register/register-row'
 import { useRegisterTableState } from '@/app/(frontend)/_components/transactions-register/use-register-table-state'
-import { combineTransactionDateTime, normalizeTransactionDateTime } from '@/lib/frontend/transaction-datetime'
+import { normalizeTransactionDateTime } from '@/lib/frontend/transaction-datetime'
 import type { TransactionRegisterRow } from '@/lib/frontend/transactions.display'
 import {
   transactionIdFromRegisterRowKey,
@@ -41,7 +40,8 @@ import {
   buildGroupedAccountOptions,
   buildGroupedCategoryOptionsByGroup,
 } from '@/lib/frontend/transaction-picker-options'
-import type { Account, Category, Transaction } from '@/types'
+import { unitsByIdFromDocs } from '@/lib/frontend/format-unit-amount'
+import type { Account, Category, Transaction, Unit } from '@/types'
 import { useAppTranslation } from '@/utils/i18n.client'
 
 export type TransactionsRegisterProps = {
@@ -50,6 +50,9 @@ export type TransactionsRegisterProps = {
   accountLabels: Record<string, string>
   payeeOptionsByBudget: Record<string, string[]>
   reportingCurrencyId: string | null
+  units: Unit[]
+  /** Account register: format running balances in this account’s unit. */
+  balanceAccountId?: string | null
   registerGroups: {
     date: string
     label: string
@@ -66,9 +69,9 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
     registerGroups,
     categories,
     accounts,
-    accountLabels,
     payeeOptionsByBudget,
-    reportingCurrencyId,
+    units,
+    balanceAccountId = null,
     hiddenColumns,
   } = props
   const { t } = useAppTranslation()
@@ -76,6 +79,7 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
   const [isPending, startTransition] = useTransition()
   const { columnOrder, persistColumnOrder, sort, toggleSort } = useRegisterTableState()
   const columnDrag = useRegisterColumnDrag(columnOrder, persistColumnOrder)
+  const unitsById = useMemo(() => unitsByIdFromDocs(units), [units])
 
   const visibleColumnOrder = useMemo(
     () => columnOrder.filter((columnId) => !hiddenColumns?.includes(columnId)),
@@ -87,12 +91,6 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
   const [bulkCategory, setBulkCategory] = useState('')
   const [bulkDate, setBulkDate] = useState('')
   const [error, setError] = useState<string | null>(null)
-
-  const [detailId, setDetailId] = useState<string | null>(null)
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [detailInitialView, setDetailInitialView] = useState<
-    'standard' | 'split' | 'swap'
-  >('standard')
 
   const allCategoryOptions = useMemo(
     () => buildGroupedCategoryOptionsByGroup(categories),
@@ -146,14 +144,13 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
     }))
   }, [registerGroups, sort])
 
-  const detailTransaction = detailId ? (byId.get(detailId) ?? null) : null
   const selectedTransactionIds = useMemo(
     () => uniqueTransactionIdsFromRegisterRowKeys(selected),
     [selected],
   )
   const canMatch = selectedTransactionIds.length === 2
-  // Data columns + fixed status gutter + detail chevron (+ bulk checkbox when active).
-  const columnCount = visibleColumnOrder.length + (bulkMode ? 3 : 2)
+  // Data columns + expand gutter + status + detail (+ bulk checkbox when active).
+  const columnCount = visibleColumnOrder.length + (bulkMode ? 4 : 3)
 
   const toggleSelected = (id: string, checked: boolean) => {
     setSelected((prev) => {
@@ -178,9 +175,9 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
 
   const openDetail = (id: string, view: 'standard' | 'split' | 'swap' = 'standard') => {
     if (bulkMode) return
-    setDetailId(id)
-    setDetailInitialView(view)
-    setDetailOpen(true)
+    const href =
+      view === 'standard' ? `/transactions/${id}` : `/transactions/${id}?view=${view}`
+    router.push(href)
   }
 
   const runBulk = (
@@ -372,17 +369,23 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
                           <TransactionsRegisterRowInline
                             accountOptions={accountOptionsByBudget.get(row.budgetId) ?? []}
                             accounts={accounts}
+                            balanceAccountId={balanceAccountId}
                             bulkMode={bulkMode}
+                            categories={categories}
                             categoryOptions={categoryOptionsByBudget.get(row.budgetId) ?? []}
+                            columnCount={columnCount}
                             columnOrder={visibleColumnOrder}
                             formatAccountGroup={formatAccountGroup}
                             key={row.id}
                             onOpenDetail={openDetail}
                             onToggleSelected={toggleSelected}
                             payeeOptions={payeeOptionsByBudget[row.budgetId] ?? []}
+                            reportingCurrencyId={props.reportingCurrencyId}
                             row={row}
                             selected={selected.has(row.id)}
                             transaction={transaction}
+                            units={units}
+                            unitsById={unitsById}
                           />
                         )
                       })}
@@ -394,21 +397,6 @@ export function TransactionsRegister(props: TransactionsRegisterProps) {
           </SortableContext>
         </DndContext>
       </div>
-
-      <TransactionDetailDialog
-        accountLabels={accountLabels}
-        accounts={accounts}
-        categories={categories}
-        initialView={detailInitialView}
-        onOpenChange={(open) => {
-          setDetailOpen(open)
-          if (!open) setDetailInitialView('standard')
-        }}
-        open={detailOpen}
-        payeeOptionsByBudget={payeeOptionsByBudget}
-        reportingCurrencyId={reportingCurrencyId}
-        transaction={detailTransaction}
-      />
     </div>
   )
 }
